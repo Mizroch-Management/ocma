@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useWorkflow } from "@/contexts/workflow-context";
-import { Wand2, Target, Calendar, TrendingUp, Copy, Edit, Save, Sparkles } from "lucide-react";
+import { Wand2, Target, Calendar, TrendingUp, Copy, Edit, Save, Sparkles, ImageIcon, ExternalLink } from "lucide-react";
 
 export default function ContentCreation() {
   const [selectedStrategy, setSelectedStrategy] = useState("");
@@ -261,6 +261,10 @@ export default function ContentCreation() {
                           Edit
                         </Button>
                         <Button variant="outline" size="sm">
+                          <ImageIcon className="h-4 w-4 mr-1" />
+                          Add Visual
+                        </Button>
+                        <Button variant="outline" size="sm">
                           <Copy className="h-4 w-4 mr-1" />
                           Duplicate
                         </Button>
@@ -304,9 +308,15 @@ export default function ContentCreation() {
 
                       {content.isAIEnhanced && (
                         <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                          <p className="text-sm text-purple-700 font-medium">
-                            ✨ This content was enhanced using your AI-generated strategy and content plans
-                          </p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-purple-700 font-medium">
+                              ✨ This content was enhanced using your AI-generated strategy and content plans
+                            </p>
+                            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700">
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              Create Visual
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
