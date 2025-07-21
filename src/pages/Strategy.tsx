@@ -36,7 +36,8 @@ import {
   Palette,
   MessageSquare,
   Video,
-  Mic
+  Mic,
+  DollarSign
 } from "lucide-react";
 
 export default function Strategy() {
@@ -53,6 +54,31 @@ export default function Strategy() {
     keyMetrics: "Brand awareness, engagement rate, conversion rate, ROI",
     additionalContext: "Focus on sustainability and innovation messaging"
   });
+
+  // Performance Metrics Configuration
+  const [performanceMetrics, setPerformanceMetrics] = useState([
+    { id: 1, name: "Monthly Visitors", target: 30000, unit: "", type: "commercial", category: "traffic" },
+    { id: 2, name: "Paying Customers", target: 300, unit: "", type: "commercial", category: "conversions" },
+    { id: 3, name: "Cost per Lead", target: 12.00, unit: "$", type: "commercial", category: "costs" },
+    { id: 4, name: "Cost per Visitor", target: 1.80, unit: "$", type: "commercial", category: "costs" },
+    { id: 5, name: "Customer Acquisition Cost", target: 100, unit: "$", type: "commercial", category: "costs" },
+    { id: 6, name: "Monthly Reach", target: 200000, unit: "", type: "marketing", category: "reach" },
+    { id: 7, name: "Engagement Rate", target: 8.0, unit: "%", type: "marketing", category: "engagement" },
+    { id: 8, name: "Content Views", target: 120000, unit: "", type: "marketing", category: "content" },
+    { id: 9, name: "Lead Generation", target: 2000, unit: "", type: "marketing", category: "leads" },
+    { id: 10, name: "Social Media Followers", target: 15000, unit: "", type: "marketing", category: "growth" }
+  ]);
+
+  const [newMetric, setNewMetric] = useState({
+    name: "",
+    target: "",
+    unit: "",
+    type: "commercial",
+    category: "traffic"
+  });
+
+  const [aiTargetBreakdown, setAiTargetBreakdown] = useState(null);
+  const [isGeneratingBreakdown, setIsGeneratingBreakdown] = useState(false);
   
   const [strategies, setStrategies] = useState([
     {
@@ -254,6 +280,80 @@ export default function Strategy() {
     }, 3000);
   };
 
+  const addMetric = () => {
+    if (!newMetric.name || !newMetric.target) return;
+    
+    const newId = Math.max(...performanceMetrics.map(m => m.id)) + 1;
+    setPerformanceMetrics(prev => [...prev, {
+      ...newMetric,
+      id: newId,
+      target: parseFloat(newMetric.target)
+    }]);
+    
+    setNewMetric({
+      name: "",
+      target: "",
+      unit: "",
+      type: "commercial",
+      category: "traffic"
+    });
+    
+    toast({
+      title: "Metric Added",
+      description: "Performance metric has been added to your tracking list.",
+    });
+  };
+
+  const removeMetric = (metricId) => {
+    setPerformanceMetrics(prev => prev.filter(metric => metric.id !== metricId));
+    toast({
+      title: "Metric Removed",
+      description: "Performance metric has been removed from tracking.",
+    });
+  };
+
+  const generateAITargetBreakdown = async () => {
+    setIsGeneratingBreakdown(true);
+    
+    // Simulate AI analysis
+    setTimeout(() => {
+      const breakdown = {
+        timeBreakdown: {
+          daily: Math.round(performanceMetrics.find(m => m.name === "Monthly Visitors")?.target / 30) || 1000,
+          weekly: Math.round(performanceMetrics.find(m => m.name === "Monthly Visitors")?.target / 4) || 7500,
+          monthly: performanceMetrics.find(m => m.name === "Monthly Visitors")?.target || 30000
+        },
+        audienceBreakdown: {
+          "Millennials (25-35)": "40%",
+          "Gen Z (18-24)": "35%", 
+          "Gen X (36-50)": "20%",
+          "Other": "5%"
+        },
+        platformBreakdown: {
+          "Instagram": "35%",
+          "LinkedIn": "25%",
+          "Twitter": "20%",
+          "Facebook": "15%",
+          "TikTok": "5%"
+        },
+        insights: [
+          "Focus on Instagram and LinkedIn for maximum reach",
+          "Target weekend posting for Millennial engagement",
+          "Allocate 60% of budget to top 2 platforms",
+          "Consider micro-influencer partnerships for Gen Z"
+        ]
+      };
+      
+      setAiTargetBreakdown(breakdown);
+      setIsGeneratingBreakdown(false);
+      
+      toast({
+        title: "AI Analysis Complete",
+        description: "Target breakdown generated with platform and audience insights.",
+      });
+    }, 3000);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case "Active": return "default";
@@ -416,6 +516,238 @@ export default function Strategy() {
               <p className="text-sm">{masterStrategy.compliance}</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      {/* Performance Metrics Configuration Section */}
+      <Card className="border-secondary/20 bg-gradient-to-r from-secondary/5 to-background">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                <BarChart3 className="h-5 w-5 text-secondary" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Performance Metrics Configuration</CardTitle>
+                <CardDescription>
+                  Define the metrics you want to track and AI will help break them down by time, audience, and platform
+                </CardDescription>
+              </div>
+            </div>
+            <Button 
+              onClick={generateAITargetBreakdown}
+              disabled={isGeneratingBreakdown}
+              className="flex items-center gap-2"
+            >
+              <Brain className="h-4 w-4" />
+              {isGeneratingBreakdown ? "Analyzing..." : "AI Target Breakdown"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Add New Metric */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-dashed border-muted-foreground/25 rounded-lg">
+            <div className="space-y-2">
+              <Label>Metric Name</Label>
+              <Input
+                value={newMetric.name}
+                onChange={(e) => setNewMetric(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Monthly Visitors"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Target Value</Label>
+              <Input
+                type="number"
+                value={newMetric.target}
+                onChange={(e) => setNewMetric(prev => ({ ...prev, target: e.target.value }))}
+                placeholder="30000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Unit</Label>
+              <Select value={newMetric.unit} onValueChange={(value) => setNewMetric(prev => ({ ...prev, unit: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="$">$ (Currency)</SelectItem>
+                  <SelectItem value="%">% (Percentage)</SelectItem>
+                  <SelectItem value="k">k (Thousands)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select value={newMetric.type} onValueChange={(value) => setNewMetric(prev => ({ ...prev, type: value }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="commercial">Commercial</SelectItem>
+                  <SelectItem value="marketing">Marketing</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button onClick={addMetric} className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Metric
+              </Button>
+            </div>
+          </div>
+
+          {/* Current Metrics */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Commercial Metrics */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Commercial Metrics</h3>
+                </div>
+                <div className="space-y-3">
+                  {performanceMetrics.filter(metric => metric.type === "commercial").map((metric) => (
+                    <div key={metric.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium">{metric.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Target: {metric.unit}{metric.target}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeMetric(metric.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Marketing Metrics */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-secondary" />
+                  <h3 className="font-semibold">Marketing Metrics</h3>
+                </div>
+                <div className="space-y-3">
+                  {performanceMetrics.filter(metric => metric.type === "marketing").map((metric) => (
+                    <div key={metric.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium">{metric.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Target: {metric.target}{metric.unit}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeMetric(metric.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Target Breakdown Results */}
+          {aiTargetBreakdown && (
+            <div className="mt-6 space-y-6 p-6 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">AI Target Breakdown Analysis</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Time Breakdown */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Time Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Daily</span>
+                      <span className="text-sm font-medium">{aiTargetBreakdown.timeBreakdown.daily}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Weekly</span>
+                      <span className="text-sm font-medium">{aiTargetBreakdown.timeBreakdown.weekly}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Monthly</span>
+                      <span className="text-sm font-medium">{aiTargetBreakdown.timeBreakdown.monthly}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Audience Breakdown */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Audience Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {Object.entries(aiTargetBreakdown.audienceBreakdown).map(([audience, percentage]) => (
+                      <div key={audience} className="flex justify-between">
+                        <span className="text-sm">{audience}</span>
+                        <span className="text-sm font-medium">{percentage as string}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Platform Breakdown */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Platform Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {Object.entries(aiTargetBreakdown.platformBreakdown).map(([platform, percentage]) => (
+                      <div key={platform} className="flex justify-between">
+                        <span className="text-sm">{platform}</span>
+                        <span className="text-sm font-medium">{percentage as string}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* AI Insights */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-primary" />
+                  <h4 className="font-medium">AI Insights & Recommendations</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {aiTargetBreakdown.insights.map((insight, index) => (
+                    <div key={index} className="flex items-start gap-2 p-3 bg-background/50 rounded-md">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                      <span className="text-sm">{insight}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

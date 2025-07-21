@@ -33,18 +33,54 @@ const platformData = [
   { name: "TikTok", value: 8, color: "hsl(var(--destructive))" },
 ];
 
-const kpiTargets = [
-  { metric: "Monthly Visitors", current: 25400, target: 30000, unit: "", type: "commercial" },
-  { metric: "Paying Customers", current: 254, target: 300, unit: "", type: "commercial" },
-  { metric: "Cost per Lead", current: 15.50, target: 12.00, unit: "$", type: "commercial" },
-  { metric: "Cost per Visitor", current: 2.10, target: 1.80, unit: "$", type: "commercial" },
-  { metric: "Customer Acquisition Cost", current: 125, target: 100, unit: "$", type: "commercial" },
-  { metric: "Monthly Reach", current: 148000, target: 200000, unit: "", type: "marketing" },
-  { metric: "Engagement Rate", current: 6.8, target: 8.0, unit: "%", type: "marketing" },
-  { metric: "Content Views", current: 89500, target: 120000, unit: "", type: "marketing" },
-  { metric: "Lead Generation", current: 1680, target: 2000, unit: "", type: "marketing" },
-  { metric: "Social Media Followers", current: 12400, target: 15000, unit: "", type: "marketing" },
-];
+// This would typically come from a shared state or API - connected to Strategy page metrics
+const getPerformanceTargets = () => {
+  // In a real app, this would fetch from the Strategy page's performance metrics
+  return [
+    { metric: "Monthly Visitors", current: 25400, target: 30000, unit: "", type: "commercial", 
+      breakdown: { daily: 847, weekly: 6350, monthly: 25400 },
+      platforms: { Instagram: 8890, LinkedIn: 6350, Twitter: 5080, Facebook: 3810, TikTok: 1270 }
+    },
+    { metric: "Paying Customers", current: 254, target: 300, unit: "", type: "commercial",
+      breakdown: { daily: 8, weekly: 64, monthly: 254 },
+      platforms: { Instagram: 89, LinkedIn: 64, Twitter: 51, Facebook: 38, TikTok: 12 }
+    },
+    { metric: "Cost per Lead", current: 15.50, target: 12.00, unit: "$", type: "commercial",
+      breakdown: { daily: 15.50, weekly: 15.50, monthly: 15.50 },
+      platforms: { Instagram: 12.30, LinkedIn: 18.50, Twitter: 14.20, Facebook: 16.80, TikTok: 21.40 }
+    },
+    { metric: "Cost per Visitor", current: 2.10, target: 1.80, unit: "$", type: "commercial",
+      breakdown: { daily: 2.10, weekly: 2.10, monthly: 2.10 },
+      platforms: { Instagram: 1.85, LinkedIn: 2.45, Twitter: 1.95, Facebook: 2.25, TikTok: 2.85 }
+    },
+    { metric: "Customer Acquisition Cost", current: 125, target: 100, unit: "$", type: "commercial",
+      breakdown: { daily: 125, weekly: 125, monthly: 125 },
+      platforms: { Instagram: 98, LinkedIn: 145, Twitter: 115, Facebook: 135, TikTok: 180 }
+    },
+    { metric: "Monthly Reach", current: 148000, target: 200000, unit: "", type: "marketing",
+      breakdown: { daily: 4933, weekly: 37000, monthly: 148000 },
+      platforms: { Instagram: 51800, LinkedIn: 37000, Twitter: 29600, Facebook: 22200, TikTok: 7400 }
+    },
+    { metric: "Engagement Rate", current: 6.8, target: 8.0, unit: "%", type: "marketing",
+      breakdown: { daily: 6.8, weekly: 6.8, monthly: 6.8 },
+      platforms: { Instagram: 8.2, LinkedIn: 5.8, Twitter: 7.1, Facebook: 6.2, TikTok: 9.5 }
+    },
+    { metric: "Content Views", current: 89500, target: 120000, unit: "", type: "marketing",
+      breakdown: { daily: 2983, weekly: 22375, monthly: 89500 },
+      platforms: { Instagram: 31325, LinkedIn: 22375, Twitter: 17900, Facebook: 13425, TikTok: 4475 }
+    },
+    { metric: "Lead Generation", current: 1680, target: 2000, unit: "", type: "marketing",
+      breakdown: { daily: 56, weekly: 420, monthly: 1680 },
+      platforms: { Instagram: 588, LinkedIn: 420, Twitter: 336, Facebook: 252, TikTok: 84 }
+    },
+    { metric: "Social Media Followers", current: 12400, target: 15000, unit: "", type: "marketing",
+      breakdown: { daily: 413, weekly: 3100, monthly: 12400 },
+      platforms: { Instagram: 4340, LinkedIn: 3100, Twitter: 2480, Facebook: 1860, TikTok: 620 }
+    },
+  ];
+};
+
+const kpiTargets = getPerformanceTargets();
 
 export default function Analytics() {
   const [timeRange, setTimeRange] = useState("6months");
@@ -337,6 +373,101 @@ export default function Analytics() {
               </ChartContainer>
             </CardContent>
           </Card>
+
+          {/* AI-Powered Breakdown Analysis */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Time Breakdown */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Time Breakdown Analysis
+                </CardTitle>
+                <CardDescription>AI-generated time-based target breakdown</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {kpiTargets.slice(0, 3).map((kpi, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="text-sm font-medium">{kpi.metric}</div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Daily</span>
+                        <span>{kpi.unit}{formatNumber(kpi.breakdown.daily)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Weekly</span>
+                        <span>{kpi.unit}{formatNumber(kpi.breakdown.weekly)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Monthly</span>
+                        <span>{kpi.unit}{formatNumber(kpi.breakdown.monthly)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Platform Performance */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Platform Performance
+                </CardTitle>
+                <CardDescription>Performance breakdown by social platform</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Object.entries(kpiTargets[0].platforms).map(([platform, value]) => (
+                  <div key={platform} className="flex items-center justify-between">
+                    <span className="text-sm">{platform}</span>
+                    <div className="flex items-center gap-2">
+                      <Progress 
+                        value={(value / kpiTargets[0].current) * 100} 
+                        className="w-16 h-2" 
+                      />
+                      <span className="text-xs w-12 text-right">{formatNumber(value)}</span>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Audience Insights */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Target Audience Analysis
+                </CardTitle>
+                <CardDescription>AI recommendations for audience targeting</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Recommended Focus</div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Millennials (25-35)</span>
+                      <span className="text-primary font-medium">40%</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Gen Z (18-24)</span>
+                      <span className="text-secondary font-medium">35%</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Gen X (36-50)</span>
+                      <span className="text-muted-foreground">20%</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <div className="text-xs text-muted-foreground">
+                    AI suggests focusing 75% of efforts on Millennials and Gen Z for optimal ROI
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="content" className="space-y-6">
