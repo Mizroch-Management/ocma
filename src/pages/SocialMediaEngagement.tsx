@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { 
   MessageSquare, 
@@ -36,7 +37,17 @@ import {
   Youtube,
   CheckCircle,
   AlertCircle,
-  Zap
+  Zap,
+  Brain,
+  Lightbulb,
+  Wand2,
+  ThumbsUp,
+  ThumbsDown,
+  Copy,
+  Send,
+  TrendingDown,
+  BarChart3,
+  PieChart
 } from "lucide-react";
 
 export default function SocialMediaEngagement() {
@@ -46,8 +57,12 @@ export default function SocialMediaEngagement() {
   const [engagementType, setEngagementType] = useState("");
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [engagementQueue, setEngagementQueue] = useState<any[]>([]);
+  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
+  const [selectedThread, setSelectedThread] = useState<any>(null);
 
   const platforms = [
     { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
@@ -66,9 +81,45 @@ export default function SocialMediaEngagement() {
   ];
 
   const mockInfluencers = [
-    { id: 1, name: "Sarah Johnson", handle: "@sarahjohnson", platform: "instagram", followers: "125K", engagement: "4.2%", lastPost: "2h ago", niche: "Marketing" },
-    { id: 2, name: "Tech Guru Mike", handle: "@techguru", platform: "twitter", followers: "89K", engagement: "3.8%", lastPost: "1h ago", niche: "Technology" },
-    { id: 3, name: "Business Leader Jane", handle: "@bizleader", platform: "linkedin", followers: "67K", engagement: "5.1%", lastPost: "4h ago", niche: "Business" }
+    { 
+      id: 1, 
+      name: "Sarah Johnson", 
+      handle: "@sarahjohnson", 
+      platform: "instagram", 
+      followers: "125K", 
+      engagement: "4.2%", 
+      lastPost: "2h ago", 
+      niche: "Marketing",
+      aiScore: 92,
+      reason: "High engagement rate with your target audience, frequently posts about marketing trends",
+      suggestedApproach: "Comment on her latest post about content marketing strategies with a thoughtful insight"
+    },
+    { 
+      id: 2, 
+      name: "Tech Guru Mike", 
+      handle: "@techguru", 
+      platform: "twitter", 
+      followers: "89K", 
+      engagement: "3.8%", 
+      lastPost: "1h ago", 
+      niche: "Technology",
+      aiScore: 87,
+      reason: "Shares content similar to your industry, good potential for collaboration",
+      suggestedApproach: "Reply to his thread about AI trends with your company's perspective"
+    },
+    { 
+      id: 3, 
+      name: "Business Leader Jane", 
+      handle: "@bizleader", 
+      platform: "linkedin", 
+      followers: "67K", 
+      engagement: "5.1%", 
+      lastPost: "4h ago", 
+      niche: "Business",
+      aiScore: 95,
+      reason: "Perfect alignment with your business goals and audience demographics",
+      suggestedApproach: "Send a personalized connection request mentioning her recent article on leadership"
+    }
   ];
 
   const mockHashtagResults = [
@@ -79,51 +130,139 @@ export default function SocialMediaEngagement() {
   ];
 
   const mockEngagementQueue = [
-    { id: 1, type: "reply", user: "@sarahjohnson", content: "Great insights on marketing trends!", platform: "instagram", status: "pending", priority: "high" },
-    { id: 2, type: "like", user: "@techguru", content: "Latest tech innovations post", platform: "twitter", status: "completed", priority: "medium" },
-    { id: 3, type: "comment", user: "@bizleader", content: "Thoughtful business strategy analysis", platform: "linkedin", status: "pending", priority: "high" }
+    { 
+      id: 1, 
+      type: "reply", 
+      user: "@sarahjohnson", 
+      content: "Great insights on marketing trends!", 
+      platform: "instagram", 
+      status: "pending", 
+      priority: "high",
+      originalPost: "Our latest blog post about content marketing strategies that actually work in 2024",
+      aiSuggestion: "Thank you! We're always excited to share actionable insights. What marketing challenge are you currently facing? We'd love to help!",
+      sentiment: "positive",
+      engagement_potential: "high"
+    },
+    { 
+      id: 2, 
+      type: "like", 
+      user: "@techguru", 
+      content: "Latest tech innovations post", 
+      platform: "twitter", 
+      status: "completed", 
+      priority: "medium",
+      originalPost: "AI is revolutionizing how we approach business automation",
+      aiSuggestion: "Engage with a thoughtful reply about specific AI applications",
+      sentiment: "neutral",
+      engagement_potential: "medium"
+    },
+    { 
+      id: 3, 
+      type: "comment", 
+      user: "@bizleader", 
+      content: "Thoughtful business strategy analysis", 
+      platform: "linkedin", 
+      status: "pending", 
+      priority: "high",
+      originalPost: "5 key strategies for scaling B2B businesses in competitive markets",
+      aiSuggestion: "Thanks for reading! Based on your experience in the industry, which of these strategies have you found most effective? Would love to hear your perspective.",
+      sentiment: "positive",
+      engagement_potential: "very_high"
+    }
   ];
 
   const handleSearchInfluencers = async () => {
     setIsSearching(true);
-    // Simulate API call
+    // Simulate AI analysis
     setTimeout(() => {
       setSearchResults(mockInfluencers);
       setIsSearching(false);
+      toast({
+        title: "AI Analysis Complete",
+        description: "Found 3 high-potential influencers with engagement recommendations",
+      });
+    }, 2000);
+  };
+
+  const handleAIAnalysis = async () => {
+    setIsAnalyzing(true);
+    // Simulate AI analysis of current engagement opportunities
+    setTimeout(() => {
+      setAiRecommendations([
+        {
+          type: "thread_reply",
+          priority: "high",
+          suggestion: "Reply to @sarahjohnson's comment with personalized marketing advice",
+          confidence: 94
+        },
+        {
+          type: "influencer_outreach", 
+          priority: "medium",
+          suggestion: "Reach out to @bizleader with collaboration proposal",
+          confidence: 87
+        }
+      ]);
+      setIsAnalyzing(false);
+      toast({
+        title: "AI Recommendations Ready",
+        description: "Generated 2 high-priority engagement opportunities",
+      });
     }, 1500);
+  };
+
+  const handleGenerateAIResponse = async (thread: any) => {
+    setIsGeneratingResponse(true);
+    setSelectedThread(thread);
+    // Simulate AI response generation
+    setTimeout(() => {
+      setIsGeneratingResponse(false);
+      toast({
+        title: "AI Response Generated",
+        description: "Personalized response ready for review",
+      });
+    }, 1000);
   };
 
   const handleEngageWithInfluencer = (influencer: any) => {
     toast({
-      title: "Engagement Initiated",
-      description: `Started engaging with ${influencer.name} on ${influencer.platform}`,
+      title: "AI Engagement Strategy Applied",
+      description: `Following AI recommendation for ${influencer.name}: ${influencer.suggestedApproach}`,
     });
   };
 
   const handleAutoReply = (enabled: boolean) => {
     setAutoReplyEnabled(enabled);
     toast({
-      title: enabled ? "Auto-Reply Enabled" : "Auto-Reply Disabled",
-      description: enabled ? "AI will automatically reply to mentions and comments" : "Manual reply mode activated",
+      title: enabled ? "AI Auto-Reply Enabled" : "AI Auto-Reply Disabled",
+      description: enabled ? "AI will analyze context and generate appropriate replies" : "Manual reply mode activated",
     });
   };
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Social Media Engagement</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your social media engagement, monitor conversations, and build meaningful relationships.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">AI-Powered Social Media Engagement</h1>
+          <p className="text-muted-foreground mt-2">
+            Let AI analyze conversations, recommend responses, and identify the best engagement opportunities.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={handleAIAnalysis} disabled={isAnalyzing}>
+            {isAnalyzing ? <Refresh className="h-4 w-4 mr-2 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
+            {isAnalyzing ? "Analyzing..." : "AI Analysis"}
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="ai-recommendations">AI Recommendations</TabsTrigger>
           <TabsTrigger value="influencers">Influencers</TabsTrigger>
-          <TabsTrigger value="hashtags">Hashtags</TabsTrigger>
           <TabsTrigger value="threads">Thread Management</TabsTrigger>
+          <TabsTrigger value="hashtags">Hashtags</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
         </TabsList>
 
@@ -224,16 +363,179 @@ export default function SocialMediaEngagement() {
           </Card>
         </TabsContent>
 
+        {/* AI Recommendations Tab */}
+        <TabsContent value="ai-recommendations" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                AI Engagement Recommendations
+              </CardTitle>
+              <CardDescription>
+                AI-powered insights and suggestions for optimal social media engagement
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Analysis Progress */}
+              {isAnalyzing && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Refresh className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">AI is analyzing your engagement opportunities...</span>
+                  </div>
+                  <Progress value={75} className="w-full" />
+                </div>
+              )}
+
+              {/* AI Recommendations Grid */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Thread Response Suggestions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {mockEngagementQueue.filter(item => item.status === 'pending').map((item) => (
+                      <div key={item.id} className="p-4 border rounded-lg space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-medium">{item.user}</p>
+                            <p className="text-sm text-muted-foreground">{item.content}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs">{item.platform}</Badge>
+                              <Badge variant={item.sentiment === 'positive' ? 'default' : 'secondary'} className="text-xs">
+                                {item.sentiment}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">{item.engagement_potential} potential</Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Brain className="h-4 w-4 text-primary" />
+                            <span className="text-xs font-medium">AI</span>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-muted p-3 rounded-lg">
+                          <Label className="text-xs font-medium text-muted-foreground">AI Suggested Response:</Label>
+                          <p className="text-sm mt-1">{item.aiSuggestion}</p>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => handleGenerateAIResponse(item)}>
+                            <Wand2 className="h-4 w-4 mr-1" />
+                            Refine
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copy
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Send className="h-4 w-4 mr-1" />
+                            Send
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Star className="h-4 w-4" />
+                      Influencer Outreach Strategy
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {mockInfluencers.slice(0, 2).map((influencer) => (
+                      <div key={influencer.id} className="p-4 border rounded-lg space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-medium">{influencer.name}</p>
+                            <p className="text-sm text-muted-foreground">{influencer.handle}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs">{influencer.platform}</Badge>
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-xs">AI Score: {influencer.aiScore}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+                            <Label className="text-xs font-medium text-blue-700 dark:text-blue-300">Why This Influencer:</Label>
+                            <p className="text-sm mt-1 text-blue-600 dark:text-blue-400">{influencer.reason}</p>
+                          </div>
+                          
+                          <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg">
+                            <Label className="text-xs font-medium text-green-700 dark:text-green-300">Suggested Approach:</Label>
+                            <p className="text-sm mt-1 text-green-600 dark:text-green-400">{influencer.suggestedApproach}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => handleEngageWithInfluencer(influencer)}>
+                            <Target className="h-4 w-4 mr-1" />
+                            Execute Strategy
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Profile
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Performance Insights */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    AI Performance Insights
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">87%</div>
+                      <p className="text-xs text-muted-foreground">Response Success Rate</p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">+23%</div>
+                      <p className="text-xs text-muted-foreground">Engagement Increase</p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">4.2x</div>
+                      <p className="text-xs text-muted-foreground">Response Speed</p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">12</div>
+                      <p className="text-xs text-muted-foreground">New Connections</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Influencers Tab */}
         <TabsContent value="influencers" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Star className="h-5 w-5" />
-                Influencer Outreach
+                AI-Powered Influencer Discovery
               </CardTitle>
               <CardDescription>
-                Find and engage with relevant influencers in your industry
+                AI analyzes influencers and provides personalized outreach strategies
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -268,38 +570,65 @@ export default function SocialMediaEngagement() {
               </div>
 
               <Button onClick={handleSearchInfluencers} disabled={isSearching} className="w-full">
-                {isSearching ? <Refresh className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                {isSearching ? "Searching..." : "Search Influencers"}
+                {isSearching ? <Refresh className="h-4 w-4 mr-2 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
+                {isSearching ? "AI Analyzing Influencers..." : "AI-Powered Influencer Search"}
               </Button>
 
               {/* Search Results */}
               {searchResults.length > 0 && (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Found Influencers</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">AI-Recommended Influencers</h3>
+                    <Badge variant="secondary">{searchResults.length} found</Badge>
+                  </div>
                   {searchResults.map((influencer) => (
-                    <div key={influencer.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                          <User className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{influencer.name}</p>
-                          <p className="text-sm text-muted-foreground">{influencer.handle}</p>
-                          <div className="flex items-center gap-4 mt-1">
-                            <span className="text-xs text-muted-foreground">{influencer.followers} followers</span>
-                            <span className="text-xs text-muted-foreground">{influencer.engagement} engagement</span>
-                            <Badge variant="outline" className="text-xs">{influencer.niche}</Badge>
+                    <div key={influencer.id} className="p-4 border rounded-lg space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                            <User className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{influencer.name}</p>
+                            <p className="text-sm text-muted-foreground">{influencer.handle}</p>
+                            <div className="flex items-center gap-4 mt-1">
+                              <span className="text-xs text-muted-foreground">{influencer.followers} followers</span>
+                              <span className="text-xs text-muted-foreground">{influencer.engagement} engagement</span>
+                              <Badge variant="outline" className="text-xs">{influencer.niche}</Badge>
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 mb-2">
+                            <Brain className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">AI Score: {influencer.aiScore}%</span>
+                          </div>
+                          <Badge variant={influencer.aiScore >= 90 ? 'default' : 'secondary'}>
+                            {influencer.aiScore >= 90 ? 'High Priority' : 'Medium Priority'}
+                          </Badge>
+                        </div>
                       </div>
+                      
+                      <div className="space-y-3">
+                        <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+                          <Label className="text-xs font-medium text-blue-700 dark:text-blue-300">AI Analysis:</Label>
+                          <p className="text-sm mt-1 text-blue-600 dark:text-blue-400">{influencer.reason}</p>
+                        </div>
+                        
+                        <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg">
+                          <Label className="text-xs font-medium text-green-700 dark:text-green-300">Recommended Approach:</Label>
+                          <p className="text-sm mt-1 text-green-600 dark:text-green-400">{influencer.suggestedApproach}</p>
+                        </div>
+                      </div>
+                      
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline">
                           <Eye className="h-4 w-4 mr-1" />
-                          Profile
+                          View Profile
                         </Button>
                         <Button size="sm" onClick={() => handleEngageWithInfluencer(influencer)}>
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          Engage
+                          <Target className="h-4 w-4 mr-1" />
+                          Execute AI Strategy
                         </Button>
                       </div>
                     </div>
@@ -455,9 +784,9 @@ export default function SocialMediaEngagement() {
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <Label className="text-base">Auto-Reply to Mentions</Label>
+                  <Label className="text-base">AI Auto-Reply to Mentions</Label>
                   <p className="text-sm text-muted-foreground">
-                    Automatically reply to mentions and direct messages
+                    Let AI analyze context and generate appropriate responses automatically
                   </p>
                 </div>
                 <Switch checked={autoReplyEnabled} onCheckedChange={handleAutoReply} />
@@ -466,46 +795,80 @@ export default function SocialMediaEngagement() {
               <Separator />
 
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Automation Rules</h3>
+                <h3 className="text-lg font-semibold">AI Automation Rules</h3>
                 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Keyword Triggers</CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Brain className="h-4 w-4" />
+                      Intelligent Response Generation
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Keywords</Label>
-                      <Input placeholder="help, support, pricing" />
+                      <Label>AI Response Style</Label>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select response style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="professional">Professional & Formal</SelectItem>
+                          <SelectItem value="friendly">Friendly & Casual</SelectItem>
+                          <SelectItem value="enthusiastic">Enthusiastic & Energetic</SelectItem>
+                          <SelectItem value="helpful">Helpful & Supportive</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Auto Response</Label>
-                      <Textarea placeholder="Thank you for reaching out! We'll get back to you soon..." />
+                      <Label>Context Awareness</Label>
+                      <div className="flex items-center space-x-2">
+                        <input type="checkbox" id="userHistory" className="rounded" defaultChecked />
+                        <Label htmlFor="userHistory" className="text-sm">Consider user interaction history</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input type="checkbox" id="postContext" className="rounded" defaultChecked />
+                        <Label htmlFor="postContext" className="text-sm">Analyze original post context</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input type="checkbox" id="sentiment" className="rounded" defaultChecked />
+                        <Label htmlFor="sentiment" className="text-sm">Sentiment-aware responses</Label>
+                      </div>
                     </div>
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add Rule
+                    <Button className="w-full">
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Configure AI Responses
                     </Button>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Engagement Scheduling</CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Smart Scheduling
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>AI Optimal Timing</Label>
+                      <div className="flex items-center space-x-2">
+                        <input type="checkbox" id="aiTiming" className="rounded" defaultChecked />
+                        <Label htmlFor="aiTiming" className="text-sm">Let AI choose optimal response timing</Label>
+                      </div>
+                    </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label>Peak Hours</Label>
-                        <Input placeholder="9:00 AM - 5:00 PM" />
+                        <Label>Response Delay (AI Recommended)</Label>
+                        <Input placeholder="2-5 minutes" disabled />
                       </div>
                       <div className="space-y-2">
                         <Label>Daily Engagement Limit</Label>
                         <Input placeholder="50" type="number" />
                       </div>
                     </div>
-                    <Button size="sm">
-                      <Settings className="h-4 w-4 mr-1" />
-                      Configure Schedule
+                    <Button className="w-full">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Apply AI Schedule
                     </Button>
                   </CardContent>
                 </Card>
@@ -514,6 +877,65 @@ export default function SocialMediaEngagement() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* AI Response Generation Dialog */}
+      <Dialog open={!!selectedThread} onOpenChange={() => setSelectedThread(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              AI Response Generator
+            </DialogTitle>
+            <DialogDescription>
+              Refining AI response for {selectedThread?.user}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedThread && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <Label className="text-sm font-medium">Original Comment:</Label>
+                <p className="text-sm mt-1">{selectedThread.content}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>AI Generated Response:</Label>
+                <Textarea 
+                  value={selectedThread.aiSuggestion}
+                  className="min-h-[100px]"
+                  placeholder="AI is generating a personalized response..."
+                />
+              </div>
+              
+              <div className="grid gap-2 md:grid-cols-3">
+                <Button variant="outline" size="sm">
+                  <Refresh className="h-4 w-4 mr-1" />
+                  Regenerate
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Lightbulb className="h-4 w-4 mr-1" />
+                  More Casual
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Target className="h-4 w-4 mr-1" />
+                  More Professional
+                </Button>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button className="flex-1">
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Response
+                </Button>
+                <Button variant="outline">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy to Clipboard
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
