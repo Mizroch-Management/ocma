@@ -77,6 +77,15 @@ export default function Strategy() {
     category: "traffic"
   });
 
+  const [editingMetric, setEditingMetric] = useState<string | null>(null);
+  const [editMetricData, setEditMetricData] = useState({
+    name: "",
+    target: "",
+    unit: "none",
+    type: "commercial",
+    category: "traffic"
+  });
+
   const [aiTargetBreakdown, setAiTargetBreakdown] = useState(null);
   const [isGeneratingBreakdown, setIsGeneratingBreakdown] = useState(false);
   
@@ -309,6 +318,50 @@ export default function Strategy() {
     toast({
       title: "Metric Removed",
       description: "Performance metric has been removed from tracking.",
+    });
+  };
+
+  const startEditMetric = (metric: any) => {
+    setEditingMetric(metric.id.toString());
+    setEditMetricData({
+      name: metric.name,
+      target: metric.target.toString(),
+      unit: metric.unit,
+      type: metric.type,
+      category: metric.category
+    });
+  };
+
+  const saveEditMetric = () => {
+    if (editingMetric) {
+      setPerformanceMetrics(prev => prev.map(metric => 
+        metric.id.toString() === editingMetric 
+          ? { ...metric, name: editMetricData.name, target: parseFloat(editMetricData.target) || 0, unit: editMetricData.unit, type: editMetricData.type, category: editMetricData.category }
+          : metric
+      ));
+      setEditingMetric(null);
+      setEditMetricData({
+        name: "",
+        target: "",
+        unit: "none",
+        type: "commercial",
+        category: "traffic"
+      });
+      toast({
+        title: "Metric Updated",
+        description: "Performance metric has been successfully updated.",
+      });
+    }
+  };
+
+  const cancelEditMetric = () => {
+    setEditingMetric(null);
+    setEditMetricData({
+      name: "",
+      target: "",
+      unit: "none",
+      type: "commercial",
+      category: "traffic"
     });
   };
 
@@ -611,21 +664,94 @@ export default function Strategy() {
                 </div>
                 <div className="space-y-3">
                   {performanceMetrics.filter(metric => metric.type === "commercial").map((metric) => (
-                    <div key={metric.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-medium">{metric.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Target: {metric.unit}{metric.target}
+                    <div key={metric.id} className="p-3 border rounded-lg">
+                      {editingMetric === metric.id.toString() ? (
+                        // Edit mode
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Name</Label>
+                              <Input
+                                value={editMetricData.name}
+                                onChange={(e) => setEditMetricData(prev => ({ ...prev, name: e.target.value }))}
+                                placeholder="Metric name"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Target</Label>
+                              <Input
+                                type="number"
+                                value={editMetricData.target}
+                                onChange={(e) => setEditMetricData(prev => ({ ...prev, target: e.target.value }))}
+                                placeholder="Target value"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Unit</Label>
+                              <Select value={editMetricData.unit} onValueChange={(value) => setEditMetricData(prev => ({ ...prev, unit: value }))}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">None</SelectItem>
+                                  <SelectItem value="$">$ (Currency)</SelectItem>
+                                  <SelectItem value="%">% (Percentage)</SelectItem>
+                                  <SelectItem value="k">k (Thousands)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Type</Label>
+                              <Select value={editMetricData.type} onValueChange={(value) => setEditMetricData(prev => ({ ...prev, type: value }))}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="commercial">Commercial</SelectItem>
+                                  <SelectItem value="marketing">Marketing</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={cancelEditMetric}>
+                              Cancel
+                            </Button>
+                            <Button size="sm" onClick={saveEditMetric}>
+                              Save
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeMetric(metric.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      ) : (
+                        // View mode
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium">{metric.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Target: {metric.unit}{metric.target}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditMetric(metric)}
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeMetric(metric.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -639,21 +765,94 @@ export default function Strategy() {
                 </div>
                 <div className="space-y-3">
                   {performanceMetrics.filter(metric => metric.type === "marketing").map((metric) => (
-                    <div key={metric.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-medium">{metric.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Target: {metric.target}{metric.unit}
+                    <div key={metric.id} className="p-3 border rounded-lg">
+                      {editingMetric === metric.id.toString() ? (
+                        // Edit mode
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Name</Label>
+                              <Input
+                                value={editMetricData.name}
+                                onChange={(e) => setEditMetricData(prev => ({ ...prev, name: e.target.value }))}
+                                placeholder="Metric name"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Target</Label>
+                              <Input
+                                type="number"
+                                value={editMetricData.target}
+                                onChange={(e) => setEditMetricData(prev => ({ ...prev, target: e.target.value }))}
+                                placeholder="Target value"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Unit</Label>
+                              <Select value={editMetricData.unit} onValueChange={(value) => setEditMetricData(prev => ({ ...prev, unit: value }))}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">None</SelectItem>
+                                  <SelectItem value="$">$ (Currency)</SelectItem>
+                                  <SelectItem value="%">% (Percentage)</SelectItem>
+                                  <SelectItem value="k">k (Thousands)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Type</Label>
+                              <Select value={editMetricData.type} onValueChange={(value) => setEditMetricData(prev => ({ ...prev, type: value }))}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="commercial">Commercial</SelectItem>
+                                  <SelectItem value="marketing">Marketing</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={cancelEditMetric}>
+                              Cancel
+                            </Button>
+                            <Button size="sm" onClick={saveEditMetric}>
+                              Save
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeMetric(metric.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      ) : (
+                        // View mode
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium">{metric.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Target: {metric.target}{metric.unit}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditMetric(metric)}
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeMetric(metric.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
