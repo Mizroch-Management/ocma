@@ -146,6 +146,8 @@ const WorkflowContext = createContext<{
 
 export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(workflowReducer, initialState);
+  
+  console.log('WorkflowProvider rendering with state:', state);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -176,8 +178,11 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('aiWorkflowState', JSON.stringify(state));
   }, [state]);
 
+  const contextValue = { state, dispatch };
+  console.log('WorkflowProvider providing context value:', contextValue);
+  
   return (
-    <WorkflowContext.Provider value={{ state, dispatch }}>
+    <WorkflowContext.Provider value={contextValue}>
       {children}
     </WorkflowContext.Provider>
   );
@@ -186,6 +191,8 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 export const useWorkflow = () => {
   const context = useContext(WorkflowContext);
   if (!context) {
+    console.error('WorkflowContext is null. Provider might not be properly initialized.');
+    console.error('Current context value:', context);
     throw new Error('useWorkflow must be used within a WorkflowProvider');
   }
   return context;
