@@ -12,6 +12,7 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const navigation = [
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Content Creation", href: "/content-creation", icon: FileText },
   { name: "Content Generator", href: "/content-generator", icon: FileText },
+  { name: "AI Workflow", href: "/ai-workflow", icon: Brain },
   { name: "Visual Creator", href: "/visual-creator", icon: Image },
   { name: "Strategy", href: "/strategy", icon: Target },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },

@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
 import ContentCreation from "./pages/ContentCreation";
 import ContentGenerator from "./pages/ContentGenerator";
+import AIWorkflow from "./pages/AIWorkflow";
 import VisualCreator from "./pages/VisualCreator";
 import Strategy from "./pages/Strategy";
 import Analytics from "./pages/Analytics";
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="calendar" element={<Calendar />} />
             <Route path="content-creation" element={<ContentCreation />} />
             <Route path="content-generator" element={<ContentGenerator />} />
+            <Route path="ai-workflow" element={<AIWorkflow />} />
             <Route path="visual-creator" element={<VisualCreator />} />
             <Route path="strategy" element={<Strategy />} />
             <Route path="analytics" element={<Analytics />} />
