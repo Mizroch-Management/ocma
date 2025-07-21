@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Upload, 
@@ -27,11 +28,31 @@ import {
   Clock,
   AlertCircle,
   Lightbulb,
-  Zap
+  Zap,
+  Settings,
+  Brain,
+  Image,
+  Link,
+  Palette,
+  MessageSquare,
+  Video,
+  Mic
 } from "lucide-react";
 
 export default function Strategy() {
   const { toast } = useToast();
+  
+  // Overall Marketing Strategy - Master prompt for all AI generation
+  const [masterStrategy, setMasterStrategy] = useState({
+    objectives: "Increase brand awareness and drive sales through strategic content marketing",
+    targetMarkets: "Millennials and Gen Z professionals aged 25-40",
+    budget: "$200,000 annual marketing budget",
+    compliance: "Follow GDPR guidelines, FTC disclosure requirements",
+    toneOfVoice: "Professional yet approachable, authentic, data-driven",
+    brandGuidelines: "Use primary brand colors, maintain consistent messaging",
+    keyMetrics: "Brand awareness, engagement rate, conversion rate, ROI",
+    additionalContext: "Focus on sustainability and innovation messaging"
+  });
   
   const [strategies, setStrategies] = useState([
     {
@@ -113,12 +134,35 @@ export default function Strategy() {
   const [newStrategy, setNewStrategy] = useState({
     name: "",
     description: "",
+    strategyType: "",
+    aiTool: "",
     objectives: [""],
     targetAudience: "",
     budget: "",
     timeline: "",
-    contentPillars: [""]
+    contentPillars: [""],
+    visualContent: [],
+    linkedAssets: []
   });
+
+  const strategyTypes = [
+    { value: "content", label: "Content Strategy", icon: FileText },
+    { value: "social", label: "Social Media Strategy", icon: Users },
+    { value: "brand", label: "Brand Strategy", icon: Target },
+    { value: "product", label: "Product Launch Strategy", icon: TrendingUp },
+    { value: "visual", label: "Visual Content Strategy", icon: Image },
+    { value: "video", label: "Video Strategy", icon: Video },
+    { value: "influencer", label: "Influencer Strategy", icon: MessageSquare }
+  ];
+
+  const aiTools = [
+    { value: "gpt4", label: "GPT-4", description: "Best for detailed text content and strategy", icon: Brain },
+    { value: "claude", label: "Claude", description: "Excellent for analysis and planning", icon: Lightbulb },
+    { value: "gemini", label: "Gemini", description: "Great for creative content", icon: Zap },
+    { value: "dall-e", label: "DALL-E", description: "AI image generation", icon: Image },
+    { value: "midjourney", label: "Midjourney", description: "Artistic image creation", icon: Palette },
+    { value: "runware", label: "Runware", description: "Fast image generation", icon: Zap }
+  ];
 
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -230,11 +274,158 @@ export default function Strategy() {
 
   return (
     <div className="space-y-8">
+      {/* Master Marketing Strategy Section */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-background">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Settings className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Overall Marketing Strategy</CardTitle>
+                <CardDescription>
+                  Master guidelines that inform all AI strategy generation and content creation
+                </CardDescription>
+              </div>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Edit Master Strategy
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Edit Overall Marketing Strategy</DialogTitle>
+                  <DialogDescription>
+                    These guidelines will be used as context for all AI-generated strategies and content.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-6 py-4">
+                  <div className="space-y-2">
+                    <Label>Objectives & Goals</Label>
+                    <Textarea
+                      value={masterStrategy.objectives}
+                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, objectives: e.target.value }))}
+                      placeholder="Define your main business objectives and marketing goals"
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Target Markets</Label>
+                    <Textarea
+                      value={masterStrategy.targetMarkets}
+                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, targetMarkets: e.target.value }))}
+                      placeholder="Describe your primary and secondary target markets"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Budget Guidelines</Label>
+                      <Input
+                        value={masterStrategy.budget}
+                        onChange={(e) => setMasterStrategy(prev => ({ ...prev, budget: e.target.value }))}
+                        placeholder="e.g., $200,000 annual budget"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Key Metrics</Label>
+                      <Input
+                        value={masterStrategy.keyMetrics}
+                        onChange={(e) => setMasterStrategy(prev => ({ ...prev, keyMetrics: e.target.value }))}
+                        placeholder="e.g., ROI, engagement, conversions"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Compliance Requirements</Label>
+                    <Textarea
+                      value={masterStrategy.compliance}
+                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, compliance: e.target.value }))}
+                      placeholder="Legal, regulatory, and industry compliance requirements"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Tone of Voice & Brand Guidelines</Label>
+                    <Textarea
+                      value={masterStrategy.toneOfVoice}
+                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, toneOfVoice: e.target.value }))}
+                      placeholder="Define your brand voice, personality, and communication style"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Brand Guidelines</Label>
+                    <Textarea
+                      value={masterStrategy.brandGuidelines}
+                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, brandGuidelines: e.target.value }))}
+                      placeholder="Visual identity, color schemes, typography, logo usage"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Additional Context</Label>
+                    <Textarea
+                      value={masterStrategy.additionalContext}
+                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, additionalContext: e.target.value }))}
+                      placeholder="Any additional context, values, or messaging priorities"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <Button className="w-full">Save Master Strategy</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-muted-foreground">Objectives</Label>
+              <p className="text-sm">{masterStrategy.objectives}</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-muted-foreground">Target Markets</Label>
+              <p className="text-sm">{masterStrategy.targetMarkets}</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-muted-foreground">Budget</Label>
+              <p className="text-sm">{masterStrategy.budget}</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-muted-foreground">Tone of Voice</Label>
+              <p className="text-sm">{masterStrategy.toneOfVoice}</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-muted-foreground">Key Metrics</Label>
+              <p className="text-sm">{masterStrategy.keyMetrics}</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-muted-foreground">Compliance</Label>
+              <p className="text-sm">{masterStrategy.compliance}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Strategy Management</h1>
+          <h2 className="text-2xl font-bold text-foreground">Individual Strategies</h2>
           <p className="text-muted-foreground mt-2">
-            Upload, analyze, and manage marketing strategies to generate aligned content.
+            Create specific strategies that align with your overall marketing framework.
           </p>
         </div>
         
@@ -260,11 +451,11 @@ export default function Strategy() {
                 Create New
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Strategy</DialogTitle>
                 <DialogDescription>
-                  Define your marketing strategy parameters to guide content generation.
+                  Define your marketing strategy parameters. This will use your master strategy as context.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
@@ -275,6 +466,53 @@ export default function Strategy() {
                     onChange={(e) => setNewStrategy(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Enter strategy name"
                   />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Strategy Type</Label>
+                  <Select value={newStrategy.strategyType} onValueChange={(value) => setNewStrategy(prev => ({ ...prev, strategyType: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select strategy type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {strategyTypes.map((type) => {
+                        const IconComponent = type.icon;
+                        return (
+                          <SelectItem key={type.value} value={type.value}>
+                            <div className="flex items-center gap-2">
+                              <IconComponent className="h-4 w-4" />
+                              {type.label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>AI Tool for Generation</Label>
+                  <Select value={newStrategy.aiTool} onValueChange={(value) => setNewStrategy(prev => ({ ...prev, aiTool: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select AI tool" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {aiTools.map((tool) => {
+                        const IconComponent = tool.icon;
+                        return (
+                          <SelectItem key={tool.value} value={tool.value}>
+                            <div className="flex items-center gap-2">
+                              <IconComponent className="h-4 w-4" />
+                              <div>
+                                <div className="font-medium">{tool.label}</div>
+                                <div className="text-xs text-muted-foreground">{tool.description}</div>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">
@@ -358,8 +596,47 @@ export default function Strategy() {
                   ))}
                 </div>
                 
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Link Visual Content</Label>
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                      <div className="text-center">
+                        <Image className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Link existing visual assets or generate new ones
+                        </p>
+                        <div className="flex gap-2 justify-center">
+                          <Button variant="outline" size="sm">
+                            <Link className="h-4 w-4 mr-1" />
+                            Link Existing
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Plus className="h-4 w-4 mr-1" />
+                            Generate New
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <Brain className="h-5 w-5 text-primary mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">AI Context</p>
+                        <p className="text-xs text-muted-foreground">
+                          This strategy will use your overall marketing strategy as context for AI generation, ensuring consistency with your objectives, tone of voice, and brand guidelines.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="flex gap-2 pt-4">
-                  <Button className="flex-1">Create Strategy</Button>
+                  <Button className="flex-1">
+                    <Zap className="h-4 w-4 mr-2" />
+                    Create with AI
+                  </Button>
                   <Button variant="outline" className="flex-1">Save as Draft</Button>
                 </div>
               </div>
