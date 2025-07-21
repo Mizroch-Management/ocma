@@ -72,7 +72,7 @@ export default function Strategy() {
   const [newMetric, setNewMetric] = useState({
     name: "",
     target: "",
-    unit: "",
+    unit: "none",
     type: "commercial",
     category: "traffic"
   });
@@ -293,7 +293,7 @@ export default function Strategy() {
     setNewMetric({
       name: "",
       target: "",
-      unit: "",
+      unit: "none",
       type: "commercial",
       category: "traffic"
     });
@@ -573,7 +573,7 @@ export default function Strategy() {
                   <SelectValue placeholder="Unit" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   <SelectItem value="$">$ (Currency)</SelectItem>
                   <SelectItem value="%">% (Percentage)</SelectItem>
                   <SelectItem value="k">k (Thousands)</SelectItem>
