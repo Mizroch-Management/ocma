@@ -49,10 +49,22 @@ export default function Settings() {
       accountName: "Business Page",
       followers: "12.5K",
       lastSync: "2 hours ago",
-      permissions: ["Publish posts", "Read insights", "Manage pages"],
+      permissions: ["Publish posts", "Read insights", "Manage pages", "Analytics access"],
       postingEnabled: true,
       autoPost: true,
-      optimalTimes: ["9:00 AM", "1:00 PM", "7:00 PM"]
+      optimalTimes: ["9:00 AM", "1:00 PM", "7:00 PM"],
+      credentials: {
+        appId: "your-facebook-app-id",
+        appSecret: "your-facebook-app-secret",
+        accessToken: "your-page-access-token",
+        pageId: "your-facebook-page-id",
+        businessId: "your-business-manager-id"
+      },
+      analyticsTools: {
+        facebookInsights: { enabled: true, permissions: ["page_insights", "read_insights"] },
+        facebookAnalytics: { enabled: true, permissions: ["business_management"] },
+        metaBusinessSuite: { enabled: true, permissions: ["pages_show_list", "pages_read_engagement"] }
+      }
     },
     { 
       id: "instagram", 
@@ -63,14 +75,25 @@ export default function Settings() {
       accountName: "@yourcompany",
       followers: "8.2K",
       lastSync: "1 hour ago",
-      permissions: ["Publish posts", "Publish stories", "Read insights"],
+      permissions: ["Publish posts", "Publish stories", "Read insights", "Analytics access"],
       postingEnabled: true,
       autoPost: false,
-      optimalTimes: ["11:00 AM", "3:00 PM", "8:00 PM"]
+      optimalTimes: ["11:00 AM", "3:00 PM", "8:00 PM"],
+      credentials: {
+        accessToken: "your-instagram-access-token",
+        userId: "your-instagram-user-id",
+        businessAccountId: "your-instagram-business-id",
+        facebookPageId: "connected-facebook-page-id"
+      },
+      analyticsTools: {
+        instagramInsights: { enabled: true, permissions: ["instagram_basic", "instagram_manage_insights"] },
+        metaBusinessSuite: { enabled: true, permissions: ["instagram_basic", "pages_read_engagement"] },
+        creatorStudio: { enabled: true, permissions: ["instagram_content_publish"] }
+      }
     },
     { 
       id: "twitter", 
-      name: "Twitter", 
+      name: "Twitter/X", 
       icon: Twitter, 
       connected: false, 
       status: "Not Connected",
@@ -80,7 +103,21 @@ export default function Settings() {
       permissions: [],
       postingEnabled: false,
       autoPost: false,
-      optimalTimes: []
+      optimalTimes: [],
+      credentials: {
+        apiKey: "",
+        apiSecret: "",
+        accessToken: "",
+        accessTokenSecret: "",
+        bearerToken: "",
+        clientId: "",
+        clientSecret: ""
+      },
+      analyticsTools: {
+        twitterAnalytics: { enabled: false, permissions: ["tweet.read", "users.read", "offline.access"] },
+        xProAnalytics: { enabled: false, permissions: ["analytics.read"] },
+        tweetDeck: { enabled: false, permissions: ["tweet.read", "tweet.write"] }
+      }
     },
     { 
       id: "linkedin", 
@@ -91,10 +128,22 @@ export default function Settings() {
       accountName: "Company Page",
       followers: "3.1K",
       lastSync: "5 hours ago",
-      permissions: ["Publish posts"],
+      permissions: ["Publish posts", "Analytics access"],
       postingEnabled: true,
       autoPost: true,
-      optimalTimes: ["8:00 AM", "12:00 PM", "5:00 PM"]
+      optimalTimes: ["8:00 AM", "12:00 PM", "5:00 PM"],
+      credentials: {
+        clientId: "your-linkedin-client-id",
+        clientSecret: "your-linkedin-client-secret",
+        accessToken: "your-linkedin-access-token",
+        organizationId: "your-company-page-id",
+        personUrn: "your-person-urn"
+      },
+      analyticsTools: {
+        linkedinAnalytics: { enabled: true, permissions: ["r_organization_social", "r_ads_reporting"] },
+        campaignManager: { enabled: true, permissions: ["r_ads", "r_ads_reporting"] },
+        salesNavigator: { enabled: false, permissions: ["r_sales_nav_display"] }
+      }
     },
     { 
       id: "youtube", 
@@ -108,7 +157,20 @@ export default function Settings() {
       permissions: [],
       postingEnabled: false,
       autoPost: false,
-      optimalTimes: []
+      optimalTimes: [],
+      credentials: {
+        clientId: "",
+        clientSecret: "",
+        refreshToken: "",
+        accessToken: "",
+        channelId: "",
+        apiKey: ""
+      },
+      analyticsTools: {
+        youtubeAnalytics: { enabled: false, permissions: ["youtube.readonly", "yt-analytics.readonly"] },
+        youtubeStudio: { enabled: false, permissions: ["youtube", "youtube.upload"] },
+        googleAnalytics: { enabled: false, permissions: ["analytics.readonly"] }
+      }
     },
     { 
       id: "tiktok", 
@@ -122,7 +184,69 @@ export default function Settings() {
       permissions: [],
       postingEnabled: false,
       autoPost: false,
-      optimalTimes: []
+      optimalTimes: [],
+      credentials: {
+        appId: "",
+        appSecret: "",
+        accessToken: "",
+        openId: "",
+        unionId: ""
+      },
+      analyticsTools: {
+        tiktokAnalytics: { enabled: false, permissions: ["user.info.basic", "video.list"] },
+        tiktokBusinessCenter: { enabled: false, permissions: ["business.get"] },
+        tiktokAdsManager: { enabled: false, permissions: ["advertiser.get", "campaign.get"] }
+      }
+    },
+    { 
+      id: "pinterest", 
+      name: "Pinterest", 
+      icon: Settings2, 
+      connected: false, 
+      status: "Not Connected",
+      accountName: "",
+      followers: "",
+      lastSync: "",
+      permissions: [],
+      postingEnabled: false,
+      autoPost: false,
+      optimalTimes: [],
+      credentials: {
+        appId: "",
+        appSecret: "",
+        accessToken: "",
+        refreshToken: "",
+        businessId: ""
+      },
+      analyticsTools: {
+        pinterestAnalytics: { enabled: false, permissions: ["boards:read", "pins:read", "user_accounts:read"] },
+        pinterestBusiness: { enabled: false, permissions: ["ads:read", "catalogs:read"] }
+      }
+    },
+    { 
+      id: "snapchat", 
+      name: "Snapchat", 
+      icon: Settings2, 
+      connected: false, 
+      status: "Not Connected",
+      accountName: "",
+      followers: "",
+      lastSync: "",
+      permissions: [],
+      postingEnabled: false,
+      autoPost: false,
+      optimalTimes: [],
+      credentials: {
+        clientId: "",
+        clientSecret: "",
+        accessToken: "",
+        refreshToken: "",
+        adAccountId: ""
+      },
+      analyticsTools: {
+        snapchatInsights: { enabled: false, permissions: ["snapchat-marketing-api"] },
+        snapchatAdsManager: { enabled: false, permissions: ["snapchat-marketing-api"] }
+      }
     }
   ]);
 
@@ -320,24 +444,66 @@ export default function Settings() {
                                         Configure posting settings and permissions for your {integration.name} account.
                                       </DialogDescription>
                                     </DialogHeader>
-                                    <div className="space-y-6 py-4">
-                                      <div className="space-y-4">
-                                        <h4 className="text-sm font-medium">Account Details</h4>
-                                        <div className="rounded-lg border p-3 space-y-2">
-                                          <div className="flex justify-between">
-                                            <span className="text-sm text-muted-foreground">Account:</span>
-                                            <span className="text-sm font-medium">{integration.accountName}</span>
-                                          </div>
-                                          <div className="flex justify-between">
-                                            <span className="text-sm text-muted-foreground">Followers:</span>
-                                            <span className="text-sm font-medium">{integration.followers}</span>
-                                          </div>
-                                          <div className="flex justify-between">
-                                            <span className="text-sm text-muted-foreground">Last Sync:</span>
-                                            <span className="text-sm font-medium">{integration.lastSync}</span>
-                                          </div>
-                                        </div>
-                                      </div>
+                                     <div className="space-y-6 py-4">
+                                       <div className="space-y-4">
+                                         <h4 className="text-sm font-medium">Account Details</h4>
+                                         <div className="rounded-lg border p-3 space-y-2">
+                                           <div className="flex justify-between">
+                                             <span className="text-sm text-muted-foreground">Account:</span>
+                                             <span className="text-sm font-medium">{integration.accountName}</span>
+                                           </div>
+                                           <div className="flex justify-between">
+                                             <span className="text-sm text-muted-foreground">Followers:</span>
+                                             <span className="text-sm font-medium">{integration.followers}</span>
+                                           </div>
+                                           <div className="flex justify-between">
+                                             <span className="text-sm text-muted-foreground">Last Sync:</span>
+                                             <span className="text-sm font-medium">{integration.lastSync}</span>
+                                           </div>
+                                         </div>
+                                       </div>
+
+                                       <div className="space-y-4">
+                                         <h4 className="text-sm font-medium">API Credentials & Account IDs</h4>
+                                         <div className="rounded-lg border p-3 space-y-3">
+                                           {Object.entries(integration.credentials || {}).map(([key, value]) => (
+                                             <div key={key} className="space-y-2">
+                                               <Label className="text-xs font-medium text-muted-foreground">
+                                                 {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                               </Label>
+                                               <Input
+                                                 type="password"
+                                                 value={value || ""}
+                                                 placeholder={`Enter your ${key}`}
+                                                 className="h-8 text-xs"
+                                                 readOnly={integration.connected}
+                                               />
+                                             </div>
+                                           ))}
+                                         </div>
+                                       </div>
+
+                                       <div className="space-y-4">
+                                         <h4 className="text-sm font-medium">Analytics Tools Integration</h4>
+                                         <div className="space-y-3">
+                                           {Object.entries(integration.analyticsTools || {}).map(([toolKey, tool]: [string, any]) => (
+                                             <div key={toolKey} className="flex items-center justify-between p-3 rounded-lg border">
+                                               <div className="space-y-1">
+                                                 <p className="text-sm font-medium">
+                                                   {toolKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                                 </p>
+                                                 <p className="text-xs text-muted-foreground">
+                                                   Permissions: {tool.permissions?.join(', ') || 'None'}
+                                                 </p>
+                                               </div>
+                                               <Switch 
+                                                 checked={tool.enabled}
+                                                 disabled={!integration.connected}
+                                               />
+                                             </div>
+                                           ))}
+                                         </div>
+                                       </div>
                                       
                                       <div className="space-y-4">
                                         <h4 className="text-sm font-medium">Posting Settings</h4>
