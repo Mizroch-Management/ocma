@@ -18,9 +18,9 @@ export default function ContentCreation() {
 
   // Combine manual strategies with AI strategy
   const strategies = [
-    { id: "1", name: "Q1 Brand Awareness", description: "Focus on increasing brand visibility" },
-    { id: "2", name: "Product Launch Campaign", description: "Launching new product line" },
-    { id: "3", name: "Holiday Marketing", description: "Seasonal promotional content" },
+    { id: "1", name: "Q1 Brand Awareness", description: "Focus on increasing brand visibility", isAIGenerated: false },
+    { id: "2", name: "Product Launch Campaign", description: "Launching new product line", isAIGenerated: false },
+    { id: "3", name: "Holiday Marketing", description: "Seasonal promotional content", isAIGenerated: false },
     ...(workflowState.approvedStrategy ? [{
       id: workflowState.approvedStrategy.id,
       name: workflowState.approvedStrategy.title,
@@ -38,10 +38,10 @@ export default function ContentCreation() {
         isAIGenerated: true
       }))
     : [
-        { id: "week1", name: "Week 1: Education & Tips", theme: "Educational content to build authority" },
-        { id: "week2", name: "Week 2: Behind the Scenes", theme: "Show company culture and processes" },
-        { id: "week3", name: "Week 3: User Generated Content", theme: "Feature customer stories and reviews" },
-        { id: "week4", name: "Week 4: Product Focus", theme: "Highlight products and services" }
+        { id: "week1", name: "Week 1: Education & Tips", theme: "Educational content to build authority", isAIGenerated: false },
+        { id: "week2", name: "Week 2: Behind the Scenes", theme: "Show company culture and processes", isAIGenerated: false },
+        { id: "week3", name: "Week 3: User Generated Content", theme: "Feature customer stories and reviews", isAIGenerated: false },
+        { id: "week4", name: "Week 4: Product Focus", theme: "Highlight products and services", isAIGenerated: false }
       ];
 
   const platforms = [
