@@ -11,6 +11,7 @@ import ContentGenerator from "./pages/ContentGenerator";
 import VisualCreator from "./pages/VisualCreator";
 import Strategy from "./pages/Strategy";
 import Analytics from "./pages/Analytics";
+import SocialMediaEngagement from "./pages/SocialMediaEngagement";
 import Team from "./pages/Team";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="visual-creator" element={<VisualCreator />} />
             <Route path="strategy" element={<Strategy />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="social-engagement" element={<SocialMediaEngagement />} />
             <Route path="team" element={<Team />} />
             <Route path="settings" element={<Settings />} />
           </Route>

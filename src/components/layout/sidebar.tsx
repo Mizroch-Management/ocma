@@ -9,6 +9,7 @@ import {
   Settings,
   Users,
   BarChart3,
+  MessageSquare,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Visual Creator", href: "/visual-creator", icon: Image },
   { name: "Strategy", href: "/strategy", icon: Target },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Social Engagement", href: "/social-engagement", icon: MessageSquare },
   { name: "Team", href: "/team", icon: Users },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

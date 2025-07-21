@@ -70,8 +70,15 @@ export default function ContentGenerator() {
 
   const aiTools = [
     { value: "gpt4", label: "GPT-4", description: "Best for detailed content and strategy", icon: Brain },
+    { value: "gpt4-turbo", label: "GPT-4 Turbo", description: "Faster GPT-4 for quick content", icon: Zap },
     { value: "claude", label: "Claude", description: "Excellent for analysis and long-form", icon: Lightbulb },
-    { value: "gemini", label: "Gemini", description: "Great for creative and diverse content", icon: Zap }
+    { value: "claude-haiku", label: "Claude Haiku", description: "Fast and efficient for simple tasks", icon: RefreshCw },
+    { value: "gemini", label: "Gemini Pro", description: "Great for creative and diverse content", icon: Zap },
+    { value: "perplexity", label: "Perplexity", description: "Real-time web search and trends", icon: Eye },
+    { value: "dalle3", label: "DALL-E 3", description: "Advanced image generation", icon: Image },
+    { value: "midjourney", label: "Midjourney", description: "Artistic image creation", icon: Image },
+    { value: "runware", label: "Runware AI", description: "Fast image generation", icon: Wand2 },
+    { value: "elevenlabs", label: "ElevenLabs", description: "Voice and audio generation", icon: Mic }
   ];
 
   const platforms = [
@@ -455,12 +462,13 @@ export default function ContentGenerator() {
                 
                 <CardContent>
                   <Tabs defaultValue="main" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
-                      <TabsTrigger value="main">Main Version</TabsTrigger>
-                      <TabsTrigger value="variations">Variations</TabsTrigger>
-                      <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                      <TabsTrigger value="schedule">Schedule</TabsTrigger>
-                    </TabsList>
+                     <TabsList className="grid w-full grid-cols-5">
+                       <TabsTrigger value="main">Main Version</TabsTrigger>
+                       <TabsTrigger value="variations">Variations</TabsTrigger>
+                       <TabsTrigger value="replies">Reply Management</TabsTrigger>
+                       <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                       <TabsTrigger value="schedule">Schedule</TabsTrigger>
+                     </TabsList>
                     
                     <TabsContent value="main" className="space-y-4">
                       <Textarea 
@@ -510,7 +518,57 @@ export default function ContentGenerator() {
                       ))}
                     </TabsContent>
                     
-                    <TabsContent value="analytics" className="space-y-4">
+                     <TabsContent value="replies" className="space-y-4">
+                       <div className="space-y-4">
+                         <div className="space-y-2">
+                           <Label className="text-sm font-medium">Reply Strategy</Label>
+                           <Select>
+                             <SelectTrigger>
+                               <SelectValue placeholder="Select reply strategy" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="auto">Auto-reply with AI</SelectItem>
+                               <SelectItem value="template">Use reply templates</SelectItem>
+                               <SelectItem value="manual">Manual review required</SelectItem>
+                               <SelectItem value="mixed">Mixed approach</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label className="text-sm font-medium">Auto-Reply Templates</Label>
+                           <div className="space-y-2">
+                             <Textarea placeholder="Thank you for your comment! 🙏" className="min-h-[60px]" />
+                             <Textarea placeholder="Great question! Let me get back to you on that..." className="min-h-[60px]" />
+                             <Textarea placeholder="We appreciate your feedback! 💪" className="min-h-[60px]" />
+                           </div>
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label className="text-sm font-medium">Reply Triggers</Label>
+                           <Input placeholder="Keywords: question, help, support, pricing" />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label className="text-sm font-medium">Thread Management</Label>
+                           <div className="flex items-center space-x-2">
+                             <input type="checkbox" id="followUp" className="rounded" />
+                             <Label htmlFor="followUp" className="text-sm">Enable follow-up questions</Label>
+                           </div>
+                           <div className="flex items-center space-x-2">
+                             <input type="checkbox" id="escalate" className="rounded" />
+                             <Label htmlFor="escalate" className="text-sm">Escalate complex queries</Label>
+                           </div>
+                         </div>
+                         
+                         <Button className="w-full">
+                           <Settings className="h-4 w-4 mr-2" />
+                           Save Reply Settings
+                         </Button>
+                       </div>
+                     </TabsContent>
+                     
+                     <TabsContent value="analytics" className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <Card>
                           <CardContent className="p-4">
