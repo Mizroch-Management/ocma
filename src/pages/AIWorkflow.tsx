@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { AIStrategyConsultant } from "@/components/ai-workflow/ai-strategy-consultant";
 import { SmartContentPlanner } from "@/components/ai-workflow/smart-content-planner";
 import { IntelligentContentCreator } from "@/components/ai-workflow/intelligent-content-creator";
+import { WorkflowIntegrationDashboard } from "@/components/workflow/workflow-integration-dashboard";
+import { useWorkflow } from "@/contexts/workflow-context";
 import { 
   ArrowRight, 
   CheckCircle, 
@@ -29,39 +32,39 @@ interface WorkflowStep {
 
 export default function AIWorkflow() {
   const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [approvedStrategy, setApprovedStrategy] = useState<any>(null);
-  const [approvedPlans, setApprovedPlans] = useState<any[]>([]);
-  const [approvedContent, setApprovedContent] = useState<any[]>([]);
+  const { state, dispatch } = useWorkflow();
   
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([
     {
       id: 'strategy',
       title: 'AI Strategy Consultant',
       description: 'AI analyzes your goals and creates comprehensive marketing strategy',
-      status: 'active',
-      progress: 0
+      status: state.progress.strategyApproved ? 'completed' : 'active',
+      progress: state.progress.strategyApproved ? 100 : 0
     },
     {
       id: 'planning',
       title: 'Smart Content Planner',
       description: 'AI generates monthly content strategy with weekly breakdowns',
-      status: 'pending',
-      progress: 0
+      status: state.progress.plansApproved ? 'completed' : 
+             state.progress.strategyApproved ? 'active' : 'pending',
+      progress: state.progress.plansApproved ? 100 : 0
     },
     {
       id: 'creation',
       title: 'Intelligent Content Creator',
       description: 'AI creates platform-optimized content based on your strategy',
-      status: 'pending',
-      progress: 0
+      status: state.progress.contentApproved ? 'completed' : 
+             state.progress.plansApproved ? 'active' : 'pending',
+      progress: state.progress.contentApproved ? 100 : 0
     },
     {
       id: 'scheduling',
       title: 'Automated Scheduler',
       description: 'AI optimizes posting times and schedules across all platforms',
-      status: 'pending',
-      progress: 0
+      status: state.progress.schedulingComplete ? 'completed' : 
+             state.progress.contentApproved ? 'active' : 'pending',
+      progress: state.progress.schedulingComplete ? 100 : 0
     }
   ]);
 
@@ -78,7 +81,23 @@ export default function AIWorkflow() {
   };
 
   const handleStrategyApproved = (strategy: any) => {
-    setApprovedStrategy(strategy);
+    const workflowStrategy = {
+      id: Date.now().toString(),
+      title: strategy.title || "AI-Generated Marketing Strategy",
+      objectives: strategy.objectives,
+      targetMarkets: strategy.targetMarkets,
+      budget: strategy.budget,
+      compliance: strategy.compliance,
+      toneOfVoice: strategy.toneOfVoice,
+      brandGuidelines: strategy.brandGuidelines,
+      keyMetrics: strategy.keyMetrics,
+      additionalContext: strategy.additionalContext,
+      createdAt: new Date(),
+      isAIGenerated: true,
+    };
+
+    dispatch({ type: 'SET_APPROVED_STRATEGY', payload: workflowStrategy });
+    
     setWorkflowSteps(prev => prev.map((step, index) => 
       index === 0 
         ? { ...step, status: 'completed', progress: 100 }
@@ -86,16 +105,28 @@ export default function AIWorkflow() {
         ? { ...step, status: 'active' }
         : step
     ));
-    setCurrentStep(1);
     
     toast({
       title: "Strategy Phase Complete",
-      description: "Moving to content planning phase..."
+      description: "Strategy saved and integrated across the app. Moving to content planning phase..."
     });
   };
 
   const handlePlansApproved = (plans: any[]) => {
-    setApprovedPlans(plans);
+    const contentPlans = plans.map((plan, index) => ({
+      id: `plan-${Date.now()}-${index}`,
+      weekNumber: index + 1,
+      theme: plan.theme,
+      objectives: plan.objectives || [],
+      contentPillars: plan.contentPillars || [],
+      platforms: plan.platforms || [],
+      frequency: plan.frequency || "Daily",
+      keyMessages: plan.keyMessages || [],
+      createdAt: new Date(),
+    }));
+
+    dispatch({ type: 'SET_APPROVED_PLANS', payload: contentPlans });
+    
     setWorkflowSteps(prev => prev.map((step, index) => 
       index === 1 
         ? { ...step, status: 'completed', progress: 100 }
@@ -103,16 +134,29 @@ export default function AIWorkflow() {
         ? { ...step, status: 'active' }
         : step
     ));
-    setCurrentStep(2);
     
     toast({
       title: "Planning Phase Complete",
-      description: "Moving to content creation phase..."
+      description: "Content plans saved and available in Calendar. Moving to content creation phase..."
     });
   };
 
   const handleContentApproved = (content: any[]) => {
-    setApprovedContent(content);
+    const generatedContent = content.map((item, index) => ({
+      id: `content-${Date.now()}-${index}`,
+      title: item.title,
+      content: item.content,
+      platforms: item.platforms || [],
+      scheduledDate: item.scheduledDate || new Date(),
+      timezone: item.timezone || 'UTC',
+      status: 'scheduled' as const,
+      platformOptimizations: item.platformOptimizations || {},
+      planId: state.approvedPlans[0]?.id || '',
+      createdAt: new Date(),
+    }));
+
+    dispatch({ type: 'SET_APPROVED_CONTENT', payload: generatedContent });
+    
     setWorkflowSteps(prev => prev.map((step, index) => 
       index === 2 
         ? { ...step, status: 'completed', progress: 100 }
@@ -120,22 +164,26 @@ export default function AIWorkflow() {
         ? { ...step, status: 'active' }
         : step
     ));
-    setCurrentStep(3);
     
     toast({
       title: "Content Creation Complete",
-      description: "Ready for automated scheduling..."
+      description: "Content saved and scheduled in Calendar. Ready for automated scheduling..."
     });
   };
 
   const handleSchedulingComplete = () => {
+    dispatch({ 
+      type: 'UPDATE_PROGRESS', 
+      payload: { schedulingComplete: true, currentStep: 4 }
+    });
+    
     setWorkflowSteps(prev => prev.map((step, index) => 
       index === 3 ? { ...step, status: 'completed', progress: 100 } : step
     ));
     
     toast({
       title: "Workflow Complete!",
-      description: "Your AI-driven marketing strategy is now live and optimized."
+      description: "Your AI-driven marketing strategy is now live and integrated across all sections."
     });
   };
 
@@ -156,6 +204,7 @@ export default function AIWorkflow() {
   };
 
   const overallProgress = workflowSteps.reduce((acc, step) => acc + step.progress, 0) / workflowSteps.length;
+  const currentStep = state.progress.currentStep;
 
   return (
     <div className="space-y-8">
@@ -172,6 +221,9 @@ export default function AIWorkflow() {
           <div className="text-sm text-muted-foreground">Complete</div>
         </div>
       </div>
+
+      {/* Integration Dashboard */}
+      <WorkflowIntegrationDashboard />
 
       {/* Progress Overview */}
       <Card>
@@ -229,29 +281,29 @@ export default function AIWorkflow() {
         )}
 
         {/* Step 2: Smart Content Planner */}
-        {currentStep >= 1 && approvedStrategy && (
+        {currentStep >= 1 && state.approvedStrategy && (
           <>
             <Separator />
             <SmartContentPlanner 
-              strategy={approvedStrategy}
+              strategy={state.approvedStrategy}
               onPlanApproved={handlePlansApproved}
             />
           </>
         )}
 
         {/* Step 3: Intelligent Content Creator */}
-        {currentStep >= 2 && approvedPlans.length > 0 && (
+        {currentStep >= 2 && state.approvedPlans.length > 0 && (
           <>
             <Separator />
             <IntelligentContentCreator 
-              contentPlans={approvedPlans}
+              contentPlans={state.approvedPlans}
               onContentApproved={handleContentApproved}
             />
           </>
         )}
 
         {/* Step 4: Automated Scheduler */}
-        {currentStep >= 3 && approvedContent.length > 0 && (
+        {currentStep >= 3 && state.approvedContent.length > 0 && (
           <>
             <Separator />
             <Card className="border-green-200 bg-gradient-to-r from-green-50 to-background">
@@ -282,7 +334,7 @@ export default function AIWorkflow() {
                       <CardTitle className="text-lg">Content Ready</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-green-600">{approvedContent.length}</div>
+                      <div className="text-3xl font-bold text-green-600">{state.approvedContent.length}</div>
                       <p className="text-sm text-muted-foreground">Pieces ready for scheduling</p>
                     </CardContent>
                   </Card>
@@ -333,7 +385,7 @@ export default function AIWorkflow() {
             <CardHeader>
               <CardTitle className="text-xl text-center">🎉 Workflow Complete!</CardTitle>
               <CardDescription className="text-center">
-                Your AI-driven marketing strategy is now live and optimized
+                Your AI-driven marketing strategy is now live and integrated across all sections
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -343,11 +395,11 @@ export default function AIWorkflow() {
                   <div className="text-sm text-muted-foreground">Strategy Created</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-primary">{approvedPlans.length}</div>
+                  <div className="text-2xl font-bold text-primary">{state.approvedPlans.length}</div>
                   <div className="text-sm text-muted-foreground">Weeks Planned</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-primary">{approvedContent.length}</div>
+                  <div className="text-2xl font-bold text-primary">{state.approvedContent.length}</div>
                   <div className="text-sm text-muted-foreground">Content Pieces</div>
                 </div>
                 <div>

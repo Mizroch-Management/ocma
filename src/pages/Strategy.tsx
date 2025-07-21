@@ -1,1408 +1,340 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { useWorkflow } from "@/contexts/workflow-context";
 import { 
-  Upload, 
-  FileText, 
   Target, 
   TrendingUp, 
-  Calendar, 
   Users, 
-  Eye,
-  Edit3,
-  Trash2,
-  Download,
-  Plus,
+  DollarSign, 
   BarChart3,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Lightbulb,
-  Zap,
-  Settings,
-  Brain,
-  Image,
-  Link,
-  Palette,
-  MessageSquare,
-  Video,
-  Mic,
-  DollarSign
+  Calendar,
+  Eye,
+  Edit,
+  Sparkles,
+  CheckCircle
 } from "lucide-react";
 
 export default function Strategy() {
-  const { toast } = useToast();
-  
-  // Overall Marketing Strategy - Master prompt for all AI generation
-  const [masterStrategy, setMasterStrategy] = useState({
-    objectives: "Increase brand awareness and drive sales through strategic content marketing",
-    targetMarkets: "Millennials and Gen Z professionals aged 25-40",
-    budget: "$200,000 annual marketing budget",
-    compliance: "Follow GDPR guidelines, FTC disclosure requirements",
-    toneOfVoice: "Professional yet approachable, authentic, data-driven",
-    brandGuidelines: "Use primary brand colors, maintain consistent messaging",
-    keyMetrics: "Brand awareness, engagement rate, conversion rate, ROI",
-    additionalContext: "Focus on sustainability and innovation messaging"
-  });
+  const { state: workflowState } = useWorkflow();
+  const [selectedStrategy, setSelectedStrategy] = useState("current");
 
-  // Performance Metrics Configuration
-  const [performanceMetrics, setPerformanceMetrics] = useState([
-    { id: 1, name: "Monthly Visitors", target: 30000, unit: "", type: "commercial", category: "traffic" },
-    { id: 2, name: "Paying Customers", target: 300, unit: "", type: "commercial", category: "conversions" },
-    { id: 3, name: "Cost per Lead", target: 12.00, unit: "$", type: "commercial", category: "costs" },
-    { id: 4, name: "Cost per Visitor", target: 1.80, unit: "$", type: "commercial", category: "costs" },
-    { id: 5, name: "Customer Acquisition Cost", target: 100, unit: "$", type: "commercial", category: "costs" },
-    { id: 6, name: "Monthly Reach", target: 200000, unit: "", type: "marketing", category: "reach" },
-    { id: 7, name: "Engagement Rate", target: 8.0, unit: "%", type: "marketing", category: "engagement" },
-    { id: 8, name: "Content Views", target: 120000, unit: "", type: "marketing", category: "content" },
-    { id: 9, name: "Lead Generation", target: 2000, unit: "", type: "marketing", category: "leads" },
-    { id: 10, name: "Social Media Followers", target: 15000, unit: "", type: "marketing", category: "growth" }
-  ]);
-
-  const [newMetric, setNewMetric] = useState({
-    name: "",
-    target: "",
-    unit: "none",
-    type: "commercial",
-    category: "traffic"
-  });
-
-  const [editingMetric, setEditingMetric] = useState<string | null>(null);
-  const [editMetricData, setEditMetricData] = useState({
-    name: "",
-    target: "",
-    unit: "none",
-    type: "commercial",
-    category: "traffic"
-  });
-
-  const [aiTargetBreakdown, setAiTargetBreakdown] = useState(null);
-  const [isGeneratingBreakdown, setIsGeneratingBreakdown] = useState(false);
-  
-  const [strategies, setStrategies] = useState([
+  // Mock data for existing strategies
+  const existingStrategies = [
     {
-      id: 1,
-      name: "Q1 2024 Brand Awareness Campaign",
-      description: "Comprehensive strategy focusing on increasing brand visibility across all digital channels",
-      status: "Active",
-      uploadDate: "2024-01-15",
-      lastUpdated: "2024-01-20",
-      fileType: "PDF",
-      fileSize: "2.4 MB",
-      tags: ["Brand Awareness", "Digital Marketing", "Q1"],
-      objectives: [
-        "Increase brand awareness by 40%",
-        "Grow social media following by 25%",
-        "Improve engagement rates by 30%"
-      ],
-      targetAudience: "Millennials and Gen Z professionals",
-      budget: "$50,000",
-      timeline: "3 months",
-      kpis: ["Brand recall", "Social media followers", "Engagement rate", "Website traffic"],
-      contentPillars: ["Educational", "Behind-the-scenes", "User-generated content", "Industry insights"],
-      generatedContent: 24,
-      approvedContent: 18,
-      publishedContent: 12
-    },
-    {
-      id: 2,
-      name: "Product Launch Strategy",
-      description: "Strategic approach for launching our new product line with coordinated messaging",
-      status: "Draft",
-      uploadDate: "2024-01-10",
-      lastUpdated: "2024-01-18",
-      fileType: "DOCX",
-      fileSize: "1.8 MB",
-      tags: ["Product Launch", "Messaging", "Coordination"],
-      objectives: [
-        "Generate 1000 pre-orders",
-        "Create buzz and anticipation",
-        "Establish product positioning"
-      ],
-      targetAudience: "Early adopters and tech enthusiasts",
-      budget: "$75,000",
-      timeline: "6 months",
-      kpis: ["Pre-orders", "Media mentions", "Social media reach", "Email signups"],
-      contentPillars: ["Product features", "Benefits", "Customer testimonials", "Expert reviews"],
-      generatedContent: 8,
-      approvedContent: 5,
-      publishedContent: 0
-    },
-    {
-      id: 3,
-      name: "Holiday Season Marketing",
-      description: "Seasonal marketing strategy for maximizing sales during holiday period",
-      status: "Completed",
-      uploadDate: "2023-10-15",
-      lastUpdated: "2023-12-31",
-      fileType: "PDF",
-      fileSize: "3.1 MB",
-      tags: ["Seasonal", "Sales", "Holiday"],
-      objectives: [
-        "Increase holiday sales by 60%",
-        "Drive traffic to retail locations",
-        "Boost online conversions"
-      ],
-      targetAudience: "General consumers and gift shoppers",
-      budget: "$100,000",
-      timeline: "4 months",
-      kpis: ["Sales revenue", "Store traffic", "Online conversions", "ROI"],
-      contentPillars: ["Gift guides", "Promotions", "Festive content", "Customer stories"],
-      generatedContent: 45,
-      approvedContent: 42,
-      publishedContent: 40
+      id: "existing-1",
+      title: "Q4 Growth Strategy",
+      objectives: "Increase user acquisition by 40% and improve retention",
+      status: "active",
+      progress: 75,
+      isAIGenerated: false,
     }
-  ]);
-
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedStrategy, setSelectedStrategy] = useState(null);
-  const [newStrategy, setNewStrategy] = useState({
-    name: "",
-    description: "",
-    strategyType: "",
-    aiTool: "",
-    objectives: [""],
-    targetAudience: "",
-    budget: "",
-    timeline: "",
-    contentPillars: [""],
-    visualContent: [],
-    linkedAssets: []
-  });
-
-  const strategyTypes = [
-    { value: "content", label: "Content Strategy", icon: FileText },
-    { value: "social", label: "Social Media Strategy", icon: Users },
-    { value: "brand", label: "Brand Strategy", icon: Target },
-    { value: "product", label: "Product Launch Strategy", icon: TrendingUp },
-    { value: "visual", label: "Visual Content Strategy", icon: Image },
-    { value: "video", label: "Video Strategy", icon: Video },
-    { value: "influencer", label: "Influencer Strategy", icon: MessageSquare }
   ];
 
-  const aiTools = [
-    { value: "gpt4", label: "GPT-4", description: "Best for detailed text content and strategy", icon: Brain },
-    { value: "claude", label: "Claude", description: "Excellent for analysis and planning", icon: Lightbulb },
-    { value: "gemini", label: "Gemini", description: "Great for creative content", icon: Zap },
-    { value: "dall-e", label: "DALL-E", description: "AI image generation", icon: Image },
-    { value: "midjourney", label: "Midjourney", description: "Artistic image creation", icon: Palette },
-    { value: "runware", label: "Runware", description: "Fast image generation", icon: Zap }
+  // Combine existing and AI strategies
+  const allStrategies = [
+    ...existingStrategies,
+    ...(workflowState.approvedStrategy ? [{
+      id: workflowState.approvedStrategy.id,
+      title: workflowState.approvedStrategy.title,
+      objectives: workflowState.approvedStrategy.objectives,
+      status: "active",
+      progress: 85,
+      isAIGenerated: true,
+      ...workflowState.approvedStrategy
+    }] : [])
   ];
 
-  const handleFileUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    
-    // Simulate file upload and analysis
-    setTimeout(() => {
-      const newStrategyFromFile = {
-        id: strategies.length + 1,
-        name: file.name.replace(/\.[^/.]+$/, ""),
-        description: "Automatically extracted strategy description from uploaded file",
-        status: "Draft",
-        uploadDate: new Date().toISOString().split('T')[0],
-        lastUpdated: new Date().toISOString().split('T')[0],
-        fileType: file.name.split('.').pop()?.toUpperCase() || "FILE",
-        fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        tags: ["Uploaded", "Analysis Pending"],
-        objectives: ["Analysis in progress..."],
-        targetAudience: "To be determined",
-        budget: "Not specified",
-        timeline: "To be determined",
-        kpis: [],
-        contentPillars: [],
-        generatedContent: 0,
-        approvedContent: 0,
-        publishedContent: 0
-      };
-      
-      setStrategies(prev => [newStrategyFromFile, ...prev]);
-      setIsUploading(false);
-      
-      toast({
-        title: "Strategy Uploaded",
-        description: "Your strategy document has been uploaded and is being analyzed.",
-      });
-    }, 2000);
-  };
-
-  const addObjective = () => {
-    setNewStrategy(prev => ({
-      ...prev,
-      objectives: [...prev.objectives, ""]
-    }));
-  };
-
-  const addContentPillar = () => {
-    setNewStrategy(prev => ({
-      ...prev,
-      contentPillars: [...prev.contentPillars, ""]
-    }));
-  };
-
-  const updateObjective = (index, value) => {
-    setNewStrategy(prev => ({
-      ...prev,
-      objectives: prev.objectives.map((obj, i) => i === index ? value : obj)
-    }));
-  };
-
-  const updateContentPillar = (index, value) => {
-    setNewStrategy(prev => ({
-      ...prev,
-      contentPillars: prev.contentPillars.map((pillar, i) => i === index ? value : pillar)
-    }));
-  };
-
-  const generateContent = (strategyId) => {
-    toast({
-      title: "Content Generation Started",
-      description: "AI is analyzing your strategy and generating aligned content...",
-    });
-    
-    // Simulate content generation
-    setTimeout(() => {
-      setStrategies(prev => 
-        prev.map(strategy => 
-          strategy.id === strategyId 
-            ? { ...strategy, generatedContent: strategy.generatedContent + 5 }
-            : strategy
-        )
-      );
-      
-      toast({
-        title: "Content Generated",
-        description: "5 new content pieces have been generated based on your strategy.",
-      });
-    }, 3000);
-  };
-
-  const addMetric = () => {
-    if (!newMetric.name || !newMetric.target) return;
-    
-    const newId = Math.max(...performanceMetrics.map(m => m.id)) + 1;
-    setPerformanceMetrics(prev => [...prev, {
-      ...newMetric,
-      id: newId,
-      target: parseFloat(newMetric.target)
-    }]);
-    
-    setNewMetric({
-      name: "",
-      target: "",
-      unit: "none",
-      type: "commercial",
-      category: "traffic"
-    });
-    
-    toast({
-      title: "Metric Added",
-      description: "Performance metric has been added to your tracking list.",
-    });
-  };
-
-  const removeMetric = (metricId) => {
-    setPerformanceMetrics(prev => prev.filter(metric => metric.id !== metricId));
-    toast({
-      title: "Metric Removed",
-      description: "Performance metric has been removed from tracking.",
-    });
-  };
-
-  const startEditMetric = (metric: any) => {
-    setEditingMetric(metric.id.toString());
-    setEditMetricData({
-      name: metric.name,
-      target: metric.target.toString(),
-      unit: metric.unit,
-      type: metric.type,
-      category: metric.category
-    });
-  };
-
-  const saveEditMetric = () => {
-    if (editingMetric) {
-      setPerformanceMetrics(prev => prev.map(metric => 
-        metric.id.toString() === editingMetric 
-          ? { ...metric, name: editMetricData.name, target: parseFloat(editMetricData.target) || 0, unit: editMetricData.unit, type: editMetricData.type, category: editMetricData.category }
-          : metric
-      ));
-      setEditingMetric(null);
-      setEditMetricData({
-        name: "",
-        target: "",
-        unit: "none",
-        type: "commercial",
-        category: "traffic"
-      });
-      toast({
-        title: "Metric Updated",
-        description: "Performance metric has been successfully updated.",
-      });
-    }
-  };
-
-  const cancelEditMetric = () => {
-    setEditingMetric(null);
-    setEditMetricData({
-      name: "",
-      target: "",
-      unit: "none",
-      type: "commercial",
-      category: "traffic"
-    });
-  };
-
-  const generateAITargetBreakdown = async () => {
-    setIsGeneratingBreakdown(true);
-    
-    // Simulate AI analysis
-    setTimeout(() => {
-      const breakdown = {
-        timeBreakdown: {
-          daily: Math.round(performanceMetrics.find(m => m.name === "Monthly Visitors")?.target / 30) || 1000,
-          weekly: Math.round(performanceMetrics.find(m => m.name === "Monthly Visitors")?.target / 4) || 7500,
-          monthly: performanceMetrics.find(m => m.name === "Monthly Visitors")?.target || 30000
-        },
-        audienceBreakdown: {
-          "Millennials (25-35)": "40%",
-          "Gen Z (18-24)": "35%", 
-          "Gen X (36-50)": "20%",
-          "Other": "5%"
-        },
-        platformBreakdown: {
-          "Instagram": "35%",
-          "LinkedIn": "25%",
-          "Twitter": "20%",
-          "Facebook": "15%",
-          "TikTok": "5%"
-        },
-        insights: [
-          "Focus on Instagram and LinkedIn for maximum reach",
-          "Target weekend posting for Millennial engagement",
-          "Allocate 60% of budget to top 2 platforms",
-          "Consider micro-influencer partnerships for Gen Z"
-        ]
-      };
-      
-      setAiTargetBreakdown(breakdown);
-      setIsGeneratingBreakdown(false);
-      
-      toast({
-        title: "AI Analysis Complete",
-        description: "Target breakdown generated with platform and audience insights.",
-      });
-    }, 3000);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Active": return "default";
-      case "Draft": return "secondary";
-      case "Completed": return "outline";
-      default: return "secondary";
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "Active": return CheckCircle;
-      case "Draft": return Clock;
-      case "Completed": return CheckCircle;
-      default: return AlertCircle;
-    }
-  };
+  const currentStrategy = workflowState.approvedStrategy || existingStrategies[0];
 
   return (
     <div className="space-y-8">
-      {/* Master Marketing Strategy Section */}
-      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-background">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Settings className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-xl">Overall Marketing Strategy</CardTitle>
-                <CardDescription>
-                  Master guidelines that inform all AI strategy generation and content creation
-                </CardDescription>
-              </div>
-            </div>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Edit Master Strategy
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Edit Overall Marketing Strategy</DialogTitle>
-                  <DialogDescription>
-                    These guidelines will be used as context for all AI-generated strategies and content.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-6 py-4">
-                  <div className="space-y-2">
-                    <Label>Objectives & Goals</Label>
-                    <Textarea
-                      value={masterStrategy.objectives}
-                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, objectives: e.target.value }))}
-                      placeholder="Define your main business objectives and marketing goals"
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Target Markets</Label>
-                    <Textarea
-                      value={masterStrategy.targetMarkets}
-                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, targetMarkets: e.target.value }))}
-                      placeholder="Describe your primary and secondary target markets"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Budget Guidelines</Label>
-                      <Input
-                        value={masterStrategy.budget}
-                        onChange={(e) => setMasterStrategy(prev => ({ ...prev, budget: e.target.value }))}
-                        placeholder="e.g., $200,000 annual budget"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Key Metrics</Label>
-                      <Input
-                        value={masterStrategy.keyMetrics}
-                        onChange={(e) => setMasterStrategy(prev => ({ ...prev, keyMetrics: e.target.value }))}
-                        placeholder="e.g., ROI, engagement, conversions"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Compliance Requirements</Label>
-                    <Textarea
-                      value={masterStrategy.compliance}
-                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, compliance: e.target.value }))}
-                      placeholder="Legal, regulatory, and industry compliance requirements"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Tone of Voice & Brand Guidelines</Label>
-                    <Textarea
-                      value={masterStrategy.toneOfVoice}
-                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, toneOfVoice: e.target.value }))}
-                      placeholder="Define your brand voice, personality, and communication style"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Brand Guidelines</Label>
-                    <Textarea
-                      value={masterStrategy.brandGuidelines}
-                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, brandGuidelines: e.target.value }))}
-                      placeholder="Visual identity, color schemes, typography, logo usage"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Additional Context</Label>
-                    <Textarea
-                      value={masterStrategy.additionalContext}
-                      onChange={(e) => setMasterStrategy(prev => ({ ...prev, additionalContext: e.target.value }))}
-                      placeholder="Any additional context, values, or messaging priorities"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <Button className="w-full">Save Master Strategy</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Marketing Strategy</h1>
+        <p className="text-muted-foreground mt-2">
+          Manage your marketing strategies and track their performance across all channels.
+        </p>
+        {workflowState.approvedStrategy && (
+          <div className="flex items-center gap-2 mt-2">
+            <Sparkles className="h-4 w-4 text-purple-600" />
+            <span className="text-sm text-purple-700">
+              AI-generated strategy is now active and integrated
+            </span>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Objectives</Label>
-              <p className="text-sm">{masterStrategy.objectives}</p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Target Markets</Label>
-              <p className="text-sm">{masterStrategy.targetMarkets}</p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Budget</Label>
-              <p className="text-sm">{masterStrategy.budget}</p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Tone of Voice</Label>
-              <p className="text-sm">{masterStrategy.toneOfVoice}</p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Key Metrics</Label>
-              <p className="text-sm">{masterStrategy.keyMetrics}</p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-muted-foreground">Compliance</Label>
-              <p className="text-sm">{masterStrategy.compliance}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      {/* Performance Metrics Configuration Section */}
-      <Card className="border-secondary/20 bg-gradient-to-r from-secondary/5 to-background">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
-                <BarChart3 className="h-5 w-5 text-secondary" />
-              </div>
-              <div>
-                <CardTitle className="text-xl">Performance Metrics Configuration</CardTitle>
-                <CardDescription>
-                  Define the metrics you want to track and AI will help break them down by time, audience, and platform
-                </CardDescription>
-              </div>
-            </div>
-            <Button 
-              onClick={generateAITargetBreakdown}
-              disabled={isGeneratingBreakdown}
-              className="flex items-center gap-2"
-            >
-              <Brain className="h-4 w-4" />
-              {isGeneratingBreakdown ? "Analyzing..." : "AI Target Breakdown"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Add New Metric */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-dashed border-muted-foreground/25 rounded-lg">
-            <div className="space-y-2">
-              <Label>Metric Name</Label>
-              <Input
-                value={newMetric.name}
-                onChange={(e) => setNewMetric(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Monthly Visitors"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Target Value</Label>
-              <Input
-                type="number"
-                value={newMetric.target}
-                onChange={(e) => setNewMetric(prev => ({ ...prev, target: e.target.value }))}
-                placeholder="30000"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Unit</Label>
-              <Select value={newMetric.unit} onValueChange={(value) => setNewMetric(prev => ({ ...prev, unit: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="$">$ (Currency)</SelectItem>
-                  <SelectItem value="%">% (Percentage)</SelectItem>
-                  <SelectItem value="k">k (Thousands)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <Select value={newMetric.type} onValueChange={(value) => setNewMetric(prev => ({ ...prev, type: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="commercial">Commercial</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={addMetric} className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Metric
-              </Button>
-            </div>
-          </div>
-
-          {/* Current Metrics */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Commercial Metrics */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-primary" />
-                  <h3 className="font-semibold">Commercial Metrics</h3>
-                </div>
-                <div className="space-y-3">
-                  {performanceMetrics.filter(metric => metric.type === "commercial").map((metric) => (
-                    <div key={metric.id} className="p-3 border rounded-lg">
-                      {editingMetric === metric.id.toString() ? (
-                        // Edit mode
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Name</Label>
-                              <Input
-                                value={editMetricData.name}
-                                onChange={(e) => setEditMetricData(prev => ({ ...prev, name: e.target.value }))}
-                                placeholder="Metric name"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Target</Label>
-                              <Input
-                                type="number"
-                                value={editMetricData.target}
-                                onChange={(e) => setEditMetricData(prev => ({ ...prev, target: e.target.value }))}
-                                placeholder="Target value"
-                              />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Unit</Label>
-                              <Select value={editMetricData.unit} onValueChange={(value) => setEditMetricData(prev => ({ ...prev, unit: value }))}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">None</SelectItem>
-                                  <SelectItem value="$">$ (Currency)</SelectItem>
-                                  <SelectItem value="%">% (Percentage)</SelectItem>
-                                  <SelectItem value="k">k (Thousands)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Type</Label>
-                              <Select value={editMetricData.type} onValueChange={(value) => setEditMetricData(prev => ({ ...prev, type: value }))}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="commercial">Commercial</SelectItem>
-                                  <SelectItem value="marketing">Marketing</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={cancelEditMetric}>
-                              Cancel
-                            </Button>
-                            <Button size="sm" onClick={saveEditMetric}>
-                              Save
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        // View mode
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="font-medium">{metric.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              Target: {metric.unit}{metric.target}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startEditMetric(metric)}
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeMetric(metric.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Marketing Metrics */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-secondary" />
-                  <h3 className="font-semibold">Marketing Metrics</h3>
-                </div>
-                <div className="space-y-3">
-                  {performanceMetrics.filter(metric => metric.type === "marketing").map((metric) => (
-                    <div key={metric.id} className="p-3 border rounded-lg">
-                      {editingMetric === metric.id.toString() ? (
-                        // Edit mode
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Name</Label>
-                              <Input
-                                value={editMetricData.name}
-                                onChange={(e) => setEditMetricData(prev => ({ ...prev, name: e.target.value }))}
-                                placeholder="Metric name"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Target</Label>
-                              <Input
-                                type="number"
-                                value={editMetricData.target}
-                                onChange={(e) => setEditMetricData(prev => ({ ...prev, target: e.target.value }))}
-                                placeholder="Target value"
-                              />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Unit</Label>
-                              <Select value={editMetricData.unit} onValueChange={(value) => setEditMetricData(prev => ({ ...prev, unit: value }))}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">None</SelectItem>
-                                  <SelectItem value="$">$ (Currency)</SelectItem>
-                                  <SelectItem value="%">% (Percentage)</SelectItem>
-                                  <SelectItem value="k">k (Thousands)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Type</Label>
-                              <Select value={editMetricData.type} onValueChange={(value) => setEditMetricData(prev => ({ ...prev, type: value }))}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="commercial">Commercial</SelectItem>
-                                  <SelectItem value="marketing">Marketing</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={cancelEditMetric}>
-                              Cancel
-                            </Button>
-                            <Button size="sm" onClick={saveEditMetric}>
-                              Save
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        // View mode
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="font-medium">{metric.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              Target: {metric.target}{metric.unit}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startEditMetric(metric)}
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeMetric(metric.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Target Breakdown Results */}
-          {aiTargetBreakdown && (
-            <div className="mt-6 space-y-6 p-6 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold">AI Target Breakdown Analysis</h3>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Time Breakdown */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Time Breakdown
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Daily</span>
-                      <span className="text-sm font-medium">{aiTargetBreakdown.timeBreakdown.daily}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Weekly</span>
-                      <span className="text-sm font-medium">{aiTargetBreakdown.timeBreakdown.weekly}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Monthly</span>
-                      <span className="text-sm font-medium">{aiTargetBreakdown.timeBreakdown.monthly}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Audience Breakdown */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      Audience Breakdown
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {Object.entries(aiTargetBreakdown.audienceBreakdown).map(([audience, percentage]) => (
-                      <div key={audience} className="flex justify-between">
-                        <span className="text-sm">{audience}</span>
-                        <span className="text-sm font-medium">{percentage as string}</span>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* Platform Breakdown */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Platform Breakdown
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {Object.entries(aiTargetBreakdown.platformBreakdown).map(([platform, percentage]) => (
-                      <div key={platform} className="flex justify-between">
-                        <span className="text-sm">{platform}</span>
-                        <span className="text-sm font-medium">{percentage as string}</span>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* AI Insights */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 text-primary" />
-                  <h4 className="font-medium">AI Insights & Recommendations</h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {aiTargetBreakdown.insights.map((insight, index) => (
-                    <div key={index} className="flex items-start gap-2 p-3 bg-background/50 rounded-md">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                      <span className="text-sm">{insight}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Individual Strategies</h2>
-          <p className="text-muted-foreground mt-2">
-            Create specific strategies that align with your overall marketing framework.
-          </p>
-        </div>
-        
-        <div className="flex gap-3">
-          <div className="relative">
-            <Input
-              type="file"
-              accept=".pdf,.doc,.docx,.txt"
-              onChange={handleFileUpload}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              disabled={isUploading}
-            />
-            <Button disabled={isUploading} className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              {isUploading ? "Uploading..." : "Upload Strategy"}
-            </Button>
-          </div>
-          
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Create New
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New Strategy</DialogTitle>
-                <DialogDescription>
-                  Define your marketing strategy parameters. This will use your master strategy as context.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-6 py-4">
-                <div className="space-y-2">
-                  <Label>Strategy Name</Label>
-                  <Input
-                    value={newStrategy.name}
-                    onChange={(e) => setNewStrategy(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Enter strategy name"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Strategy Type</Label>
-                  <Select value={newStrategy.strategyType} onValueChange={(value) => setNewStrategy(prev => ({ ...prev, strategyType: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select strategy type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {strategyTypes.map((type) => {
-                        const IconComponent = type.icon;
-                        return (
-                          <SelectItem key={type.value} value={type.value}>
-                            <div className="flex items-center gap-2">
-                              <IconComponent className="h-4 w-4" />
-                              {type.label}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>AI Tool for Generation</Label>
-                  <Select value={newStrategy.aiTool} onValueChange={(value) => setNewStrategy(prev => ({ ...prev, aiTool: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select AI tool" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {aiTools.map((tool) => {
-                        const IconComponent = tool.icon;
-                        return (
-                          <SelectItem key={tool.value} value={tool.value}>
-                            <div className="flex items-center gap-2">
-                              <IconComponent className="h-4 w-4" />
-                              <div>
-                                <div className="font-medium">{tool.label}</div>
-                                <div className="text-xs text-muted-foreground">{tool.description}</div>
-                              </div>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea
-                    value={newStrategy.description}
-                    onChange={(e) => setNewStrategy(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Describe your marketing strategy"
-                    rows={3}
-                  />
-                </div>
-                
-                <div className="space-y-3">
-                  <Label>Objectives</Label>
-                  {newStrategy.objectives.map((objective, index) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        value={objective}
-                        onChange={(e) => updateObjective(index, e.target.value)}
-                        placeholder={`Objective ${index + 1}`}
-                      />
-                      {index === newStrategy.objectives.length - 1 && (
-                        <Button type="button" variant="outline" onClick={addObjective}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Target Audience</Label>
-                    <Input
-                      value={newStrategy.targetAudience}
-                      onChange={(e) => setNewStrategy(prev => ({ ...prev, targetAudience: e.target.value }))}
-                      placeholder="Define your target audience"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Budget</Label>
-                    <Input
-                      value={newStrategy.budget}
-                      onChange={(e) => setNewStrategy(prev => ({ ...prev, budget: e.target.value }))}
-                      placeholder="e.g., $50,000"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Timeline</Label>
-                  <Select value={newStrategy.timeline} onValueChange={(value) => setNewStrategy(prev => ({ ...prev, timeline: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select timeline" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1 month">1 Month</SelectItem>
-                      <SelectItem value="3 months">3 Months</SelectItem>
-                      <SelectItem value="6 months">6 Months</SelectItem>
-                      <SelectItem value="1 year">1 Year</SelectItem>
-                      <SelectItem value="ongoing">Ongoing</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-3">
-                  <Label>Content Pillars</Label>
-                  {newStrategy.contentPillars.map((pillar, index) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        value={pillar}
-                        onChange={(e) => updateContentPillar(index, e.target.value)}
-                        placeholder={`Content pillar ${index + 1}`}
-                      />
-                      {index === newStrategy.contentPillars.length - 1 && (
-                        <Button type="button" variant="outline" onClick={addContentPillar}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Link Visual Content</Label>
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
-                      <div className="text-center">
-                        <Image className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Link existing visual assets or generate new ones
-                        </p>
-                        <div className="flex gap-2 justify-center">
-                          <Button variant="outline" size="sm">
-                            <Link className="h-4 w-4 mr-1" />
-                            Link Existing
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Plus className="h-4 w-4 mr-1" />
-                            Generate New
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-muted/30 p-4 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <Brain className="h-5 w-5 text-primary mt-0.5" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">AI Context</p>
-                        <p className="text-xs text-muted-foreground">
-                          This strategy will use your overall marketing strategy as context for AI generation, ensuring consistency with your objectives, tone of voice, and brand guidelines.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2 pt-4">
-                  <Button className="flex-1">
-                    <Zap className="h-4 w-4 mr-2" />
-                    Create with AI
-                  </Button>
-                  <Button variant="outline" className="flex-1">Save as Draft</Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+        )}
       </div>
 
-      {isUploading && (
+      {/* Strategy Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Strategies</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{allStrategies.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {allStrategies.filter(s => s.isAIGenerated).length} AI-generated
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg. Performance</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {Math.round(allStrategies.reduce((acc, s) => acc + s.progress, 0) / allStrategies.length)}%
+            </div>
+            <p className="text-xs text-muted-foreground">
+              +5% from last month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Content Plans</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{workflowState.approvedPlans.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Weekly content plans
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Budget Utilization</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">67%</div>
+            <p className="text-xs text-muted-foreground">
+              $134k of $200k budget
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Strategy Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Strategy List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Strategies</CardTitle>
+            <CardDescription>
+              All active marketing strategies
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Upload className="h-5 w-5 text-primary animate-pulse" />
-                <span className="font-medium">Analyzing strategy document...</span>
-              </div>
-              <Progress value={65} className="w-full" />
-              <p className="text-sm text-muted-foreground">
-                Extracting objectives, target audience, and key metrics from your document.
-              </p>
+              {allStrategies.map((strategy) => (
+                <div
+                  key={strategy.id}
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                    selectedStrategy === strategy.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                  } ${strategy.isAIGenerated ? 'border-purple-200 bg-purple-50/50' : ''}`}
+                  onClick={() => setSelectedStrategy(strategy.id)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {strategy.isAIGenerated && <Sparkles className="h-4 w-4 text-purple-600" />}
+                      <h4 className="font-medium text-sm">{strategy.title}</h4>
+                    </div>
+                    <Badge variant={strategy.status === 'active' ? 'default' : 'secondary'}>
+                      {strategy.status}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                    {strategy.objectives}
+                  </p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span>Progress</span>
+                      <span>{strategy.progress}%</span>
+                    </div>
+                    <Progress value={strategy.progress} className="h-1" />
+                  </div>
+                  {strategy.isAIGenerated && (
+                    <div className="text-xs text-purple-600 mt-2">
+                      AI-Generated Strategy
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
-      )}
 
-      <div className="grid gap-6">
-        {strategies.map((strategy) => {
-          const StatusIcon = getStatusIcon(strategy.status);
-          return (
-            <Card key={strategy.id} className="hover:shadow-md transition-shadow">
+        {/* Strategy Details */}
+        <div className="lg:col-span-2">
+          {workflowState.approvedStrategy && selectedStrategy === workflowState.approvedStrategy.id ? (
+            <Card className="border-purple-200">
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <CardTitle className="text-xl">{strategy.name}</CardTitle>
-                      <Badge variant={getStatusColor(strategy.status)} className="flex items-center gap-1">
-                        <StatusIcon className="h-3 w-3" />
-                        {strategy.status}
-                      </Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-purple-600" />
+                    <CardTitle>{workflowState.approvedStrategy.title}</CardTitle>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Report
+                    </Button>
+                  </div>
+                </div>
+                <CardDescription>
+                  AI-generated marketing strategy with comprehensive analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="targets">Targets</TabsTrigger>
+                    <TabsTrigger value="guidelines">Guidelines</TabsTrigger>
+                    <TabsTrigger value="metrics">Metrics</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="overview" className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Objectives</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {workflowState.approvedStrategy.objectives}
+                      </p>
                     </div>
-                    <CardDescription className="max-w-2xl">
-                      {strategy.description}
-                    </CardDescription>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {strategy.tags.map((tag, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                    
+                    <div>
+                      <h4 className="font-semibold mb-2">Budget Allocation</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {workflowState.approvedStrategy.budget}
+                      </p>
                     </div>
+                    
+                    <div>
+                      <h4 className="font-semibold mb-2">Additional Context</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {workflowState.approvedStrategy.additionalContext}
+                      </p>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="targets" className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Target Markets</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {workflowState.approvedStrategy.targetMarkets}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold mb-2">Tone of Voice</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {workflowState.approvedStrategy.toneOfVoice}
+                      </p>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="guidelines" className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Brand Guidelines</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {workflowState.approvedStrategy.brandGuidelines}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold mb-2">Compliance Requirements</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {workflowState.approvedStrategy.compliance}
+                      </p>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="metrics" className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Key Metrics</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {workflowState.approvedStrategy.keyMetrics}
+                      </p>
+                    </div>
+                    
+                    {workflowState.approvedContent.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-2">Content Performance</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="text-2xl font-bold text-green-600">
+                                {workflowState.approvedContent.length}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Content pieces created
+                              </p>
+                            </CardContent>
+                          </Card>
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="text-2xl font-bold text-blue-600">
+                                {workflowState.approvedPlans.length}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Weekly plans active
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Q4 Growth Strategy</CardTitle>
+                <CardDescription>
+                  Traditional marketing strategy focused on user acquisition
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Objectives</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Increase user acquisition by 40% and improve retention rates through targeted campaigns and improved user experience.
+                    </p>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>{strategy.name}</DialogTitle>
-                          <DialogDescription>{strategy.description}</DialogDescription>
-                        </DialogHeader>
-                        
-                        <Tabs defaultValue="overview" className="w-full">
-                          <TabsList className="grid w-full grid-cols-4">
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
-                            <TabsTrigger value="content">Content</TabsTrigger>
-                            <TabsTrigger value="performance">Performance</TabsTrigger>
-                            <TabsTrigger value="analysis">Analysis</TabsTrigger>
-                          </TabsList>
-                          
-                          <TabsContent value="overview" className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label className="font-medium">Target Audience</Label>
-                                <p className="text-sm text-muted-foreground">{strategy.targetAudience}</p>
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="font-medium">Budget</Label>
-                                <p className="text-sm text-muted-foreground">{strategy.budget}</p>
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="font-medium">Timeline</Label>
-                                <p className="text-sm text-muted-foreground">{strategy.timeline}</p>
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="font-medium">File Info</Label>
-                                <p className="text-sm text-muted-foreground">{strategy.fileType} • {strategy.fileSize}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-3">
-                              <Label className="font-medium">Objectives</Label>
-                              <ul className="space-y-1">
-                                {strategy.objectives.map((objective, index) => (
-                                  <li key={index} className="flex items-center gap-2 text-sm">
-                                    <Target className="h-4 w-4 text-primary" />
-                                    {objective}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                            
-                            <div className="space-y-3">
-                              <Label className="font-medium">Content Pillars</Label>
-                              <div className="grid grid-cols-2 gap-2">
-                                {strategy.contentPillars.map((pillar, index) => (
-                                  <Badge key={index} variant="secondary" className="justify-center">
-                                    {pillar}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-3">
-                              <Label className="font-medium">Key Performance Indicators</Label>
-                              <div className="grid grid-cols-2 gap-2">
-                                {strategy.kpis.map((kpi, index) => (
-                                  <div key={index} className="flex items-center gap-2 text-sm">
-                                    <BarChart3 className="h-4 w-4 text-primary" />
-                                    {kpi}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </TabsContent>
-                          
-                          <TabsContent value="content" className="space-y-4">
-                            <div className="grid grid-cols-3 gap-4">
-                              <Card>
-                                <CardContent className="p-4 text-center">
-                                  <div className="text-2xl font-bold text-primary">{strategy.generatedContent}</div>
-                                  <p className="text-sm text-muted-foreground">Generated</p>
-                                </CardContent>
-                              </Card>
-                              <Card>
-                                <CardContent className="p-4 text-center">
-                                  <div className="text-2xl font-bold text-orange-500">{strategy.approvedContent}</div>
-                                  <p className="text-sm text-muted-foreground">Approved</p>
-                                </CardContent>
-                              </Card>
-                              <Card>
-                                <CardContent className="p-4 text-center">
-                                  <div className="text-2xl font-bold text-green-500">{strategy.publishedContent}</div>
-                                  <p className="text-sm text-muted-foreground">Published</p>
-                                </CardContent>
-                              </Card>
-                            </div>
-                            
-                            <Button 
-                              onClick={() => generateContent(strategy.id)} 
-                              className="w-full flex items-center gap-2"
-                            >
-                              <Zap className="h-4 w-4" />
-                              Generate New Content from Strategy
-                            </Button>
-                          </TabsContent>
-                          
-                          <TabsContent value="performance" className="space-y-4">
-                            <p className="text-muted-foreground">Performance metrics and analytics will be displayed here once content is published.</p>
-                          </TabsContent>
-                          
-                          <TabsContent value="analysis" className="space-y-4">
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-2">
-                                <Lightbulb className="h-5 w-5 text-primary" />
-                                <h4 className="font-medium">AI Strategy Analysis</h4>
-                              </div>
-                              <div className="bg-muted p-4 rounded-lg">
-                                <p className="text-sm">
-                                  This strategy shows strong alignment with current market trends. 
-                                  The target audience is well-defined and the objectives are measurable. 
-                                  Consider increasing focus on video content and user-generated content 
-                                  to improve engagement rates.
-                                </p>
-                              </div>
-                            </div>
-                          </TabsContent>
-                        </Tabs>
-                      </DialogContent>
-                    </Dialog>
-                    
-                    <Button variant="ghost" size="sm">
-                      <Edit3 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <div>
+                    <h4 className="font-semibold mb-2">Current Performance</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>User Acquisition</span>
+                        <span>75% of target</span>
+                      </div>
+                      <Progress value={75} className="h-2" />
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Created: {strategy.uploadDate}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Updated: {strategy.lastUpdated}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">{strategy.fileType} • {strategy.fileSize}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">{strategy.generatedContent} content pieces</span>
-                  </div>
-                </div>
-                
-                <div className="mt-4 flex gap-2">
-                  <Button 
-                    size="sm" 
-                    onClick={() => generateContent(strategy.id)}
-                    className="flex items-center gap-2"
-                  >
-                    <Zap className="h-4 w-4" />
-                    Generate Content
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    View Analytics
-                  </Button>
                 </div>
               </CardContent>
             </Card>
-          );
-        })}
+          )}
+        </div>
       </div>
     </div>
   );

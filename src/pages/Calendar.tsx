@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useWorkflow } from "@/contexts/workflow-context";
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -33,7 +34,8 @@ import {
   BarChart3,
   Settings,
   Eye,
-  Send
+  Send,
+  Sparkles
 } from "lucide-react";
 import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -61,6 +63,7 @@ interface ContentPiece {
     engagement: number;
     clicks: number;
   };
+  isAIGenerated?: boolean;
 }
 
 const platforms = [
@@ -101,9 +104,10 @@ export default function Calendar() {
   const [selectedContent, setSelectedContent] = useState<ContentPiece | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { state: workflowState } = useWorkflow();
   
-  // Mock data - in real app this would come from API/database
-  const [scheduledContent, setScheduledContent] = useState<ContentPiece[]>([
+  // Combine manual and AI-generated content
+  const [manualContent, setManualContent] = useState<ContentPiece[]>([
     {
       id: '1',
       title: 'Summer Product Launch',
@@ -163,6 +167,15 @@ export default function Calendar() {
     }
   ]);
 
+  // Merge AI workflow content with manual content
+  const scheduledContent = [
+    ...manualContent,
+    ...workflowState.approvedContent.map(aiContent => ({
+      ...aiContent,
+      isAIGenerated: true,
+    }))
+  ];
+
   const [newContent, setNewContent] = useState<Partial<ContentPiece>>({
     title: '',
     content: '',
@@ -189,10 +202,11 @@ export default function Calendar() {
         scheduledDate: newContent.scheduledDate || new Date(),
         timezone: newContent.timezone || 'UTC',
         status: 'scheduled',
-        platformOptimizations: newContent.platformOptimizations || {}
+        platformOptimizations: newContent.platformOptimizations || {},
+        isAIGenerated: false,
       };
       
-      setScheduledContent([...scheduledContent, content]);
+      setManualContent([...manualContent, content]);
       setNewContent({
         title: '',
         content: '',
@@ -243,7 +257,12 @@ export default function Calendar() {
             return (
               <div
                 key={content.id}
-                className="text-xs p-1 rounded bg-primary/20 text-primary cursor-pointer hover:bg-primary/30"
+                className={cn(
+                  "text-xs p-1 rounded cursor-pointer hover:opacity-80",
+                  content.isAIGenerated 
+                    ? "bg-purple-100 text-purple-700 border border-purple-200" 
+                    : "bg-primary/20 text-primary"
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedContent(content);
@@ -251,6 +270,7 @@ export default function Calendar() {
                 }}
               >
                 <div className="flex items-center gap-1">
+                  {content.isAIGenerated && <Sparkles className="h-3 w-3" />}
                   {platform && <platform.icon className="h-3 w-3" />}
                   <span className="truncate">{content.title}</span>
                 </div>
@@ -302,6 +322,14 @@ export default function Calendar() {
           <p className="text-muted-foreground mt-2">
             Schedule and manage your content across all platforms with timezone optimization.
           </p>
+          {workflowState.approvedContent.length > 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              <Sparkles className="h-4 w-4 text-purple-600" />
+              <span className="text-sm text-purple-700">
+                {workflowState.approvedContent.length} AI-generated content pieces integrated
+              </span>
+            </div>
+          )}
         </div>
         
         <div className="flex gap-2">
@@ -564,9 +592,15 @@ export default function Calendar() {
             <CardContent>
               <div className="space-y-3">
                 {getContentForDate(selectedDate).map(content => (
-                  <div key={content.id} className="p-3 border border-border rounded-lg">
+                  <div key={content.id} className={cn(
+                    "p-3 border rounded-lg",
+                    content.isAIGenerated ? "border-purple-200 bg-purple-50/50" : "border-border"
+                  )}>
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium text-sm">{content.title}</h4>
+                      <div className="flex items-center gap-2">
+                        {content.isAIGenerated && <Sparkles className="h-3 w-3 text-purple-600" />}
+                        <h4 className="font-medium text-sm">{content.title}</h4>
+                      </div>
                       <Badge variant={content.status === 'published' ? 'default' : 'secondary'}>
                         {content.status}
                       </Badge>
@@ -580,7 +614,7 @@ export default function Calendar() {
                       <Globe className="h-3 w-3 ml-2" />
                       <span className="text-xs">{content.timezone}</span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 mb-2">
                       {content.platforms.map(platformId => {
                         const platform = platforms.find(p => p.id === platformId);
                         return platform ? (
@@ -590,6 +624,11 @@ export default function Calendar() {
                         ) : null;
                       })}
                     </div>
+                    {content.isAIGenerated && (
+                      <div className="text-xs text-purple-600 mb-2">
+                        AI-Generated Content
+                      </div>
+                    )}
                     <ContentPublishStatus content={content} />
                     <div className="flex gap-1 mt-2">
                       <Button size="sm" variant="outline" onClick={() => {
@@ -626,7 +665,8 @@ export default function Calendar() {
                 {platforms.map(platform => {
                   const platformContent = scheduledContent.filter(content => 
                     content.platforms.includes(platform.id)
-                  ).length;
+                  );
+                  const aiContent = platformContent.filter(content => content.isAIGenerated).length;
                   
                   return (
                     <div key={platform.id} className="flex items-center justify-between">
@@ -636,9 +676,16 @@ export default function Calendar() {
                         </div>
                         <span className="text-sm font-medium">{platform.name}</span>
                       </div>
-                      <Badge variant="secondary">
-                        {platformContent} scheduled
-                      </Badge>
+                      <div className="flex gap-1">
+                        <Badge variant="secondary">
+                          {platformContent.length} scheduled
+                        </Badge>
+                        {aiContent > 0 && (
+                          <Badge variant="outline" className="text-purple-600">
+                            {aiContent} AI
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
