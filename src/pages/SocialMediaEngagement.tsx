@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePublishedContent } from "@/components/calendar/content-integration";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,11 +48,13 @@ import {
   Send,
   TrendingDown,
   BarChart3,
-  PieChart
+  PieChart,
+  Calendar
 } from "lucide-react";
 
 export default function SocialMediaEngagement() {
   const { toast } = useToast();
+  const publishedContent = usePublishedContent();
   
   const [selectedPlatform, setSelectedPlatform] = useState("");
   const [engagementType, setEngagementType] = useState("");
@@ -257,13 +260,14 @@ export default function SocialMediaEngagement() {
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="ai-recommendations">AI Recommendations</TabsTrigger>
           <TabsTrigger value="influencers">Influencers</TabsTrigger>
           <TabsTrigger value="threads">Thread Management</TabsTrigger>
           <TabsTrigger value="hashtags">Hashtags</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
+          <TabsTrigger value="published">Published Content</TabsTrigger>
         </TabsList>
 
         {/* Dashboard Tab */}
@@ -873,6 +877,163 @@ export default function SocialMediaEngagement() {
                   </CardContent>
                 </Card>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Published Content Tab */}
+        <TabsContent value="published" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Published Content from Calendar
+                  </CardTitle>
+                  <CardDescription>
+                    Manage engagement for content published from your content calendar
+                  </CardDescription>
+                </div>
+                <Button variant="outline" size="sm">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  View Calendar
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {publishedContent.length === 0 ? (
+                <div className="text-center py-12">
+                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Published Content Yet</h3>
+                  <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                    Content published from your calendar will automatically appear here for engagement management. 
+                    Schedule and publish content from the calendar to get started.
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Go to Calendar
+                    </Button>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Schedule Content
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {publishedContent.map((content) => (
+                    <Card key={content.id} className="border border-border">
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg mb-2">{content.title}</h4>
+                            <p className="text-muted-foreground mb-3 line-clamp-2">
+                              {content.content}
+                            </p>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                <span>Published {new Date(content.scheduledDate).toLocaleDateString()}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Target className="h-4 w-4" />
+                                <span>{content.platforms.length} platform{content.platforms.length > 1 ? 's' : ''}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <Badge variant="secondary">
+                            Published
+                          </Badge>
+                        </div>
+                        
+                        {/* Platform Icons */}
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="text-sm font-medium">Platforms:</span>
+                          {content.platforms.map((platformId) => {
+                            const platform = platforms.find(p => p.value === platformId);
+                            return platform ? (
+                              <div key={platformId} className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
+                                <platform.icon className={`h-4 w-4 ${platform.color}`} />
+                                <span className="text-xs">{platform.label}</span>
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                        
+                        {/* Engagement Metrics */}
+                        <div className="grid grid-cols-4 gap-4 mb-4">
+                          <div className="text-center p-3 bg-muted rounded-lg">
+                            <MessageSquare className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                            <div className="text-lg font-semibold">0</div>
+                            <div className="text-xs text-muted-foreground">Comments</div>
+                          </div>
+                          <div className="text-center p-3 bg-muted rounded-lg">
+                            <Heart className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                            <div className="text-lg font-semibold">0</div>
+                            <div className="text-xs text-muted-foreground">Likes</div>
+                          </div>
+                          <div className="text-center p-3 bg-muted rounded-lg">
+                            <Share className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                            <div className="text-lg font-semibold">0</div>
+                            <div className="text-xs text-muted-foreground">Shares</div>
+                          </div>
+                          <div className="text-center p-3 bg-muted rounded-lg">
+                            <TrendingUp className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                            <div className="text-lg font-semibold">0.0%</div>
+                            <div className="text-xs text-muted-foreground">Engagement</div>
+                          </div>
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline">
+                              <Eye className="h-4 w-4 mr-1" />
+                              View Post
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              View Comments
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <BarChart3 className="h-4 w-4 mr-1" />
+                              Analytics
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm">
+                              <Bot className="h-4 w-4 mr-1" />
+                              AI Engage
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Settings className="h-4 w-4 mr-1" />
+                              Settings
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {/* AI Engagement Status */}
+                        <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Brain className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">AI Engagement Status</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            AI is monitoring this post for new comments and engagement opportunities. 
+                            Auto-replies and influencer outreach suggestions will appear here when detected.
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Switch />
+                            <Label className="text-xs">Auto-engage enabled</Label>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
