@@ -19,7 +19,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Content Creation", href: "/content-creation", icon: FileText },
-  { name: "Drafts", href: "/drafts", icon: FileText },
+  { name: "Content Generator", href: "/content-generator", icon: FileText },
   { name: "Visual Creator", href: "/visual-creator", icon: Image },
   { name: "Strategy", href: "/strategy", icon: Target },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
