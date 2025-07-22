@@ -6,7 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Brain, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, TrendingUp } from "lucide-react";
+import { useAIPlatforms } from "@/hooks/use-ai-platforms";
+import { Brain, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, TrendingUp, Wrench, Zap } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface AIStrategyStep {
   id: string;
@@ -25,6 +28,8 @@ interface AIStrategyConsultantProps {
 
 export function AIStrategyConsultant({ onStrategyApproved, masterStrategy }: AIStrategyConsultantProps) {
   const { toast } = useToast();
+  const { platforms, getPlatformsWithTools } = useAIPlatforms();
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<AIStrategyStep[]>([
     {
@@ -274,12 +279,41 @@ export function AIStrategyConsultant({ onStrategyApproved, masterStrategy }: AIS
             </div>
           </div>
           
-          {steps.every(s => s.status === 'pending') && (
-            <Button onClick={startAIConsultation} size="lg">
-              <Lightbulb className="h-4 w-4 mr-2" />
-              Start AI Consultation
-            </Button>
-          )}
+          <div className="flex items-center gap-4">
+            {steps.every(s => s.status === 'pending') && (
+              <div className="flex items-center gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ai-platform" className="text-sm font-medium">AI Platform:</Label>
+                  <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Select AI Platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getPlatformsWithTools().map(platform => (
+                        <SelectItem key={platform.key} value={platform.key}>
+                          <div className="flex items-center gap-2">
+                            <span>{platform.name}</span>
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <Wrench className="h-3 w-3" />
+                              Tools
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button 
+                  onClick={startAIConsultation} 
+                  size="lg"
+                  disabled={!selectedPlatform}
+                >
+                  <Lightbulb className="h-4 w-4 mr-2" />
+                  Start AI Consultation
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </CardHeader>
 

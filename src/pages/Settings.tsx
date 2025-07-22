@@ -33,7 +33,8 @@ import {
   Eye,
   EyeOff,
   Bot,
-  Key
+  Key,
+  Wrench
 } from "lucide-react";
 
 interface SystemSetting {
@@ -149,13 +150,14 @@ export default function Settings() {
   };
 
   const aiPlatforms = {
-    openai: { name: "OpenAI", description: "GPT models for text generation" },
-    anthropic: { name: "Anthropic", description: "Claude models for text generation" },
-    google_ai: { name: "Google AI", description: "Gemini models for text generation" },
-    huggingface: { name: "Hugging Face", description: "Open source AI models" },
-    stability_ai: { name: "Stability AI", description: "Stable Diffusion for image generation" },
-    elevenlabs: { name: "ElevenLabs", description: "Voice synthesis and cloning" },
-    runware: { name: "Runware", description: "Fast image generation API" }
+    openai: { name: "OpenAI", description: "GPT models for text generation", supportsTools: true },
+    anthropic: { name: "Anthropic", description: "Claude models for text generation", supportsTools: true },
+    google_ai: { name: "Google AI", description: "Gemini models for text generation", supportsTools: true },
+    perplexity: { name: "Perplexity", description: "Real-time search and reasoning", supportsTools: true },
+    huggingface: { name: "Hugging Face", description: "Open source AI models", supportsTools: false },
+    stability_ai: { name: "Stability AI", description: "Stable Diffusion for image generation", supportsTools: false },
+    elevenlabs: { name: "ElevenLabs", description: "Voice synthesis and cloning", supportsTools: false },
+    runware: { name: "Runware", description: "Fast image generation API", supportsTools: false }
   };
 
   useEffect(() => {
@@ -429,8 +431,17 @@ export default function Settings() {
                           <Badge variant={isConfigured ? "default" : "outline"} className="text-xs">
                             {isConfigured ? "Configured" : "Not Set"}
                           </Badge>
+                          {config.supportsTools && (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <Wrench className="h-3 w-3" />
+                              Tools Support
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-sm text-muted-foreground">{config.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {config.description}
+                          {config.supportsTools && " • Supports function calling and tools"}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="relative">
