@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,14 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Settings2, 
   Link, 
   User, 
   Bell, 
-  Shield, 
   Palette,
   Facebook,
   Instagram,
@@ -30,337 +29,250 @@ import {
   RefreshCw,
   Trash2,
   Edit3,
-  Calendar,
-  Clock
+  Save,
+  Eye,
+  EyeOff,
+  Bot,
+  Key
 } from "lucide-react";
+
+interface SystemSetting {
+  id: string;
+  setting_key: string;
+  setting_value: any;
+  category: string;
+  description: string;
+}
+
+interface PlatformCredentials {
+  [key: string]: string;
+}
+
+interface PlatformConfig {
+  connected: boolean;
+  credentials: PlatformCredentials;
+  account_name?: string;
+  last_sync?: string;
+}
 
 export default function Settings() {
   const { toast } = useToast();
-  const [selectedPlatform, setSelectedPlatform] = useState(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  
-  const [integrations, setIntegrations] = useState([
-    { 
-      id: "facebook", 
-      name: "Facebook", 
-      icon: Facebook, 
-      connected: true, 
-      status: "Active",
-      accountName: "Business Page",
-      followers: "12.5K",
-      lastSync: "2 hours ago",
-      permissions: ["Publish posts", "Read insights", "Manage pages", "Analytics access"],
-      postingEnabled: true,
-      autoPost: true,
-      optimalTimes: ["9:00 AM", "1:00 PM", "7:00 PM"],
-      credentials: {
-        appId: "your-facebook-app-id",
-        appSecret: "your-facebook-app-secret",
-        accessToken: "your-page-access-token",
-        pageId: "your-facebook-page-id",
-        businessId: "your-business-manager-id"
-      },
-      analyticsTools: {
-        facebookInsights: { enabled: true, permissions: ["page_insights", "read_insights"] },
-        facebookAnalytics: { enabled: true, permissions: ["business_management"] },
-        metaBusinessSuite: { enabled: true, permissions: ["pages_show_list", "pages_read_engagement"] }
-      }
-    },
-    { 
-      id: "instagram", 
-      name: "Instagram", 
-      icon: Instagram, 
-      connected: true, 
-      status: "Active",
-      accountName: "@yourcompany",
-      followers: "8.2K",
-      lastSync: "1 hour ago",
-      permissions: ["Publish posts", "Publish stories", "Read insights", "Analytics access"],
-      postingEnabled: true,
-      autoPost: false,
-      optimalTimes: ["11:00 AM", "3:00 PM", "8:00 PM"],
-      credentials: {
-        accessToken: "your-instagram-access-token",
-        userId: "your-instagram-user-id",
-        businessAccountId: "your-instagram-business-id",
-        facebookPageId: "connected-facebook-page-id"
-      },
-      analyticsTools: {
-        instagramInsights: { enabled: true, permissions: ["instagram_basic", "instagram_manage_insights"] },
-        metaBusinessSuite: { enabled: true, permissions: ["instagram_basic", "pages_read_engagement"] },
-        creatorStudio: { enabled: true, permissions: ["instagram_content_publish"] }
-      }
-    },
-    { 
-      id: "twitter", 
-      name: "Twitter/X", 
-      icon: Twitter, 
-      connected: false, 
-      status: "Not Connected",
-      accountName: "",
-      followers: "",
-      lastSync: "",
-      permissions: [],
-      postingEnabled: false,
-      autoPost: false,
-      optimalTimes: [],
-      credentials: {
-        apiKey: "",
-        apiSecret: "",
-        accessToken: "",
-        accessTokenSecret: "",
-        bearerToken: "",
-        clientId: "",
-        clientSecret: ""
-      },
-      analyticsTools: {
-        twitterAnalytics: { enabled: false, permissions: ["tweet.read", "users.read", "offline.access"] },
-        xProAnalytics: { enabled: false, permissions: ["analytics.read"] },
-        tweetDeck: { enabled: false, permissions: ["tweet.read", "tweet.write"] }
-      }
-    },
-    { 
-      id: "linkedin", 
-      name: "LinkedIn", 
-      icon: Linkedin, 
-      connected: true, 
-      status: "Limited Access",
-      accountName: "Company Page",
-      followers: "3.1K",
-      lastSync: "5 hours ago",
-      permissions: ["Publish posts", "Analytics access"],
-      postingEnabled: true,
-      autoPost: true,
-      optimalTimes: ["8:00 AM", "12:00 PM", "5:00 PM"],
-      credentials: {
-        clientId: "your-linkedin-client-id",
-        clientSecret: "your-linkedin-client-secret",
-        accessToken: "your-linkedin-access-token",
-        organizationId: "your-company-page-id",
-        personUrn: "your-person-urn"
-      },
-      analyticsTools: {
-        linkedinAnalytics: { enabled: true, permissions: ["r_organization_social", "r_ads_reporting"] },
-        campaignManager: { enabled: true, permissions: ["r_ads", "r_ads_reporting"] },
-        salesNavigator: { enabled: false, permissions: ["r_sales_nav_display"] }
-      }
-    },
-    { 
-      id: "youtube", 
-      name: "YouTube", 
-      icon: Youtube, 
-      connected: false, 
-      status: "Not Connected",
-      accountName: "",
-      followers: "",
-      lastSync: "",
-      permissions: [],
-      postingEnabled: false,
-      autoPost: false,
-      optimalTimes: [],
-      credentials: {
-        clientId: "",
-        clientSecret: "",
-        refreshToken: "",
-        accessToken: "",
-        channelId: "",
-        apiKey: ""
-      },
-      analyticsTools: {
-        youtubeAnalytics: { enabled: false, permissions: ["youtube.readonly", "yt-analytics.readonly"] },
-        youtubeStudio: { enabled: false, permissions: ["youtube", "youtube.upload"] },
-        googleAnalytics: { enabled: false, permissions: ["analytics.readonly"] }
-      }
-    },
-    { 
-      id: "tiktok", 
-      name: "TikTok", 
-      icon: Settings2, 
-      connected: false, 
-      status: "Not Connected",
-      accountName: "",
-      followers: "",
-      lastSync: "",
-      permissions: [],
-      postingEnabled: false,
-      autoPost: false,
-      optimalTimes: [],
-      credentials: {
-        appId: "",
-        appSecret: "",
-        accessToken: "",
-        openId: "",
-        unionId: ""
-      },
-      analyticsTools: {
-        tiktokAnalytics: { enabled: false, permissions: ["user.info.basic", "video.list"] },
-        tiktokBusinessCenter: { enabled: false, permissions: ["business.get"] },
-        tiktokAdsManager: { enabled: false, permissions: ["advertiser.get", "campaign.get"] }
-      }
-    },
-    { 
-      id: "pinterest", 
-      name: "Pinterest", 
-      icon: Settings2, 
-      connected: false, 
-      status: "Not Connected",
-      accountName: "",
-      followers: "",
-      lastSync: "",
-      permissions: [],
-      postingEnabled: false,
-      autoPost: false,
-      optimalTimes: [],
-      credentials: {
-        appId: "",
-        appSecret: "",
-        accessToken: "",
-        refreshToken: "",
-        businessId: ""
-      },
-      analyticsTools: {
-        pinterestAnalytics: { enabled: false, permissions: ["boards:read", "pins:read", "user_accounts:read"] },
-        pinterestBusiness: { enabled: false, permissions: ["ads:read", "catalogs:read"] }
-      }
-    },
-    { 
-      id: "snapchat", 
-      name: "Snapchat", 
-      icon: Settings2, 
-      connected: false, 
-      status: "Not Connected",
-      accountName: "",
-      followers: "",
-      lastSync: "",
-      permissions: [],
-      postingEnabled: false,
-      autoPost: false,
-      optimalTimes: [],
-      credentials: {
-        clientId: "",
-        clientSecret: "",
-        accessToken: "",
-        refreshToken: "",
-        adAccountId: ""
-      },
-      analyticsTools: {
-        snapchatInsights: { enabled: false, permissions: ["snapchat-marketing-api"] },
-        snapchatAdsManager: { enabled: false, permissions: ["snapchat-marketing-api"] }
-      }
-    }
-  ]);
+  const [settings, setSettings] = useState<SystemSetting[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showPasswords, setShowPasswords] = useState<{[key: string]: boolean}>({});
 
-  const connectPlatform = async (id: string) => {
-    setIsConnecting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIntegrations(prev => 
-        prev.map(integration => 
-          integration.id === id 
-            ? { 
-                ...integration, 
-                connected: true, 
-                status: "Active",
-                accountName: `Connected Account`,
-                followers: "1.2K",
-                lastSync: "Just now",
-                permissions: ["Publish posts", "Read insights"]
-              }
-            : integration
+  const platformConfigs = {
+    facebook: {
+      name: "Facebook",
+      icon: Facebook,
+      fields: [
+        { key: "app_id", label: "App ID", type: "text", placeholder: "Your Facebook App ID" },
+        { key: "app_secret", label: "App Secret", type: "password", placeholder: "Your Facebook App Secret" },
+        { key: "access_token", label: "Page Access Token", type: "password", placeholder: "Your Page Access Token" },
+        { key: "page_id", label: "Page ID", type: "text", placeholder: "Your Facebook Page ID" },
+        { key: "business_id", label: "Business Manager ID", type: "text", placeholder: "Your Business Manager ID" }
+      ]
+    },
+    instagram: {
+      name: "Instagram",
+      icon: Instagram,
+      fields: [
+        { key: "access_token", label: "Access Token", type: "password", placeholder: "Your Instagram Access Token" },
+        { key: "user_id", label: "User ID", type: "text", placeholder: "Your Instagram User ID" },
+        { key: "business_account_id", label: "Business Account ID", type: "text", placeholder: "Your Business Account ID" },
+        { key: "facebook_page_id", label: "Connected Facebook Page ID", type: "text", placeholder: "Connected Facebook Page ID" }
+      ]
+    },
+    twitter: {
+      name: "Twitter/X",
+      icon: Twitter,
+      fields: [
+        { key: "api_key", label: "API Key", type: "text", placeholder: "Your Twitter API Key" },
+        { key: "api_secret", label: "API Secret", type: "password", placeholder: "Your Twitter API Secret" },
+        { key: "access_token", label: "Access Token", type: "password", placeholder: "Your Access Token" },
+        { key: "access_token_secret", label: "Access Token Secret", type: "password", placeholder: "Your Access Token Secret" },
+        { key: "bearer_token", label: "Bearer Token", type: "password", placeholder: "Your Bearer Token" }
+      ]
+    },
+    linkedin: {
+      name: "LinkedIn",
+      icon: Linkedin,
+      fields: [
+        { key: "client_id", label: "Client ID", type: "text", placeholder: "Your LinkedIn Client ID" },
+        { key: "client_secret", label: "Client Secret", type: "password", placeholder: "Your LinkedIn Client Secret" },
+        { key: "access_token", label: "Access Token", type: "password", placeholder: "Your Access Token" },
+        { key: "organization_id", label: "Organization ID", type: "text", placeholder: "Your Company Page ID" }
+      ]
+    },
+    youtube: {
+      name: "YouTube",
+      icon: Youtube,
+      fields: [
+        { key: "client_id", label: "Client ID", type: "text", placeholder: "Your Google Client ID" },
+        { key: "client_secret", label: "Client Secret", type: "password", placeholder: "Your Google Client Secret" },
+        { key: "refresh_token", label: "Refresh Token", type: "password", placeholder: "Your Refresh Token" },
+        { key: "channel_id", label: "Channel ID", type: "text", placeholder: "Your YouTube Channel ID" },
+        { key: "api_key", label: "API Key", type: "password", placeholder: "Your YouTube Data API Key" }
+      ]
+    },
+    tiktok: {
+      name: "TikTok",
+      icon: Settings2,
+      fields: [
+        { key: "app_id", label: "App ID", type: "text", placeholder: "Your TikTok App ID" },
+        { key: "app_secret", label: "App Secret", type: "password", placeholder: "Your TikTok App Secret" },
+        { key: "access_token", label: "Access Token", type: "password", placeholder: "Your Access Token" },
+        { key: "open_id", label: "Open ID", type: "text", placeholder: "Your Open ID" }
+      ]
+    },
+    pinterest: {
+      name: "Pinterest",
+      icon: Settings2,
+      fields: [
+        { key: "app_id", label: "App ID", type: "text", placeholder: "Your Pinterest App ID" },
+        { key: "app_secret", label: "App Secret", type: "password", placeholder: "Your Pinterest App Secret" },
+        { key: "access_token", label: "Access Token", type: "password", placeholder: "Your Access Token" },
+        { key: "business_id", label: "Business ID", type: "text", placeholder: "Your Business ID" }
+      ]
+    },
+    snapchat: {
+      name: "Snapchat",
+      icon: Settings2,
+      fields: [
+        { key: "client_id", label: "Client ID", type: "text", placeholder: "Your Snapchat Client ID" },
+        { key: "client_secret", label: "Client Secret", type: "password", placeholder: "Your Snapchat Client Secret" },
+        { key: "access_token", label: "Access Token", type: "password", placeholder: "Your Access Token" },
+        { key: "ad_account_id", label: "Ad Account ID", type: "text", placeholder: "Your Ad Account ID" }
+      ]
+    }
+  };
+
+  const aiPlatforms = {
+    openai: { name: "OpenAI", description: "GPT models for text generation" },
+    anthropic: { name: "Anthropic", description: "Claude models for text generation" },
+    google_ai: { name: "Google AI", description: "Gemini models for text generation" },
+    huggingface: { name: "Hugging Face", description: "Open source AI models" },
+    stability_ai: { name: "Stability AI", description: "Stable Diffusion for image generation" },
+    elevenlabs: { name: "ElevenLabs", description: "Voice synthesis and cloning" },
+    runware: { name: "Runware", description: "Fast image generation API" }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('*');
+      
+      if (error) throw error;
+      setSettings(data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load settings",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateSetting = async (settingKey: string, newValue: any) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .update({ setting_value: newValue })
+        .eq('setting_key', settingKey);
+      
+      if (error) throw error;
+      
+      setSettings(prev => 
+        prev.map(setting => 
+          setting.setting_key === settingKey 
+            ? { ...setting, setting_value: newValue }
+            : setting
         )
       );
-      setIsConnecting(false);
+      
       toast({
-        title: "Platform Connected",
-        description: `Successfully connected to ${integrations.find(i => i.id === id)?.name}`,
+        title: "Settings Updated",
+        description: "Your changes have been saved successfully.",
       });
-    }, 2000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const disconnectPlatform = (id: string) => {
-    setIntegrations(prev => 
-      prev.map(integration => 
-        integration.id === id 
-          ? { 
-              ...integration, 
-              connected: false, 
-              status: "Not Connected",
-              accountName: "",
-              followers: "",
-              lastSync: "",
-              permissions: [],
-              postingEnabled: false,
-              autoPost: false
-            }
-          : integration
-      )
-    );
-    toast({
-      title: "Platform Disconnected",
-      description: `Disconnected from ${integrations.find(i => i.id === id)?.name}`,
-    });
+  const getSetting = (key: string) => {
+    return settings.find(s => s.setting_key === key)?.setting_value || {};
   };
 
-  const toggleAutoPost = (id: string) => {
-    setIntegrations(prev => 
-      prev.map(integration => 
-        integration.id === id 
-          ? { ...integration, autoPost: !integration.autoPost }
-          : integration
-      )
-    );
+  const updatePlatformCredentials = (platformKey: string, credentials: PlatformCredentials) => {
+    const currentConfig = getSetting(`${platformKey}_integration`) as PlatformConfig;
+    const connected = Object.values(credentials).some(value => value.trim() !== '');
+    
+    const newConfig = {
+      ...currentConfig,
+      connected,
+      credentials,
+      last_sync: connected ? new Date().toISOString() : undefined
+    };
+    
+    updateSetting(`${platformKey}_integration`, newConfig);
   };
 
-  const togglePosting = (id: string) => {
-    setIntegrations(prev => 
-      prev.map(integration => 
-        integration.id === id 
-          ? { ...integration, postingEnabled: !integration.postingEnabled }
-          : integration
-      )
-    );
+  const updateAIApiKey = (platform: string, apiKey: string) => {
+    updateSetting(`${platform}_api_key`, { api_key: apiKey });
   };
 
-  const refreshConnection = async (id: string) => {
-    setIntegrations(prev => 
-      prev.map(integration => 
-        integration.id === id 
-          ? { ...integration, lastSync: "Just now" }
-          : integration
-      )
-    );
-    toast({
-      title: "Connection Refreshed",
-      description: "Platform connection has been refreshed",
-    });
+  const togglePasswordVisibility = (field: string) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Settings</h1>
         <p className="text-muted-foreground mt-2">
-          Configure your account, integrations, and preferences.
+          Configure system-wide integrations and API keys for OCMA.
         </p>
       </div>
 
       <Tabs defaultValue="integrations" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="integrations" className="flex items-center gap-2">
             <Link className="h-4 w-4" />
-            Integrations
+            Social Media
+          </TabsTrigger>
+          <TabsTrigger value="ai" className="flex items-center gap-2">
+            <Bot className="h-4 w-4" />
+            AI Platforms
           </TabsTrigger>
           <TabsTrigger value="account" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Account
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Appearance
           </TabsTrigger>
         </TabsList>
 
@@ -368,21 +280,24 @@ export default function Settings() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                Platform Integrations
+                Social Media Platform Integrations
                 <Badge variant="outline" className="text-xs">
-                  {integrations.filter(i => i.connected).length} of {integrations.length} connected
+                  {Object.keys(platformConfigs).filter(key => getSetting(`${key}_integration`)?.connected).length} of {Object.keys(platformConfigs).length} connected
                 </Badge>
               </CardTitle>
               <CardDescription>
-                Connect and manage your social media platforms for content distribution.
+                Configure system-wide social media platform connections. All users will post to these shared accounts.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-6">
-                {integrations.map((integration) => {
-                  const IconComponent = integration.icon;
+                {Object.entries(platformConfigs).map(([platformKey, config]) => {
+                  const IconComponent = config.icon;
+                  const platformConfig = getSetting(`${platformKey}_integration`) as PlatformConfig;
+                  const isConnected = platformConfig?.connected || false;
+                  
                   return (
-                    <Card key={integration.id} className="relative">
+                    <Card key={platformKey} className="relative">
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-4">
@@ -391,244 +306,157 @@ export default function Settings() {
                             </div>
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <h3 className="font-semibold">{integration.name}</h3>
+                                <h3 className="font-semibold">{config.name}</h3>
                                 <Badge 
-                                  variant={
-                                    integration.status === "Active" ? "default" : 
-                                    integration.status === "Limited Access" ? "secondary" : 
-                                    "outline"
-                                  }
+                                  variant={isConnected ? "default" : "outline"}
                                   className="text-xs"
                                 >
-                                  {integration.status}
+                                  {isConnected ? "Connected" : "Not Connected"}
                                 </Badge>
                               </div>
-                              {integration.connected ? (
-                                <div className="space-y-1">
-                                  <p className="text-sm font-medium text-muted-foreground">
-                                    {integration.accountName} • {integration.followers} followers
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Last sync: {integration.lastSync}
-                                  </p>
-                                </div>
-                              ) : (
-                                <p className="text-sm text-muted-foreground">
-                                  Connect your {integration.name} account to start posting
-                                </p>
-                              )}
+                              <p className="text-sm text-muted-foreground">
+                                {isConnected 
+                                  ? `Last updated: ${platformConfig.last_sync ? new Date(platformConfig.last_sync).toLocaleDateString() : 'Never'}`
+                                  : `Configure ${config.name} API credentials to enable posting`
+                                }
+                              </p>
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-2">
-                            {integration.connected && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => refreshConnection(integration.id)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <RefreshCw className="h-4 w-4" />
-                                </Button>
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                      <Edit3 className="h-4 w-4" />
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="sm:max-w-[500px]">
-                                    <DialogHeader>
-                                      <DialogTitle>Manage {integration.name} Integration</DialogTitle>
-                                      <DialogDescription>
-                                        Configure posting settings and permissions for your {integration.name} account.
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                     <div className="space-y-6 py-4">
-                                       <div className="space-y-4">
-                                         <h4 className="text-sm font-medium">Account Details</h4>
-                                         <div className="rounded-lg border p-3 space-y-2">
-                                           <div className="flex justify-between">
-                                             <span className="text-sm text-muted-foreground">Account:</span>
-                                             <span className="text-sm font-medium">{integration.accountName}</span>
-                                           </div>
-                                           <div className="flex justify-between">
-                                             <span className="text-sm text-muted-foreground">Followers:</span>
-                                             <span className="text-sm font-medium">{integration.followers}</span>
-                                           </div>
-                                           <div className="flex justify-between">
-                                             <span className="text-sm text-muted-foreground">Last Sync:</span>
-                                             <span className="text-sm font-medium">{integration.lastSync}</span>
-                                           </div>
-                                         </div>
-                                       </div>
-
-                                       <div className="space-y-4">
-                                         <h4 className="text-sm font-medium">API Credentials & Account IDs</h4>
-                                         <div className="rounded-lg border p-3 space-y-3">
-                                           {Object.entries(integration.credentials || {}).map(([key, value]) => (
-                                             <div key={key} className="space-y-2">
-                                               <Label className="text-xs font-medium text-muted-foreground">
-                                                 {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                                               </Label>
-                                               <Input
-                                                 type="password"
-                                                 value={value || ""}
-                                                 placeholder={`Enter your ${key}`}
-                                                 className="h-8 text-xs"
-                                                 readOnly={integration.connected}
-                                               />
-                                             </div>
-                                           ))}
-                                         </div>
-                                       </div>
-
-                                       <div className="space-y-4">
-                                         <h4 className="text-sm font-medium">Analytics Tools Integration</h4>
-                                         <div className="space-y-3">
-                                           {Object.entries(integration.analyticsTools || {}).map(([toolKey, tool]: [string, any]) => (
-                                             <div key={toolKey} className="flex items-center justify-between p-3 rounded-lg border">
-                                               <div className="space-y-1">
-                                                 <p className="text-sm font-medium">
-                                                   {toolKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                                                 </p>
-                                                 <p className="text-xs text-muted-foreground">
-                                                   Permissions: {tool.permissions?.join(', ') || 'None'}
-                                                 </p>
-                                               </div>
-                                               <Switch 
-                                                 checked={tool.enabled}
-                                                 disabled={!integration.connected}
-                                               />
-                                             </div>
-                                           ))}
-                                         </div>
-                                       </div>
-                                      
-                                      <div className="space-y-4">
-                                        <h4 className="text-sm font-medium">Posting Settings</h4>
-                                        <div className="space-y-3">
-                                          <div className="flex items-center justify-between">
-                                            <div>
-                                              <p className="text-sm font-medium">Enable Posting</p>
-                                              <p className="text-xs text-muted-foreground">Allow content to be posted to this platform</p>
-                                            </div>
-                                            <Switch 
-                                              checked={integration.postingEnabled}
-                                              onCheckedChange={() => togglePosting(integration.id)}
-                                            />
-                                          </div>
-                                          <div className="flex items-center justify-between">
-                                            <div>
-                                              <p className="text-sm font-medium">Auto-Post</p>
-                                              <p className="text-xs text-muted-foreground">Automatically post at optimal times</p>
-                                            </div>
-                                            <Switch 
-                                              checked={integration.autoPost}
-                                              onCheckedChange={() => toggleAutoPost(integration.id)}
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="space-y-4">
-                                        <h4 className="text-sm font-medium">Optimal Posting Times</h4>
-                                        <div className="grid grid-cols-3 gap-2">
-                                          {integration.optimalTimes.map((time, index) => (
-                                            <Badge key={index} variant="secondary" className="justify-center">
-                                              <Clock className="h-3 w-3 mr-1" />
-                                              {time}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="space-y-4">
-                                        <h4 className="text-sm font-medium">Permissions</h4>
-                                        <div className="space-y-2">
-                                          {integration.permissions.map((permission, index) => (
-                                            <div key={index} className="flex items-center gap-2">
-                                              <Check className="h-4 w-4 text-green-500" />
-                                              <span className="text-sm">{permission}</span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="flex gap-2 pt-4 border-t">
-                                        <Button
-                                          variant="destructive"
-                                          size="sm"
-                                          onClick={() => disconnectPlatform(integration.id)}
-                                          className="flex-1"
-                                        >
-                                          <X className="h-4 w-4 mr-2" />
-                                          Disconnect
-                                        </Button>
-                                        <Button variant="outline" size="sm" className="flex-1">
-                                          <ExternalLink className="h-4 w-4 mr-2" />
-                                          Manage on {integration.name}
-                                        </Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Edit3 className="h-4 w-4 mr-2" />
+                                Configure
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[600px]">
+                              <DialogHeader>
+                                <DialogTitle>Configure {config.name} Integration</DialogTitle>
+                                <DialogDescription>
+                                  Enter your {config.name} API credentials to enable system-wide posting.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4 py-4">
+                                {config.fields.map((field) => {
+                                  const fieldKey = `${platformKey}_${field.key}`;
+                                  const currentValue = platformConfig?.credentials?.[field.key] || '';
+                                  
+                                  return (
+                                    <div key={field.key} className="space-y-2">
+                                      <Label htmlFor={fieldKey}>{field.label}</Label>
+                                      <div className="relative">
+                                        <Input
+                                          id={fieldKey}
+                                          type={field.type === 'password' && !showPasswords[fieldKey] ? 'password' : 'text'}
+                                          value={currentValue}
+                                          onChange={(e) => {
+                                            const newCredentials = {
+                                              ...platformConfig?.credentials,
+                                              [field.key]: e.target.value
+                                            };
+                                            updatePlatformCredentials(platformKey, newCredentials);
+                                          }}
+                                          placeholder={field.placeholder}
+                                          className="pr-10"
+                                        />
+                                        {field.type === 'password' && (
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                            onClick={() => togglePasswordVisibility(fieldKey)}
+                                          >
+                                            {showPasswords[fieldKey] ? (
+                                              <EyeOff className="h-4 w-4" />
+                                            ) : (
+                                              <Eye className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                        )}
                                       </div>
                                     </div>
-                                  </DialogContent>
-                                </Dialog>
-                              </>
-                            )}
-                            
-                            {integration.connected ? (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => disconnectPlatform(integration.id)}
-                              >
-                                <X className="h-4 w-4 mr-2" />
-                                Disconnect
-                              </Button>
-                            ) : (
-                              <Button 
-                                variant="default" 
-                                size="sm"
-                                onClick={() => connectPlatform(integration.id)}
-                                disabled={isConnecting}
-                              >
-                                {isConnecting ? (
-                                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Plus className="h-4 w-4 mr-2" />
-                                )}
-                                Connect
-                              </Button>
-                            )}
-                          </div>
+                                  );
+                                })}
+                                <div className="pt-4 border-t">
+                                  <p className="text-sm text-muted-foreground">
+                                    Status: {isConnected ? 
+                                      <span className="text-green-600 font-medium">Connected and ready for posting</span> : 
+                                      <span className="text-yellow-600 font-medium">Fill in credentials to connect</span>
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                         </div>
-                        
-                        {integration.connected && (
-                          <div className="mt-4 pt-4 border-t">
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">Posting:</span>
-                                  <Badge variant={integration.postingEnabled ? "default" : "secondary"} className="text-xs">
-                                    {integration.postingEnabled ? "Enabled" : "Disabled"}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">Auto-Post:</span>
-                                  <Badge variant={integration.autoPost ? "default" : "secondary"} className="text-xs">
-                                    {integration.autoPost ? "On" : "Off"}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Calendar className="h-4 w-4" />
-                                <span className="text-xs">{integration.optimalTimes.length} optimal times set</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </CardContent>
                     </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ai" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                AI Platform API Keys
+                <Badge variant="outline" className="text-xs">
+                  {Object.keys(aiPlatforms).filter(key => getSetting(`${key}_api_key`)?.api_key?.trim()).length} of {Object.keys(aiPlatforms).length} configured
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Configure API keys for AI platforms used throughout the application.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4">
+                {Object.entries(aiPlatforms).map(([platformKey, config]) => {
+                  const currentApiKey = getSetting(`${platformKey}_api_key`)?.api_key || '';
+                  const isConfigured = currentApiKey.trim() !== '';
+                  const fieldKey = `ai_${platformKey}`;
+                  
+                  return (
+                    <div key={platformKey} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Key className="h-4 w-4 text-muted-foreground" />
+                          <h4 className="font-medium">{config.name}</h4>
+                          <Badge variant={isConfigured ? "default" : "outline"} className="text-xs">
+                            {isConfigured ? "Configured" : "Not Set"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{config.description}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <Input
+                            type={showPasswords[fieldKey] ? 'text' : 'password'}
+                            value={currentApiKey}
+                            onChange={(e) => updateAIApiKey(platformKey, e.target.value)}
+                            placeholder="Enter API key..."
+                            className="w-80 pr-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => togglePasswordVisibility(fieldKey)}
+                          >
+                            {showPasswords[fieldKey] ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -641,92 +469,25 @@ export default function Settings() {
             <CardHeader>
               <CardTitle>Account Information</CardTitle>
               <CardDescription>
-                Manage your account details and preferences.
+                View your account details and system role.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="Enter first name" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Enter last name" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="Enter email address" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company">Company</Label>
-                <Input id="company" placeholder="Enter company name" />
-              </div>
-              <Button>Save Changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>
-                Choose how you want to be notified about important events.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="grid gap-4">
                 <div>
-                  <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-muted-foreground">Receive updates via email</p>
+                  <Label>Email</Label>
+                  <p className="text-sm font-medium">elimizroch@gmail.com</p>
                 </div>
-                <Switch />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Post Scheduling Reminders</p>
-                  <p className="text-sm text-muted-foreground">Get notified before posts go live</p>
+                  <Label>Role</Label>
+                  <Badge variant="default">Owner</Badge>
                 </div>
-                <Switch />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Weekly Analytics Reports</p>
-                  <p className="text-sm text-muted-foreground">Receive performance summaries</p>
+                  <Label>Access Level</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Full system administration access including platform integrations and user management.
+                  </p>
                 </div>
-                <Switch defaultChecked />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="appearance" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Appearance Settings</CardTitle>
-              <CardDescription>
-                Customize the look and feel of your workspace.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Dark Mode</p>
-                  <p className="text-sm text-muted-foreground">Switch to dark theme</p>
-                </div>
-                <Switch />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Compact View</p>
-                  <p className="text-sm text-muted-foreground">Use smaller spacing and components</p>
-                </div>
-                <Switch />
               </div>
             </CardContent>
           </Card>
