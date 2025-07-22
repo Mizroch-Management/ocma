@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/app-layout";
 import { WorkflowProvider } from "./contexts/workflow-context";
 import { AuthProvider } from "./hooks/use-auth";
+import { ErrorBoundary } from "./components/error-boundary";
 import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
 import ContentCreation from "./pages/ContentCreation";
@@ -24,12 +25,13 @@ import Auth from "./pages/Auth";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <WorkflowProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <WorkflowProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
@@ -53,6 +55,7 @@ const App = () => (
       </WorkflowProvider>
     </AuthProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
