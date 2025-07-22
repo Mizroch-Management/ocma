@@ -114,36 +114,8 @@ export default function ContentGenerator() {
     
     // Simulate AI content generation
     setTimeout(() => {
-      const mockContent = {
-        id: Date.now().toString(),
-        type: selectedContentType,
-        strategy: selectedStrategy,
-        aiTool: selectedAITool,
-        platforms: selectedPlatforms,
-        content: generateMockContent(selectedContentType),
-        variations: [
-          generateMockContent(selectedContentType),
-          generateMockContent(selectedContentType)
-        ],
-        metadata: {
-          wordCount: 150,
-          readingTime: "1 min",
-          engagement: "High",
-          sentiment: "Positive"
-        },
-        suggestions: [
-          "Consider adding a call-to-action",
-          "Include relevant hashtags",
-          "Add visual elements for better engagement"
-        ],
-        schedulingSuggestions: [
-          "Best time: Tuesday 10:00 AM",
-          "Peak engagement: Wednesday 2:00 PM",
-          "Alternative: Friday 5:00 PM"
-        ]
-      };
-      
-      setGeneratedContent(prev => [mockContent, ...prev]);
+      // In a real implementation, this would call the selected AI API to generate content
+      setGeneratedContent(prev => []);
       setIsGenerating(false);
       
       toast({
@@ -154,17 +126,8 @@ export default function ContentGenerator() {
   };
 
   const generateMockContent = (type: string) => {
-    const contentMap: { [key: string]: string } = {
-      "social-post": "🚀 Did you know that businesses using strategic content marketing see 6x higher conversion rates?\n\nHere's what we've learned:\n✅ Consistency beats perfection\n✅ Authenticity drives engagement\n✅ Value-first approach builds trust\n\nWhat's your biggest content challenge? Let's discuss! 👇\n\n#ContentMarketing #Strategy #BusinessGrowth",
-      "blog-article": "# The Future of Content Marketing: 5 Trends to Watch\n\nContent marketing continues to evolve at a rapid pace. As we look ahead, several key trends are shaping how brands connect with their audiences...\n\n## 1. AI-Powered Personalization\nArtificial intelligence is revolutionizing how we create and deliver personalized content experiences...",
-      "video-script": "HOOK: Are you making these common content marketing mistakes?\n\nINTRO: Hi everyone, I'm [Name] and today we're diving into the top 5 content mistakes that are killing your engagement.\n\nPOINT 1: Not knowing your audience...\nPOINT 2: Inconsistent posting schedule...\nPOINT 3: Focusing on selling instead of value...\n\nCTA: If this helped you, give it a like and follow for more marketing tips!",
-      "email-copy": "Subject: Your content strategy is missing this one thing...\n\nHi [Name],\n\nI've been analyzing hundreds of content strategies lately, and I keep seeing the same gap...\n\nMost businesses create great content but forget about distribution. It's like throwing a party and forgetting to send invitations.\n\nHere's how to fix it:\n[Continue with solution]\n\nBest,\n[Your name]",
-      "ad-copy": "Headline: Stop Wasting Time on Content That Doesn't Convert\n\nSubheading: Our AI-powered content strategy increased client engagement by 340% in 30 days\n\nBody: Transform your content marketing with data-driven strategies that actually work. Join 10,000+ marketers who've already upgraded their approach.\n\nCTA: Get Your Free Strategy Audit",
-      "caption": "Behind the scenes at our content creation process! ✨\n\nOur team believes that great content starts with understanding your audience deeply. Here's Sarah working on audience research for our latest campaign.\n\nWhat's your content creation process like? Share in the comments! 👇",
-      "hashtags": "#ContentMarketing #DigitalMarketing #SocialMediaStrategy #MarketingTips #BusinessGrowth #ContentCreation #SocialMediaMarketing #OnlineMarketing #BrandStrategy #MarketingStrategy #ContentStrategy #SocialMedia #Marketing #Business #Entrepreneur"
-    };
-    
-    return contentMap[type] || "Generated content based on your selected parameters and strategy guidelines.";
+    // In a real implementation, this would call the selected AI API
+    return "AI-generated content will appear here when connected to your selected AI platform.";
   };
 
   const togglePlatform = (platform: string) => {

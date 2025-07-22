@@ -83,96 +83,11 @@ export default function SocialMediaEngagement() {
     { value: "trend-participation", label: "Trend Participation", icon: TrendingUp, description: "Participate in trending conversations" }
   ];
 
-  const mockInfluencers = [
-    { 
-      id: 1, 
-      name: "Sarah Johnson", 
-      handle: "@sarahjohnson", 
-      platform: "instagram", 
-      followers: "125K", 
-      engagement: "4.2%", 
-      lastPost: "2h ago", 
-      niche: "Marketing",
-      aiScore: 92,
-      reason: "High engagement rate with your target audience, frequently posts about marketing trends",
-      suggestedApproach: "Comment on her latest post about content marketing strategies with a thoughtful insight"
-    },
-    { 
-      id: 2, 
-      name: "Tech Guru Mike", 
-      handle: "@techguru", 
-      platform: "twitter", 
-      followers: "89K", 
-      engagement: "3.8%", 
-      lastPost: "1h ago", 
-      niche: "Technology",
-      aiScore: 87,
-      reason: "Shares content similar to your industry, good potential for collaboration",
-      suggestedApproach: "Reply to his thread about AI trends with your company's perspective"
-    },
-    { 
-      id: 3, 
-      name: "Business Leader Jane", 
-      handle: "@bizleader", 
-      platform: "linkedin", 
-      followers: "67K", 
-      engagement: "5.1%", 
-      lastPost: "4h ago", 
-      niche: "Business",
-      aiScore: 95,
-      reason: "Perfect alignment with your business goals and audience demographics",
-      suggestedApproach: "Send a personalized connection request mentioning her recent article on leadership"
-    }
-  ];
+  const mockInfluencers: any[] = [];
 
-  const mockHashtagResults = [
-    { hashtag: "#digitalmarketing", posts: "2.1M", engagement: "High", trending: true },
-    { hashtag: "#socialmedia", posts: "1.8M", engagement: "Medium", trending: false },
-    { hashtag: "#contentcreator", posts: "956K", engagement: "High", trending: true },
-    { hashtag: "#entrepreneur", posts: "3.2M", engagement: "Medium", trending: false }
-  ];
+  const mockHashtagResults: any[] = [];
 
-  const mockEngagementQueue = [
-    { 
-      id: 1, 
-      type: "reply", 
-      user: "@sarahjohnson", 
-      content: "Great insights on marketing trends!", 
-      platform: "instagram", 
-      status: "pending", 
-      priority: "high",
-      originalPost: "Our latest blog post about content marketing strategies that actually work in 2024",
-      aiSuggestion: "Thank you! We're always excited to share actionable insights. What marketing challenge are you currently facing? We'd love to help!",
-      sentiment: "positive",
-      engagement_potential: "high"
-    },
-    { 
-      id: 2, 
-      type: "like", 
-      user: "@techguru", 
-      content: "Latest tech innovations post", 
-      platform: "twitter", 
-      status: "completed", 
-      priority: "medium",
-      originalPost: "AI is revolutionizing how we approach business automation",
-      aiSuggestion: "Engage with a thoughtful reply about specific AI applications",
-      sentiment: "neutral",
-      engagement_potential: "medium"
-    },
-    { 
-      id: 3, 
-      type: "comment", 
-      user: "@bizleader", 
-      content: "Thoughtful business strategy analysis", 
-      platform: "linkedin", 
-      status: "pending", 
-      priority: "high",
-      originalPost: "5 key strategies for scaling B2B businesses in competitive markets",
-      aiSuggestion: "Thanks for reading! Based on your experience in the industry, which of these strategies have you found most effective? Would love to hear your perspective.",
-      sentiment: "positive",
-      engagement_potential: "very_high"
-    }
-  ];
+  const mockEngagementQueue: any[] = [];
 
   const handleSearchInfluencers = async () => {
     setIsSearching(true);

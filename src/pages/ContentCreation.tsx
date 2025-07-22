@@ -62,48 +62,8 @@ export default function ContentCreation() {
       const isUsingAIStrategy = strategies.find(s => s.id === selectedStrategy)?.isAIGenerated;
       const isUsingAIPlan = weeklyPipelines.find(w => w.id === selectedWeek)?.isAIGenerated;
       
-      const mockContent = [
-        {
-          id: "1",
-          type: isUsingAIPlan ? "AI-Optimized Educational Post" : "Educational Post",
-          content: isUsingAIStrategy 
-            ? `Building on our AI-generated strategy objectives, here's how sustainable innovation drives real business results 📊\n\nKey insights from our data-driven approach:\n\n1. Authentic messaging increases engagement by 40%\n2. Sustainability focus resonates with Gen Z professionals\n3. Data-backed content builds trust and authority\n\n#SustainableInnovation #DataDriven #AuthenticMarketing`
-            : "Did you know that 73% of marketers believe that their efforts through social media marketing have been 'somewhat effective' or 'very effective' for their business? 📊\n\nHere are 3 key strategies to improve your social media ROI:\n\n1. Focus on engagement over followers\n2. Use data-driven content planning\n3. Maintain consistent brand voice\n\n#SocialMediaTips #MarketingStrategy #BusinessGrowth",
-          platforms: ["Instagram", "LinkedIn", "Facebook"],
-          scheduledTime: "Tomorrow at 10:00 AM",
-          hashtags: isUsingAIStrategy 
-            ? ["#SustainableInnovation", "#DataDriven", "#AuthenticMarketing"]
-            : ["#SocialMediaTips", "#MarketingStrategy", "#BusinessGrowth"],
-          isAIEnhanced: isUsingAIStrategy || isUsingAIPlan
-        },
-        {
-          id: "2",
-          type: isUsingAIPlan ? "AI-Optimized Behind the Scenes" : "Behind the Scenes",
-          content: isUsingAIStrategy
-            ? "Monday motivation from our innovation team! ☕✨\n\nOur data scientists and content creators collaborate to bring you insights that matter. This week we're analyzing engagement patterns to optimize our authentic, professional approach.\n\nWhat drives your team's Monday energy?\n\n#MondayMotivation #Innovation #DataScience"
-            : "Monday motivation from our creative team! ☕✨\n\nOur content creators are hard at work planning next month's campaign strategy. There's nothing quite like the energy of a brainstorming session with coffee and whiteboards.\n\nWhat does your Monday look like?\n\n#MondayMotivation #TeamWork #CreativeProcess",
-          platforms: ["Instagram", "Facebook"],
-          scheduledTime: "Monday at 9:00 AM",
-          hashtags: isUsingAIStrategy
-            ? ["#MondayMotivation", "#Innovation", "#DataScience"]
-            : ["#MondayMotivation", "#TeamWork", "#CreativeProcess"],
-          isAIEnhanced: isUsingAIStrategy || isUsingAIPlan
-        },
-        {
-          id: "3",
-          type: isUsingAIPlan ? "AI-Optimized Product Showcase" : "Product Showcase",
-          content: isUsingAIStrategy
-            ? "Introducing our latest sustainable innovation: AI-powered content optimization! 🚀\n\nAligned with our commitment to authentic, data-driven marketing:\n✅ Optimize for genuine engagement\n✅ Generate insights-based content\n✅ Analyze authentic interaction patterns\n✅ Schedule with professional precision\n\nExperience the future of sustainable marketing!\n\n#SustainableInnovation #AIOptimization #AuthenticMarketing"
-            : "Introducing our latest feature: AI-powered content scheduling! 🚀\n\nNow you can:\n✅ Auto-optimize posting times\n✅ Generate content suggestions\n✅ Analyze engagement patterns\n✅ Schedule across all platforms\n\nTry it free for 14 days!\n\n#ProductUpdate #AI #SocialMediaTools",
-          platforms: ["LinkedIn", "Twitter", "Facebook"],
-          scheduledTime: "Wednesday at 2:00 PM",
-          hashtags: isUsingAIStrategy
-            ? ["#SustainableInnovation", "#AIOptimization", "#AuthenticMarketing"]
-            : ["#ProductUpdate", "#AI", "#SocialMediaTools"],
-          isAIEnhanced: isUsingAIStrategy || isUsingAIPlan
-        }
-      ];
-      setGeneratedContent(mockContent);
+      // In a real implementation, this would generate content based on the selected strategy and plans
+      setGeneratedContent([]);
       setIsGenerating(false);
     }, 2000);
   };

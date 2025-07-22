@@ -115,106 +115,14 @@ export function IntelligentContentCreator({ contentPlans, onContentApproved }: I
   };
 
   const generateMockContent = (type: string, platform: string, week: string, day: string) => {
-    const contentMap: { [key: string]: any } = {
-      'Educational Post-LinkedIn': {
-        title: "5 Data-Driven Marketing Insights for 2024",
-        content: `🚀 Just analyzed Q4 marketing data across 500+ campaigns. Here are the 5 insights that will shape your 2024 strategy:
-
-1. **Video content drives 3x more engagement** than static posts
-   → But only when under 90 seconds
-
-2. **Personalization increases CTR by 41%**
-   → Use behavioral triggers, not just demographic data
-
-3. **Tuesday 10 AM is the new Thursday 2 PM**
-   → Peak engagement times have shifted post-pandemic
-
-4. **Micro-influencers (1K-10K followers) generate 60% higher engagement rates**
-   → Quality of audience > quantity of followers
-
-5. **Interactive content (polls, quizzes) sees 4x more shares**
-   → People love being part of the conversation
-
-Which insight surprises you most? 👇
-
-#MarketingInsights #DataDriven #Strategy2024 #MarketingTrends #DigitalMarketing`,
-        hashtags: ['#MarketingInsights', '#DataDriven', '#Strategy2024', '#MarketingTrends', '#DigitalMarketing'],
-        callToAction: "Share your biggest marketing challenge in the comments",
-        schedulingSuggestion: "Tuesday 10:00 AM - Peak professional engagement time",
-        variations: [
-          "Focus on 3 insights instead of 5 for higher retention",
-          "Add industry-specific examples for better relevance"
-        ]
-      },
-      'Visual Story-Instagram': {
-        title: "Behind the Marketing Magic",
-        content: `Behind the scenes of our content creation process ✨
-
-Swipe to see how we turn data into engaging stories:
-
-1. 📊 Data analysis (the boring but crucial part!)
-2. 🧠 Strategy brainstorming with coffee ☕
-3. 🎨 Visual creation and design
-4. 📝 Copy writing and refinement
-5. 📅 Strategic scheduling
-6. 🚀 Launch and optimization
-
-The magic happens in the preparation! What's your content creation process like?
-
-#BehindTheScenes #ContentCreation #MarketingProcess #CreativeProcess #TeamWork #ContentStrategy`,
-        hashtags: ['#BehindTheScenes', '#ContentCreation', '#MarketingProcess', '#CreativeProcess', '#TeamWork', '#ContentStrategy'],
-        callToAction: "Save this post and tell us your process in the comments!",
-        schedulingSuggestion: "Wednesday 2:00 PM - High Instagram engagement window",
-        variations: [
-          "Create a carousel showing each step with visuals",
-          "Add team member quotes about their favorite part of the process"
-        ]
-      },
-      'Product Focus-LinkedIn': {
-        title: "How AI Transformed Our Client's Content ROI",
-        content: `📈 Case Study: How one client increased their content ROI by 340% in 90 days
-
-**The Challenge:**
-Small marketing team, limited resources, inconsistent content performance
-
-**The Solution:**
-Implemented our AI-powered content strategy platform
-
-**The Process:**
-1. **Week 1-2:** AI analyzed 2 years of historical content data
-2. **Week 3-4:** Generated personalized content calendar
-3. **Week 5-8:** Automated content creation with human oversight
-4. **Week 9-12:** Continuous optimization based on performance
-
-**The Results:**
-✅ 340% increase in content ROI
-✅ 75% reduction in content creation time
-✅ 120% increase in qualified leads
-✅ 89% improvement in engagement rates
-
-**Key Takeaway:** AI doesn't replace creativity—it amplifies it by handling the data analysis and optimization, freeing teams to focus on strategy and storytelling.
-
-Curious how this could work for your team?
-
-#AIMarketing #ContentROI #MarketingAutomation #CaseStudy #MarketingResults`,
-        hashtags: ['#AIMarketing', '#ContentROI', '#MarketingAutomation', '#CaseStudy', '#MarketingResults'],
-        callToAction: "Book a 15-minute strategy call to see how this applies to your business",
-        schedulingSuggestion: "Thursday 11:00 AM - B2B decision maker active time",
-        variations: [
-          "Include specific metrics and percentages",
-          "Add client testimonial quote for social proof"
-        ]
-      }
-    };
-
-    const key = `${type}-${platform}`;
-    return contentMap[key] || {
-      title: "AI-Generated Content",
-      content: "Engaging content created based on your strategy and brand voice...",
-      hashtags: ['#Marketing', '#Content', '#Strategy'],
+    // In a real implementation, this would call the selected AI API
+    return {
+      title: `${type} for ${platform}`,
+      content: "AI-generated content will appear here when connected to your selected AI platform.",
+      hashtags: [],
       callToAction: "Engage with your audience",
       schedulingSuggestion: "Optimal timing based on audience analysis",
-      variations: ["Variation 1 with different angle", "Variation 2 with different tone"]
+      variations: []
     };
   };
 

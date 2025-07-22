@@ -23,17 +23,8 @@ export default function Strategy() {
   const { state: workflowState } = useWorkflow();
   const [selectedStrategy, setSelectedStrategy] = useState("current");
 
-  // Mock data for existing strategies
-  const existingStrategies = [
-    {
-      id: "existing-1",
-      title: "Q4 Growth Strategy",
-      objectives: "Increase user acquisition by 40% and improve retention",
-      status: "active",
-      progress: 75,
-      isAIGenerated: false,
-    }
-  ];
+  // Real strategies would come from the database
+  const existingStrategies: any[] = [];
 
   // Combine existing and AI strategies
   const allStrategies = [
@@ -49,7 +40,7 @@ export default function Strategy() {
     }] : [])
   ];
 
-  const currentStrategy = workflowState.approvedStrategy || existingStrategies[0];
+  const currentStrategy = workflowState.approvedStrategy;
 
   return (
     <div className="space-y-8">
@@ -90,10 +81,10 @@ export default function Strategy() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Math.round(allStrategies.reduce((acc, s) => acc + s.progress, 0) / allStrategies.length)}%
+              {allStrategies.length > 0 ? Math.round(allStrategies.reduce((acc, s) => acc + s.progress, 0) / allStrategies.length) : 0}%
             </div>
             <p className="text-xs text-muted-foreground">
-              +5% from last month
+              Performance tracking
             </p>
           </CardContent>
         </Card>
@@ -117,9 +108,9 @@ export default function Strategy() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">67%</div>
+            <div className="text-2xl font-bold">--</div>
             <p className="text-xs text-muted-foreground">
-              $134k of $200k budget
+              No data available
             </p>
           </CardContent>
         </Card>
@@ -306,30 +297,16 @@ export default function Strategy() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>Q4 Growth Strategy</CardTitle>
+                <CardTitle>No Strategy Selected</CardTitle>
                 <CardDescription>
-                  Traditional marketing strategy focused on user acquisition
+                  Create or select a marketing strategy to view details
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Objectives</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Increase user acquisition by 40% and improve retention rates through targeted campaigns and improved user experience.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold mb-2">Current Performance</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>User Acquisition</span>
-                        <span>75% of target</span>
-                      </div>
-                      <Progress value={75} className="h-2" />
-                    </div>
-                  </div>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    Use the AI Workflow to generate your first marketing strategy, or create one manually.
+                  </p>
                 </div>
               </CardContent>
             </Card>
