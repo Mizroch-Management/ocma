@@ -80,28 +80,28 @@ export function MetricsCards() {
   const metrics = [
     {
       title: "Total Posts",
-      value: "2,847",
-      change: { value: 12, type: "increase" as const },
+      value: "0",
+      change: { value: 0, type: "neutral" as const },
       icon: <FileText className="h-4 w-4" />,
       description: "from last month"
     },
     {
       title: "Scheduled Content",
-      value: "156",
-      change: { value: 8, type: "increase" as const },
+      value: "0",
+      change: { value: 0, type: "neutral" as const },
       icon: <Calendar className="h-4 w-4" />,
       description: "next 30 days"
     },
     {
       title: "Draft Count",
-      value: "43",
-      change: { value: -5, type: "decrease" as const },
+      value: "0",
+      change: { value: 0, type: "neutral" as const },
       icon: <Edit3 className="h-4 w-4" />,
       description: "pending approval"
     },
     {
       title: "Platform Connections",
-      value: "8/10",
+      value: "0/10",
       change: { value: 0, type: "neutral" as const },
       icon: <Share2 className="h-4 w-4" />,
       description: "platforms active"

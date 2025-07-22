@@ -17,65 +17,65 @@ const chartConfig = {
 };
 
 const performanceData = [
-  { month: "Jan", visitors: 12500, engagement: 850, conversions: 125, revenue: 15000 },
-  { month: "Feb", visitors: 15200, engagement: 980, conversions: 156, revenue: 18500 },
-  { month: "Mar", visitors: 18900, engagement: 1250, conversions: 189, revenue: 22800 },
-  { month: "Apr", visitors: 16800, engagement: 1100, conversions: 168, revenue: 20200 },
-  { month: "May", visitors: 22100, engagement: 1450, conversions: 221, revenue: 26500 },
-  { month: "Jun", visitors: 25400, engagement: 1680, conversions: 254, revenue: 30500 },
+  { month: "Jan", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
+  { month: "Feb", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
+  { month: "Mar", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
+  { month: "Apr", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
+  { month: "May", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
+  { month: "Jun", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
 ];
 
 const platformData = [
-  { name: "Instagram", value: 35, color: "hsl(var(--primary))" },
-  { name: "Twitter", value: 25, color: "hsl(var(--secondary))" },
-  { name: "LinkedIn", value: 20, color: "hsl(var(--accent))" },
-  { name: "Facebook", value: 12, color: "hsl(var(--muted))" },
-  { name: "TikTok", value: 8, color: "hsl(var(--destructive))" },
+  { name: "Instagram", value: 0, color: "hsl(var(--primary))" },
+  { name: "Twitter", value: 0, color: "hsl(var(--secondary))" },
+  { name: "LinkedIn", value: 0, color: "hsl(var(--accent))" },
+  { name: "Facebook", value: 0, color: "hsl(var(--muted))" },
+  { name: "TikTok", value: 0, color: "hsl(var(--destructive))" },
 ];
 
 // This would typically come from a shared state or API - connected to Strategy page metrics
 const getPerformanceTargets = () => {
   // In a real app, this would fetch from the Strategy page's performance metrics
   return [
-    { metric: "Monthly Visitors", current: 25400, target: 30000, unit: "", type: "commercial", 
-      breakdown: { daily: 847, weekly: 6350, monthly: 25400 },
-      platforms: { Instagram: 8890, LinkedIn: 6350, Twitter: 5080, Facebook: 3810, TikTok: 1270 }
+    { metric: "Monthly Visitors", current: 0, target: 30000, unit: "", type: "commercial", 
+      breakdown: { daily: 0, weekly: 0, monthly: 0 },
+      platforms: { Instagram: 0, LinkedIn: 0, Twitter: 0, Facebook: 0, TikTok: 0 }
     },
-    { metric: "Paying Customers", current: 254, target: 300, unit: "", type: "commercial",
-      breakdown: { daily: 8, weekly: 64, monthly: 254 },
-      platforms: { Instagram: 89, LinkedIn: 64, Twitter: 51, Facebook: 38, TikTok: 12 }
+    { metric: "Paying Customers", current: 0, target: 300, unit: "", type: "commercial",
+      breakdown: { daily: 0, weekly: 0, monthly: 0 },
+      platforms: { Instagram: 0, LinkedIn: 0, Twitter: 0, Facebook: 0, TikTok: 0 }
     },
-    { metric: "Cost per Lead", current: 15.50, target: 12.00, unit: "$", type: "commercial",
-      breakdown: { daily: 15.50, weekly: 15.50, monthly: 15.50 },
-      platforms: { Instagram: 12.30, LinkedIn: 18.50, Twitter: 14.20, Facebook: 16.80, TikTok: 21.40 }
+    { metric: "Cost per Lead", current: 0, target: 12.00, unit: "$", type: "commercial",
+      breakdown: { daily: 0, weekly: 0, monthly: 0 },
+      platforms: { Instagram: 0, LinkedIn: 0, Twitter: 0, Facebook: 0, TikTok: 0 }
     },
-    { metric: "Cost per Visitor", current: 2.10, target: 1.80, unit: "$", type: "commercial",
-      breakdown: { daily: 2.10, weekly: 2.10, monthly: 2.10 },
-      platforms: { Instagram: 1.85, LinkedIn: 2.45, Twitter: 1.95, Facebook: 2.25, TikTok: 2.85 }
+    { metric: "Cost per Visitor", current: 0, target: 1.80, unit: "$", type: "commercial",
+      breakdown: { daily: 0, weekly: 0, monthly: 0 },
+      platforms: { Instagram: 0, LinkedIn: 0, Twitter: 0, Facebook: 0, TikTok: 0 }
     },
-    { metric: "Customer Acquisition Cost", current: 125, target: 100, unit: "$", type: "commercial",
-      breakdown: { daily: 125, weekly: 125, monthly: 125 },
-      platforms: { Instagram: 98, LinkedIn: 145, Twitter: 115, Facebook: 135, TikTok: 180 }
+    { metric: "Customer Acquisition Cost", current: 0, target: 100, unit: "$", type: "commercial",
+      breakdown: { daily: 0, weekly: 0, monthly: 0 },
+      platforms: { Instagram: 0, LinkedIn: 0, Twitter: 0, Facebook: 0, TikTok: 0 }
     },
-    { metric: "Monthly Reach", current: 148000, target: 200000, unit: "", type: "marketing",
-      breakdown: { daily: 4933, weekly: 37000, monthly: 148000 },
-      platforms: { Instagram: 51800, LinkedIn: 37000, Twitter: 29600, Facebook: 22200, TikTok: 7400 }
+    { metric: "Monthly Reach", current: 0, target: 200000, unit: "", type: "marketing",
+      breakdown: { daily: 0, weekly: 0, monthly: 0 },
+      platforms: { Instagram: 0, LinkedIn: 0, Twitter: 0, Facebook: 0, TikTok: 0 }
     },
-    { metric: "Engagement Rate", current: 6.8, target: 8.0, unit: "%", type: "marketing",
-      breakdown: { daily: 6.8, weekly: 6.8, monthly: 6.8 },
-      platforms: { Instagram: 8.2, LinkedIn: 5.8, Twitter: 7.1, Facebook: 6.2, TikTok: 9.5 }
+    { metric: "Engagement Rate", current: 0, target: 8.0, unit: "%", type: "marketing",
+      breakdown: { daily: 0, weekly: 0, monthly: 0 },
+      platforms: { Instagram: 0, LinkedIn: 0, Twitter: 0, Facebook: 0, TikTok: 0 }
     },
-    { metric: "Content Views", current: 89500, target: 120000, unit: "", type: "marketing",
-      breakdown: { daily: 2983, weekly: 22375, monthly: 89500 },
-      platforms: { Instagram: 31325, LinkedIn: 22375, Twitter: 17900, Facebook: 13425, TikTok: 4475 }
+    { metric: "Content Views", current: 0, target: 120000, unit: "", type: "marketing",
+      breakdown: { daily: 0, weekly: 0, monthly: 0 },
+      platforms: { Instagram: 0, LinkedIn: 0, Twitter: 0, Facebook: 0, TikTok: 0 }
     },
-    { metric: "Lead Generation", current: 1680, target: 2000, unit: "", type: "marketing",
-      breakdown: { daily: 56, weekly: 420, monthly: 1680 },
-      platforms: { Instagram: 588, LinkedIn: 420, Twitter: 336, Facebook: 252, TikTok: 84 }
+    { metric: "Lead Generation", current: 0, target: 2000, unit: "", type: "marketing",
+      breakdown: { daily: 0, weekly: 0, monthly: 0 },
+      platforms: { Instagram: 0, LinkedIn: 0, Twitter: 0, Facebook: 0, TikTok: 0 }
     },
-    { metric: "Social Media Followers", current: 12400, target: 15000, unit: "", type: "marketing",
-      breakdown: { daily: 413, weekly: 3100, monthly: 12400 },
-      platforms: { Instagram: 4340, LinkedIn: 3100, Twitter: 2480, Facebook: 1860, TikTok: 620 }
+    { metric: "Social Media Followers", current: 0, target: 15000, unit: "", type: "marketing",
+      breakdown: { daily: 0, weekly: 0, monthly: 0 },
+      platforms: { Instagram: 0, LinkedIn: 0, Twitter: 0, Facebook: 0, TikTok: 0 }
     },
   ];
 };
@@ -149,11 +149,11 @@ export default function Analytics() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">25,400</div>
+                <div className="text-2xl font-bold">0</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-600 flex items-center">
+                  <span className="text-muted-foreground flex items-center">
                     <TrendingUp className="h-3 w-3 mr-1" />
-                    +12.5%
+                    +0%
                   </span>
                   from last month
                 </p>
@@ -166,11 +166,11 @@ export default function Analytics() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">$30,500</div>
+                <div className="text-2xl font-bold">$0</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-600 flex items-center">
+                  <span className="text-muted-foreground flex items-center">
                     <TrendingUp className="h-3 w-3 mr-1" />
-                    +8.2%
+                    +0%
                   </span>
                   from last month
                 </p>
@@ -183,11 +183,11 @@ export default function Analytics() {
                 <Heart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">6.8%</div>
+                <div className="text-2xl font-bold">0%</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-red-600 flex items-center">
+                  <span className="text-muted-foreground flex items-center">
                     <TrendingDown className="h-3 w-3 mr-1" />
-                    -2.1%
+                    +0%
                   </span>
                   from last month
                 </p>
@@ -200,11 +200,11 @@ export default function Analytics() {
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">254</div>
+                <div className="text-2xl font-bold">0</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-600 flex items-center">
+                  <span className="text-muted-foreground flex items-center">
                     <TrendingUp className="h-3 w-3 mr-1" />
-                    +15.3%
+                    +0%
                   </span>
                   from last month
                 </p>
