@@ -19,14 +19,14 @@ import { Button } from "@/components/ui/button";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Calendar", href: "/calendar", icon: Calendar },
-  { name: "Content Creation", href: "/content-creation", icon: FileText },
-  { name: "Content Generator", href: "/content-generator", icon: FileText },
   { name: "AI Workflow", href: "/ai-workflow", icon: Brain },
-  { name: "Visual Creator", href: "/visual-creator", icon: Image },
   { name: "Strategy", href: "/strategy", icon: Target },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Content Generator", href: "/content-generator", icon: FileText },
+  { name: "Content Creation", href: "/content-creation", icon: FileText },
+  { name: "Visual Creator", href: "/visual-creator", icon: Image },
+  { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Social Engagement", href: "/social-engagement", icon: MessageSquare },
+  { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Team", href: "/team", icon: Users },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -96,10 +96,10 @@ export function Sidebar() {
             <div className="w-8 h-8 bg-muted rounded-full"></div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
-                John Doe
+                Owner
               </p>
               <p className="text-xs text-muted-foreground truncate">
-                Marketing Manager
+                elimizroch@gmail.com
               </p>
             </div>
           </div>
