@@ -19,6 +19,7 @@ export function useAIPlatforms() {
     anthropic: { name: "Anthropic", description: "Claude models for text generation", supportsTools: true },
     google_ai: { name: "Google AI", description: "Gemini models for text generation", supportsTools: true },
     perplexity: { name: "Perplexity", description: "Real-time search and reasoning", supportsTools: true },
+    grok: { name: "Grok", description: "xAI's advanced reasoning model", supportsTools: true },
     huggingface: { name: "Hugging Face", description: "Open source AI models", supportsTools: false },
     stability_ai: { name: "Stability AI", description: "Stable Diffusion for image generation", supportsTools: false },
     elevenlabs: { name: "ElevenLabs", description: "Voice synthesis and cloning", supportsTools: false },
