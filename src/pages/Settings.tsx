@@ -62,6 +62,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPasswords, setShowPasswords] = useState<{[key: string]: boolean}>({});
+  const [testing, setTesting] = useState<{[key: string]: boolean}>({});
 
   const platformConfigs = {
     facebook: {
@@ -238,6 +239,59 @@ export default function Settings() {
     updateSetting(`${platform}_api_key`, { api_key: apiKey });
   };
 
+  const testPlatformConfiguration = async (platform: string, type: 'social_media' | 'ai_platform') => {
+    const testKey = `${platform}_${type}`;
+    setTesting(prev => ({ ...prev, [testKey]: true }));
+
+    try {
+      let requestBody;
+      if (type === 'ai_platform') {
+        const apiKeySetting = getSetting(`${platform}_api_key`);
+        requestBody = {
+          platform,
+          type,
+          api_key: apiKeySetting.api_key
+        };
+      } else {
+        const platformConfig = getSetting(`${platform}_integration`) as PlatformConfig;
+        requestBody = {
+          platform,
+          type,
+          credentials: platformConfig?.credentials || {}
+        };
+      }
+
+      const { data, error } = await supabase.functions.invoke('test-platform-config', {
+        body: requestBody
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Configuration Test Successful",
+          description: data.message,
+        });
+        // Refresh settings to get updated verification status
+        await fetchSettings();
+      } else {
+        toast({
+          title: "Configuration Test Failed",
+          description: data.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Test Error",
+        description: "Failed to test configuration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setTesting(prev => ({ ...prev, [testKey]: false }));
+    }
+  };
+
   const togglePasswordVisibility = (field: string) => {
     setShowPasswords(prev => ({
       ...prev,
@@ -381,14 +435,34 @@ export default function Settings() {
                                     </div>
                                   );
                                 })}
-                                <div className="pt-4 border-t">
-                                  <p className="text-sm text-muted-foreground">
-                                    Status: {isConnected ? 
-                                      <span className="text-green-600 font-medium">Connected and ready for posting</span> : 
-                                      <span className="text-yellow-600 font-medium">Fill in credentials to connect</span>
-                                    }
-                                  </p>
-                                </div>
+                                 <div className="pt-4 border-t space-y-3">
+                                   <p className="text-sm text-muted-foreground">
+                                     Status: {isConnected ? 
+                                       <span className="text-green-600 font-medium">Connected and ready for posting</span> : 
+                                       <span className="text-yellow-600 font-medium">Fill in credentials to connect</span>
+                                     }
+                                   </p>
+                                   {Object.values(platformConfig?.credentials || {}).some(value => value.trim() !== '') && (
+                                     <Button
+                                       onClick={() => testPlatformConfiguration(platformKey, 'social_media')}
+                                       disabled={testing[`${platformKey}_social_media`]}
+                                       className="w-full"
+                                       variant="outline"
+                                     >
+                                       {testing[`${platformKey}_social_media`] ? (
+                                         <>
+                                           <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                           Testing Configuration...
+                                         </>
+                                       ) : (
+                                         <>
+                                           <Wrench className="h-4 w-4 mr-2" />
+                                           Test Configuration
+                                         </>
+                                       )}
+                                     </Button>
+                                   )}
+                                 </div>
                               </div>
                             </DialogContent>
                           </Dialog>
@@ -443,30 +517,44 @@ export default function Settings() {
                           {config.supportsTools && " • Supports function calling and tools"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="relative">
-                          <Input
-                            type={showPasswords[fieldKey] ? 'text' : 'password'}
-                            value={currentApiKey}
-                            onChange={(e) => updateAIApiKey(platformKey, e.target.value)}
-                            placeholder="Enter API key..."
-                            className="w-80 pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => togglePasswordVisibility(fieldKey)}
-                          >
-                            {showPasswords[fieldKey] ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
+                       <div className="flex items-center gap-2">
+                         <div className="relative">
+                           <Input
+                             type={showPasswords[fieldKey] ? 'text' : 'password'}
+                             value={currentApiKey}
+                             onChange={(e) => updateAIApiKey(platformKey, e.target.value)}
+                             placeholder="Enter API key..."
+                             className="w-80 pr-10"
+                           />
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="sm"
+                             className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                             onClick={() => togglePasswordVisibility(fieldKey)}
+                           >
+                             {showPasswords[fieldKey] ? (
+                               <EyeOff className="h-4 w-4" />
+                             ) : (
+                               <Eye className="h-4 w-4" />
+                             )}
+                           </Button>
+                         </div>
+                         {isConfigured && (
+                           <Button
+                             onClick={() => testPlatformConfiguration(platformKey, 'ai_platform')}
+                             disabled={testing[`${platformKey}_ai_platform`]}
+                             variant="outline"
+                             size="sm"
+                           >
+                             {testing[`${platformKey}_ai_platform`] ? (
+                               <RefreshCw className="h-4 w-4 animate-spin" />
+                             ) : (
+                               <Wrench className="h-4 w-4" />
+                             )}
+                           </Button>
+                         )}
+                       </div>
                     </div>
                   );
                 })}
