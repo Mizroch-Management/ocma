@@ -1,1 +1,4 @@
 project_id = "wxxjbkqnvpbjywejfrox"
+
+[functions.test-platform-config]
+verify_jwt = true
