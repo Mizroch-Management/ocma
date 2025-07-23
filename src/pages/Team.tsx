@@ -46,34 +46,31 @@ export default function Team() {
 
   const fetchProfiles = async () => {
     try {
-      const { data, error } = await supabase
+      // First get all profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          user_roles!inner(role)
-        `)
+        .select('*')
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
-      // Group roles by user
-      const profilesWithRoles = data?.reduce((acc: Profile[], curr: any) => {
-        const existingProfile = acc.find(p => p.user_id === curr.user_id);
-        
-        if (existingProfile) {
-          existingProfile.roles.push({ role: curr.user_roles.role });
-        } else {
-          acc.push({
-            ...curr,
-            roles: [{ role: curr.user_roles.role }]
-          });
-        }
-        
-        return acc;
-      }, []) || [];
+      // Then get all user roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (rolesError) throw rolesError;
+
+      // Combine the data
+      const profilesWithRoles = profilesData?.map(profile => ({
+        ...profile,
+        roles: rolesData?.filter(role => role.user_id === profile.user_id)
+          .map(role => ({ role: role.role })) || []
+      })) || [];
 
       setProfiles(profilesWithRoles);
     } catch (error: any) {
+      console.error('Error fetching profiles:', error);
       toast({
         title: "Error loading team members",
         description: error.message,
