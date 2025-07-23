@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAIPlatforms } from "@/hooks/use-ai-platforms";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Settings2, 
@@ -58,6 +59,7 @@ interface PlatformConfig {
 
 export default function Settings() {
   const { toast } = useToast();
+  const { platforms: aiPlatformsList } = useAIPlatforms();
   const [settings, setSettings] = useState<SystemSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -150,16 +152,15 @@ export default function Settings() {
     }
   };
 
-  const aiPlatforms = {
-    openai: { name: "OpenAI", description: "GPT models for text generation", supportsTools: true },
-    anthropic: { name: "Anthropic", description: "Claude models for text generation", supportsTools: true },
-    google_ai: { name: "Google AI", description: "Gemini models for text generation", supportsTools: true },
-    perplexity: { name: "Perplexity", description: "Real-time search and reasoning", supportsTools: true },
-    huggingface: { name: "Hugging Face", description: "Open source AI models", supportsTools: false },
-    stability_ai: { name: "Stability AI", description: "Stable Diffusion for image generation", supportsTools: false },
-    elevenlabs: { name: "ElevenLabs", description: "Voice synthesis and cloning", supportsTools: false },
-    runware: { name: "Runware", description: "Fast image generation API", supportsTools: false }
-  };
+  // Convert platforms array to object for backwards compatibility
+  const aiPlatforms = aiPlatformsList.reduce((acc, platform) => {
+    acc[platform.key] = {
+      name: platform.name,
+      description: platform.description,
+      supportsTools: platform.supportsTools
+    };
+    return acc;
+  }, {} as Record<string, any>);
 
   useEffect(() => {
     fetchSettings();
