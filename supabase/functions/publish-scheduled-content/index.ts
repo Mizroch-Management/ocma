@@ -69,8 +69,8 @@ serve(async (req) => {
         try {
           console.log(`Publishing to ${platform} for content ${content.id}`);
           
-          // Simulate platform publishing (in real implementation, you'd call platform APIs)
-          const publishResult = await simulatePublishToPlatform(platform, content);
+          // Publish to platform using real API
+          const publishResult = await publishToPlatform(platform, content, supabase);
           
           if (publishResult.success) {
             // Log successful publication
@@ -167,46 +167,391 @@ serve(async (req) => {
   }
 });
 
-// Simulate publishing to different platforms
-async function simulatePublishToPlatform(platform: string, content: any) {
-  // In a real implementation, you would:
-  // 1. Get platform-specific API credentials from secrets
-  // 2. Format content according to platform requirements
-  // 3. Make actual API calls to publish content
-  // 4. Handle platform-specific responses and errors
+// Publish to different platforms using real APIs
+async function publishToPlatform(platform: string, content: any, supabase: any) {
+  console.log(`Publishing to ${platform} for content ${content.id}`);
   
-  console.log(`Simulating publication to ${platform}`);
-  
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-  
-  // Simulate random success/failure for demo
-  const success = Math.random() > 0.1; // 90% success rate
-  
-  if (success) {
-    return {
-      success: true,
-      postId: `${platform}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      metrics: {
-        initial_reach: Math.floor(Math.random() * 1000) + 100,
-        estimated_engagement: Math.floor(Math.random() * 50) + 10
-      }
-    };
-  } else {
+  try {
+    // Get platform credentials from system settings
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', `${platform}_integration`)
+      .single();
+
+    if (settingsError || !settingsData?.setting_value?.connected) {
+      throw new Error(`${platform} integration not configured or not connected`);
+    }
+
+    const credentials = settingsData.setting_value.credentials;
+    const optimizedContent = content.platform_optimizations?.[platform] || {};
+    const postContent = optimizedContent.content || content.content;
+
+    switch (platform.toLowerCase()) {
+      case 'facebook':
+        return await publishToFacebook(credentials, postContent, content);
+      case 'instagram':
+        return await publishToInstagram(credentials, postContent, content);
+      case 'twitter':
+        return await publishToTwitter(credentials, postContent, content);
+      case 'linkedin':
+        return await publishToLinkedIn(credentials, postContent, content);
+      case 'youtube':
+        return await publishToYouTube(credentials, postContent, content);
+      case 'tiktok':
+        return await publishToTikTok(credentials, postContent, content);
+      case 'pinterest':
+        return await publishToPinterest(credentials, postContent, content);
+      case 'snapchat':
+        return await publishToSnapchat(credentials, postContent, content);
+      default:
+        throw new Error(`Platform ${platform} not supported`);
+    }
+  } catch (error) {
+    console.error(`Error publishing to ${platform}:`, error);
     return {
       success: false,
-      error: `Failed to publish to ${platform}: ${getRandomError()}`
+      error: error.message
     };
   }
 }
 
-function getRandomError() {
-  const errors = [
-    'Rate limit exceeded',
-    'Authentication failed',
-    'Content violates community guidelines',
-    'Network timeout',
-    'Platform temporarily unavailable'
-  ];
-  return errors[Math.floor(Math.random() * errors.length)];
+// Facebook Publishing
+async function publishToFacebook(credentials: any, content: string, postData: any) {
+  try {
+    const response = await fetch(`https://graph.facebook.com/v19.0/${credentials.page_id}/feed`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: content,
+        access_token: credentials.access_token
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Failed to publish to Facebook');
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      postId: result.id,
+      metrics: {
+        platform_post_id: result.id,
+        published_at: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Instagram Publishing
+async function publishToInstagram(credentials: any, content: string, postData: any) {
+  try {
+    // Create media container
+    const containerResponse = await fetch(`https://graph.facebook.com/v19.0/${credentials.user_id}/media`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        caption: content,
+        media_type: 'TEXT',
+        access_token: credentials.access_token
+      })
+    });
+
+    if (!containerResponse.ok) {
+      const error = await containerResponse.json();
+      throw new Error(error.error?.message || 'Failed to create Instagram media container');
+    }
+
+    const containerResult = await containerResponse.json();
+
+    // Publish the media
+    const publishResponse = await fetch(`https://graph.facebook.com/v19.0/${credentials.user_id}/media_publish`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        creation_id: containerResult.id,
+        access_token: credentials.access_token
+      })
+    });
+
+    if (!publishResponse.ok) {
+      const error = await publishResponse.json();
+      throw new Error(error.error?.message || 'Failed to publish to Instagram');
+    }
+
+    const publishResult = await publishResponse.json();
+    return {
+      success: true,
+      postId: publishResult.id,
+      metrics: {
+        platform_post_id: publishResult.id,
+        published_at: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Twitter Publishing
+async function publishToTwitter(credentials: any, content: string, postData: any) {
+  try {
+    const { createHmac } = await import("node:crypto");
+
+    // Generate OAuth 1.0a signature
+    const oauthParams = {
+      oauth_consumer_key: credentials.api_key,
+      oauth_nonce: Math.random().toString(36).substring(2),
+      oauth_signature_method: "HMAC-SHA1",
+      oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+      oauth_token: credentials.access_token,
+      oauth_version: "1.0",
+    };
+
+    const signatureBaseString = `POST&${encodeURIComponent('https://api.twitter.com/2/tweets')}&${encodeURIComponent(
+      Object.entries(oauthParams)
+        .sort()
+        .map(([k, v]) => `${k}=${v}`)
+        .join("&")
+    )}`;
+
+    const signingKey = `${encodeURIComponent(credentials.api_secret)}&${encodeURIComponent(credentials.access_token_secret)}`;
+    const hmacSha1 = createHmac("sha1", signingKey);
+    const signature = hmacSha1.update(signatureBaseString).digest("base64");
+
+    const signedOAuthParams = {
+      ...oauthParams,
+      oauth_signature: signature,
+    };
+
+    const authHeader = "OAuth " + Object.entries(signedOAuthParams)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
+      .join(", ");
+
+    const response = await fetch('https://api.twitter.com/2/tweets', {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: content
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to publish to Twitter');
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      postId: result.data.id,
+      metrics: {
+        platform_post_id: result.data.id,
+        published_at: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// LinkedIn Publishing
+async function publishToLinkedIn(credentials: any, content: string, postData: any) {
+  try {
+    const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${credentials.access_token}`,
+        'Content-Type': 'application/json',
+        'X-Restli-Protocol-Version': '2.0.0'
+      },
+      body: JSON.stringify({
+        author: `urn:li:organization:${credentials.organization_id}`,
+        lifecycleState: 'PUBLISHED',
+        specificContent: {
+          'com.linkedin.ugc.ShareContent': {
+            shareCommentary: {
+              text: content
+            },
+            shareMediaCategory: 'NONE'
+          }
+        },
+        visibility: {
+          'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to publish to LinkedIn');
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      postId: result.id,
+      metrics: {
+        platform_post_id: result.id,
+        published_at: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// YouTube Publishing (Community Post)
+async function publishToYouTube(credentials: any, content: string, postData: any) {
+  try {
+    // First, get a fresh access token using refresh token
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: credentials.client_id,
+        client_secret: credentials.client_secret,
+        refresh_token: credentials.refresh_token,
+        grant_type: 'refresh_token'
+      })
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to refresh YouTube access token');
+    }
+
+    const tokenData = await tokenResponse.json();
+
+    // Create community post
+    const response = await fetch('https://youtube.googleapis.com/youtube/v3/activities', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        part: 'snippet',
+        snippet: {
+          type: 'upload',
+          description: content,
+          channelId: credentials.channel_id
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Failed to publish to YouTube');
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      postId: result.id,
+      metrics: {
+        platform_post_id: result.id,
+        published_at: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// TikTok Publishing
+async function publishToTikTok(credentials: any, content: string, postData: any) {
+  try {
+    // Note: TikTok requires video content, text-only posts are not supported
+    // This is a placeholder implementation
+    throw new Error('TikTok publishing requires video content - text-only posts not supported');
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Pinterest Publishing
+async function publishToPinterest(credentials: any, content: string, postData: any) {
+  try {
+    const response = await fetch('https://api.pinterest.com/v5/pins', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${credentials.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        board_id: credentials.business_id,
+        description: content,
+        link: postData.link || '',
+        title: postData.title || content.substring(0, 100)
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to publish to Pinterest');
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      postId: result.id,
+      metrics: {
+        platform_post_id: result.id,
+        published_at: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Snapchat Publishing
+async function publishToSnapchat(credentials: any, content: string, postData: any) {
+  try {
+    // Note: Snapchat Ads API is primarily for advertising, not organic content
+    // This would require the Marketing API and specific ad account setup
+    throw new Error('Snapchat organic content publishing not available through public API');
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
 }
