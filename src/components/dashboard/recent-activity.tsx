@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,6 +12,7 @@ import {
   Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 
 interface ActivityItem {
   id: string;
@@ -96,55 +99,156 @@ function ActivityItem({ item }: { item: ActivityItem }) {
 }
 
 export function RecentActivity() {
-  const activities: ActivityItem[] = [
-    {
-      id: "1",
-      type: "published",
-      title: "Instagram carousel published",
-      description: "5 slides about product features went live",
-      timestamp: "2 hours ago",
-      user: { name: "Sarah Johnson", initials: "SJ" },
-      platform: "Instagram",
-      status: "success"
-    },
-    {
-      id: "2",
-      type: "scheduled",
-      title: "LinkedIn article scheduled",
-      description: "Industry insights post set for tomorrow 9 AM",
-      timestamp: "4 hours ago",
-      user: { name: "Mike Chen", initials: "MC" },
-      platform: "LinkedIn",
-      status: "pending"
-    },
-    {
-      id: "3",
-      type: "generated",
-      title: "AI visual created",
-      description: "New hero image generated for blog post",
-      timestamp: "6 hours ago",
-      user: { name: "Emma Davis", initials: "ED" },
-      status: "success"
-    },
-    {
-      id: "4",
-      type: "draft",
-      title: "Draft awaiting approval",
-      description: "Twitter thread about company culture needs review",
-      timestamp: "8 hours ago",
-      user: { name: "John Doe", initials: "JD" },
-      platform: "Twitter",
-      status: "warning"
-    },
-    {
-      id: "5",
-      type: "team",
-      title: "New team member added",
-      description: "Alex Rodriguez joined as Content Creator",
-      timestamp: "1 day ago",
-      user: { name: "Admin", initials: "AD" }
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadRecentActivity();
+  }, []);
+
+  const loadRecentActivity = async () => {
+    setIsLoading(true);
+    try {
+      // Load recent content activity
+      const { data: contentData, error: contentError } = await supabase
+        .from('generated_content')
+        .select(`
+          *,
+          profiles (
+            full_name
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      // Load recent publication logs
+      const { data: publicationData, error: publicationError } = await supabase
+        .from('publication_logs')
+        .select(`
+          *,
+          generated_content (
+            title,
+            profiles (
+              full_name
+            )
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (contentError) {
+        console.error('Error loading content activity:', contentError);
+      }
+
+      if (publicationError) {
+        console.error('Error loading publication activity:', publicationError);
+      }
+
+      const recentActivities: ActivityItem[] = [];
+
+      // Add content activities
+      if (contentData) {
+        contentData.forEach(content => {
+          const userFullName = (content.profiles as any)?.full_name || 'Unknown User';
+          const initials = userFullName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
+          
+          // Content creation activity
+          recentActivities.push({
+            id: `content-${content.id}`,
+            type: "generated",
+            title: content.title,
+            description: `${content.content_type} content created`,
+            timestamp: formatDistanceToNow(new Date(content.created_at), { addSuffix: true }),
+            user: {
+              name: userFullName,
+              initials: initials
+            },
+            status: "success"
+          });
+
+          // Scheduling activity if scheduled
+          if (content.is_scheduled) {
+            recentActivities.push({
+              id: `scheduled-${content.id}`,
+              type: "scheduled",
+              title: `${content.title} scheduled`,
+              description: `Content scheduled for ${content.scheduled_platforms?.join(', ') || 'multiple platforms'}`,
+              timestamp: formatDistanceToNow(new Date(content.updated_at), { addSuffix: true }),
+              user: {
+                name: userFullName,
+                initials: initials
+              },
+              platform: content.scheduled_platforms?.[0] || 'Multiple',
+              status: "pending"
+            });
+          }
+        });
+      }
+
+      // Add publication activities
+      if (publicationData) {
+        publicationData.forEach(log => {
+          const contentTitle = (log.generated_content as any)?.title || 'Unknown Content';
+          const userFullName = (log.generated_content as any)?.profiles?.full_name || 'System';
+          const initials = userFullName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
+          
+          recentActivities.push({
+            id: `publication-${log.id}`,
+            type: "published",
+            title: `${contentTitle} ${log.status === 'success' ? 'published' : 'failed to publish'}`,
+            description: log.status === 'success' 
+              ? `Successfully published to ${log.platform}`
+              : `Failed to publish to ${log.platform}: ${log.error_message || 'Unknown error'}`,
+            timestamp: formatDistanceToNow(new Date(log.created_at), { addSuffix: true }),
+            user: {
+              name: userFullName,
+              initials: initials
+            },
+            platform: log.platform,
+            status: log.status === 'success' ? 'success' : log.status === 'failed' ? 'warning' : 'pending'
+          });
+        });
+      }
+
+      // Sort all activities by timestamp and take the 15 most recent
+      const sortedActivities = recentActivities
+        .sort((a, b) => {
+          // Parse relative timestamps back to compare (this is approximate)
+          const aMinutes = parseRelativeTime(a.timestamp);
+          const bMinutes = parseRelativeTime(b.timestamp);
+          return aMinutes - bMinutes;
+        })
+        .slice(0, 15);
+
+      setActivities(sortedActivities);
+
+    } catch (error) {
+      console.error('Error loading recent activity:', error);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+
+  // Helper function to parse relative time strings for sorting
+  const parseRelativeTime = (timeStr: string): number => {
+    const matches = timeStr.match(/(\d+)\s*(second|minute|hour|day|week|month|year)/);
+    if (!matches) return 0;
+    
+    const value = parseInt(matches[1]);
+    const unit = matches[2];
+    
+    const multipliers = {
+      second: 1/60,
+      minute: 1,
+      hour: 60,
+      day: 60 * 24,
+      week: 60 * 24 * 7,
+      month: 60 * 24 * 30,
+      year: 60 * 24 * 365
+    };
+    
+    return value * (multipliers[unit as keyof typeof multipliers] || 1);
+  };
 
   return (
     <Card>
@@ -152,9 +256,19 @@ export function RecentActivity() {
         <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
       </CardHeader>
       <CardContent className="space-y-1">
-        {activities.map((activity) => (
-          <ActivityItem key={activity.id} item={activity} />
-        ))}
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground text-center py-4">
+            Loading recent activity...
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="text-sm text-muted-foreground text-center py-4">
+            No recent activity
+          </div>
+        ) : (
+          activities.map((activity) => (
+            <ActivityItem key={activity.id} item={activity} />
+          ))
+        )}
       </CardContent>
     </Card>
   );

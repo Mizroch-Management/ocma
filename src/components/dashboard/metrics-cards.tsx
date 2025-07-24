@@ -76,35 +76,49 @@ function MetricCard({ title, value, change, icon, description }: MetricCardProps
   );
 }
 
-export function MetricsCards() {
+interface MetricsCardsProps {
+  data?: {
+    totalContent: number;
+    scheduledContent: number;
+    draftContent: number;
+    publishedContent: number;
+    performanceMetrics: {
+      successfulPublications: number;
+      failedPublications: number;
+    };
+  };
+  isLoading?: boolean;
+}
+
+export function MetricsCards({ data, isLoading = false }: MetricsCardsProps) {
   const metrics = [
     {
-      title: "Total Posts",
-      value: "0",
+      title: "Total Content",
+      value: isLoading ? "..." : (data?.totalContent || 0),
       change: { value: 0, type: "neutral" as const },
       icon: <FileText className="h-4 w-4" />,
-      description: "from last month"
+      description: "pieces created"
     },
     {
       title: "Scheduled Content",
-      value: "0",
+      value: isLoading ? "..." : (data?.scheduledContent || 0),
       change: { value: 0, type: "neutral" as const },
       icon: <Calendar className="h-4 w-4" />,
-      description: "next 30 days"
+      description: "ready to publish"
     },
     {
-      title: "Draft Count",
-      value: "0",
+      title: "Draft Content",
+      value: isLoading ? "..." : (data?.draftContent || 0),
       change: { value: 0, type: "neutral" as const },
       icon: <Edit3 className="h-4 w-4" />,
-      description: "pending approval"
+      description: "in progress"
     },
     {
-      title: "Platform Connections",
-      value: "0/10",
+      title: "Published Content",
+      value: isLoading ? "..." : (data?.publishedContent || 0),
       change: { value: 0, type: "neutral" as const },
       icon: <Share2 className="h-4 w-4" />,
-      description: "platforms active"
+      description: "successfully published"
     }
   ];
 
