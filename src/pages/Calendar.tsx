@@ -110,14 +110,27 @@ export default function Calendar() {
   // Combine manual and AI-generated content
   const [manualContent, setManualContent] = useState<ContentPiece[]>([]);
   const [generatedContent, setGeneratedContent] = useState<any[]>([]);
+  const [scheduledContent, setScheduledContent] = useState<any[]>([]);
+  const [publicationLogs, setPublicationLogs] = useState<any[]>([]);
   const [isLoadingGeneratedContent, setIsLoadingGeneratedContent] = useState(false);
 
   // Merge AI workflow content with manual content
-  const scheduledContent = [
+  const allScheduledContent = [
     ...manualContent,
     ...workflowState.approvedContent.map(aiContent => ({
       ...aiContent,
       isAIGenerated: true,
+    })),
+    ...scheduledContent.map(item => ({
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      platforms: item.scheduled_platforms || item.platforms || [],
+      scheduledDate: new Date(item.scheduled_date || item.created_at),
+      timezone: 'UTC',
+      status: item.publication_status || 'scheduled',
+      platformOptimizations: item.platform_optimizations || {},
+      isAIGenerated: true
     }))
   ];
 
@@ -131,9 +144,11 @@ export default function Calendar() {
     platformOptimizations: {}
   });
 
-  // Load generated content from database
+  // Load generated content and scheduled content from database
   useEffect(() => {
     loadGeneratedContent();
+    loadScheduledContent();
+    loadPublicationLogs();
   }, []);
 
   const loadGeneratedContent = async () => {
@@ -160,6 +175,54 @@ export default function Calendar() {
     }
   };
 
+  const loadScheduledContent = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('generated_content')
+        .select('*')
+        .eq('is_scheduled', true)
+        .order('scheduled_date', { ascending: true });
+
+      if (error) {
+        console.error('Error loading scheduled content:', error);
+        return;
+      }
+
+      if (data) {
+        setScheduledContent(data);
+      }
+    } catch (error) {
+      console.error('Error loading scheduled content:', error);
+    }
+  };
+
+  const loadPublicationLogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('publication_logs')
+        .select(`
+          *,
+          generated_content (
+            title,
+            content
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error loading publication logs:', error);
+        return;
+      }
+
+      if (data) {
+        setPublicationLogs(data);
+      }
+    } catch (error) {
+      console.error('Error loading publication logs:', error);
+    }
+  };
+
   const scheduleGeneratedContent = async (contentId: string, scheduledDate: Date, timezone: string, platforms: string[]) => {
     try {
       // Update the database to mark content as scheduled
@@ -168,7 +231,8 @@ export default function Calendar() {
         .update({
           is_scheduled: true,
           scheduled_date: scheduledDate.toISOString(),
-          scheduled_platforms: platforms
+          scheduled_platforms: platforms,
+          publication_status: 'scheduled'
         })
         .eq('id', contentId);
 
@@ -177,8 +241,11 @@ export default function Calendar() {
         return false;
       }
 
-      // Reload generated content to remove scheduled item
-      await loadGeneratedContent();
+      // Reload both generated and scheduled content
+      await Promise.all([
+        loadGeneratedContent(),
+        loadScheduledContent()
+      ]);
       return true;
     } catch (error) {
       console.error('Error scheduling content:', error);
@@ -187,7 +254,7 @@ export default function Calendar() {
   };
 
   const getContentForDate = (date: Date) => {
-    return scheduledContent.filter(content => 
+    return allScheduledContent.filter(content => 
       isSameDay(content.scheduledDate, date)
     );
   };

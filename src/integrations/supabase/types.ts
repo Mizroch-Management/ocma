@@ -26,6 +26,7 @@ export type Database = {
           metadata: Json | null
           platform_optimizations: Json | null
           platforms: string[] | null
+          publication_status: string | null
           scheduled_date: string | null
           scheduled_platforms: string[] | null
           scheduling_suggestions: Json | null
@@ -47,6 +48,7 @@ export type Database = {
           metadata?: Json | null
           platform_optimizations?: Json | null
           platforms?: string[] | null
+          publication_status?: string | null
           scheduled_date?: string | null
           scheduled_platforms?: string[] | null
           scheduling_suggestions?: Json | null
@@ -68,6 +70,7 @@ export type Database = {
           metadata?: Json | null
           platform_optimizations?: Json | null
           platforms?: string[] | null
+          publication_status?: string | null
           scheduled_date?: string | null
           scheduled_platforms?: string[] | null
           scheduling_suggestions?: Json | null
@@ -109,6 +112,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      publication_logs: {
+        Row: {
+          content_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          metrics: Json | null
+          platform: string
+          platform_post_id: string | null
+          published_at: string | null
+          status: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metrics?: Json | null
+          platform: string
+          platform_post_id?: string | null
+          published_at?: string | null
+          status: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metrics?: Json | null
+          platform?: string
+          platform_post_id?: string | null
+          published_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publication_logs_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "generated_content"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {
