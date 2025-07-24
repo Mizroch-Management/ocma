@@ -10,6 +10,7 @@ import { useAIPlatforms } from "@/hooks/use-ai-platforms";
 import { Brain, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, TrendingUp, Wrench, Zap } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AIStrategyStep {
   id: string;
@@ -79,19 +80,33 @@ export function AIStrategyConsultant({ onStrategyApproved, masterStrategy }: AIS
         : s
     ));
 
-    // Simulate AI generation with progress
-    const progressInterval = setInterval(() => {
-      setSteps(prev => prev.map((s, i) => 
-        i === stepIndex && s.progress < 90
-          ? { ...s, progress: s.progress + 10 }
-          : s
-      ));
-    }, 200);
+    try {
+      // Real AI generation with progress tracking
+      const progressInterval = setInterval(() => {
+        setSteps(prev => prev.map((s, i) => 
+          i === stepIndex && s.progress < 90
+            ? { ...s, progress: s.progress + 10 }
+            : s
+        ));
+      }, 500);
 
-    setTimeout(() => {
+      const response = await supabase.functions.invoke('generate-content', {
+        body: {
+          contentType: 'blog-article',
+          strategy: step.title,
+          platforms: [selectedPlatform],
+          customPrompt: `Generate content for strategy step: ${step.title}. ${step.description}. ${customPrompt || step.userPrompt || ''}`,
+          aiTool: 'gpt-4o-mini'
+        }
+      });
+
       clearInterval(progressInterval);
-      
-      const generatedContent = generateMockContent(step.id, customPrompt || step.userPrompt);
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to generate content');
+      }
+
+      const generatedContent = response.data?.content || "Generated content will appear here.";
       
       setSteps(prev => prev.map((s, i) => 
         i === stepIndex 
@@ -108,12 +123,21 @@ export function AIStrategyConsultant({ onStrategyApproved, masterStrategy }: AIS
         title: "AI Analysis Complete",
         description: `${step.title} has been generated. Please review and approve or edit.`
       });
-    }, 2000);
-  };
 
-  const generateMockContent = (stepId: string, customPrompt?: string) => {
-    // In a real implementation, this would call the selected AI API
-    return "AI-generated content will appear here when connected to your selected AI platform.";
+    } catch (error) {
+      console.error('Error generating strategy content:', error);
+      setSteps(prev => prev.map((s, i) => 
+        i === stepIndex 
+          ? { ...s, status: 'pending', progress: 0 }
+          : s
+      ));
+      
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate strategy content. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const updateUserPrompt = (stepIndex: number, prompt: string) => {

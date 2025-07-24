@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, Clock, BarChart3 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ContentPlan {
   id: string;
@@ -109,53 +110,34 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
   const generateMonthlyOverview = async (customPrompt?: string) => {
     setMonthlyOverview(prev => ({ ...prev, status: 'generating', progress: 0 }));
 
-    const progressInterval = setInterval(() => {
-      setMonthlyOverview(prev => 
-        prev.progress < 90 ? { ...prev, progress: prev.progress + 15 } : prev
-      );
-    }, 300);
+    try {
+      const progressInterval = setInterval(() => {
+        setMonthlyOverview(prev => 
+          prev.progress < 90 ? { ...prev, progress: prev.progress + 15 } : prev
+        );
+      }, 500);
 
-    setTimeout(() => {
+      const response = await supabase.functions.invoke('generate-content', {
+        body: {
+          contentType: 'blog-article',
+          strategy: strategy?.name || 'Monthly Content Strategy',
+          platforms: ['instagram', 'linkedin', 'twitter'],
+          customPrompt: `Generate a comprehensive monthly content strategy overview. Include strategic focus areas, platform strategy, content distribution, success metrics, and content pillars. ${customPrompt || ''}`,
+          aiTool: 'gpt-4o-mini'
+        }
+      });
+
       clearInterval(progressInterval);
-      
-      const generated = `**Monthly Content Strategy Overview**
 
-**Theme**: "Building Trust Through Value-First Content"
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to generate monthly overview');
+      }
 
-**Strategic Focus Areas:**
-1. **Education & Authority** (Week 1): Establish thought leadership
-2. **Community & Engagement** (Week 2): Build authentic connections  
-3. **Product Value** (Week 3): Showcase solutions without heavy selling
-4. **Social Proof** (Week 4): Leverage customer success and testimonials
-
-**Platform Strategy:**
-- **LinkedIn**: 3x/week - Professional insights, industry trends, thought leadership
-- **Instagram**: 5x/week - Behind-scenes, team culture, visual storytelling
-- **Twitter**: Daily - Quick tips, industry news, community engagement
-- **Email**: 2x/week - Newsletter + value-driven sequence
-
-**Content Distribution (Monthly):**
-- Educational Posts: 40%
-- Behind-the-Scenes: 25% 
-- Product/Service Focus: 20%
-- User-Generated Content: 15%
-
-**Success Metrics:**
-- Engagement Rate: Target 8%+ across platforms
-- Email Open Rate: Target 25%+  
-- Website Traffic: 35% increase from content
-- Lead Generation: 500+ MQLs from content marketing
-
-**Content Pillars:**
-1. Industry Insights & Trends
-2. Practical Tips & How-Tos
-3. Company Culture & Values
-4. Customer Success Stories
-5. Product Education (soft approach)`;
+      const generatedContent = response.data?.content || "Generated strategy overview will appear here.";
 
       setMonthlyOverview(prev => ({
         ...prev,
-        aiGenerated: generated,
+        aiGenerated: generatedContent,
         status: 'review',
         progress: 100
       }));
@@ -164,42 +146,69 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
         title: "Monthly Overview Generated",
         description: "Review the content strategy overview and approve or refine it."
       });
-    }, 2500);
+
+    } catch (error) {
+      console.error('Error generating monthly overview:', error);
+      setMonthlyOverview(prev => ({
+        ...prev,
+        status: 'pending',
+        progress: 0
+      }));
+      
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate monthly overview. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const generateWeeklyPlan = async (weekIndex: number, customPrompt?: string) => {
+    const weekThemes = [
+      "Education & Authority Building",
+      "Community Engagement & Behind-the-Scenes", 
+      "Value-Driven Product Focus",
+      "Social Proof & Customer Success"
+    ];
+
     setWeeklyPlans(prev => prev.map((plan, i) => 
       i === weekIndex 
-        ? { ...plan, status: 'generating', progress: 0 }
+        ? { ...plan, status: 'generating', progress: 0, theme: weekThemes[weekIndex] }
         : plan
     ));
 
-    const progressInterval = setInterval(() => {
-      setWeeklyPlans(prev => prev.map((plan, i) => 
-        i === weekIndex && plan.progress < 90
-          ? { ...plan, progress: plan.progress + 12 }
-          : plan
-      ));
-    }, 250);
+    try {
+      const progressInterval = setInterval(() => {
+        setWeeklyPlans(prev => prev.map((plan, i) => 
+          i === weekIndex && plan.progress < 90
+            ? { ...plan, progress: plan.progress + 12 }
+            : plan
+        ));
+      }, 500);
 
-    setTimeout(() => {
+      const response = await supabase.functions.invoke('generate-content', {
+        body: {
+          contentType: 'blog-article',
+          strategy: weekThemes[weekIndex],
+          platforms: ['instagram', 'linkedin', 'twitter'],
+          customPrompt: `Generate detailed weekly content plan for week ${weekIndex + 1} with theme: ${weekThemes[weekIndex]}. Include specific content types, objectives, and KPIs. ${customPrompt || ''}`,
+          aiTool: 'gpt-4o-mini'
+        }
+      });
+
       clearInterval(progressInterval);
-      
-      const weekThemes = [
-        "Education & Authority Building",
-        "Community Engagement & Behind-the-Scenes", 
-        "Value-Driven Product Focus",
-        "Social Proof & Customer Success"
-      ];
 
-      const generated = generateWeeklyContent(weekIndex, weekThemes[weekIndex]);
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to generate weekly plan');
+      }
+
+      const generatedContent = response.data?.content || "Generated weekly plan will appear here.";
       
       setWeeklyPlans(prev => prev.map((plan, i) => 
         i === weekIndex 
           ? { 
               ...plan,
-              theme: weekThemes[weekIndex],
-              aiGenerated: generated,
+              aiGenerated: generatedContent,
               status: 'review',
               progress: 100 
             }
@@ -210,7 +219,21 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
         title: `Week ${weekIndex + 1} Plan Generated`,
         description: "Review the weekly content plan and approve or refine it."
       });
-    }, 2000);
+
+    } catch (error) {
+      console.error(`Error generating week ${weekIndex + 1} plan:`, error);
+      setWeeklyPlans(prev => prev.map((plan, i) => 
+        i === weekIndex 
+          ? { ...plan, status: 'pending', progress: 0 }
+          : plan
+      ));
+      
+      toast({
+        title: "Generation Failed",
+        description: `Failed to generate week ${weekIndex + 1} plan. Please try again.`,
+        variant: "destructive"
+      });
+    }
   };
 
   const generateWeeklyContent = (weekIndex: number, theme: string) => {

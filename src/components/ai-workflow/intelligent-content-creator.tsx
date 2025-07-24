@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Edit3, RefreshCw, CheckCircle, Copy, Eye, Share, MessageSquare, Image, Video, FileText, Calendar } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ContentPiece {
   id: string;
@@ -76,55 +77,78 @@ export function IntelligentContentCreator({ contentPlans, onContentApproved }: I
 
     setContentPieces(prev => [...prev.filter(p => !p.id.startsWith(`${week}-${day}`)), ...dayContent]);
 
-    // Simulate AI generation for each piece
+    // Generate content using real AI for each piece
     for (let i = 0; i < dayContent.length; i++) {
       const piece = dayContent[i];
       
-      const progressInterval = setInterval(() => {
-        setContentPieces(prev => prev.map(p => 
-          p.id === piece.id && p.progress < 90
-            ? { ...p, progress: p.progress + 15 }
-            : p
-        ));
-      }, 200);
+      try {
+        const progressInterval = setInterval(() => {
+          setContentPieces(prev => prev.map(p => 
+            p.id === piece.id && p.progress < 90
+              ? { ...p, progress: p.progress + 15 }
+              : p
+          ));
+        }, 500);
 
-      setTimeout(() => {
+        const response = await supabase.functions.invoke('generate-content', {
+          body: {
+            contentType: piece.type.toLowerCase().replace(' ', '-'),
+            strategy: `Week ${week} - ${day} content`,
+            platforms: [piece.platform.toLowerCase()],
+            customPrompt: `Generate ${piece.type} content for ${piece.platform} for ${day} of week ${week}. ${customPrompt || ''}`,
+            aiTool: 'gpt-4o-mini'
+          }
+        });
+
         clearInterval(progressInterval);
-        
-        const generated = generateMockContent(piece.type, piece.platform, week, day);
+
+        if (response.error) {
+          throw new Error(response.error.message || 'Failed to generate content');
+        }
+
+        const generatedData = response.data;
         
         setContentPieces(prev => prev.map(p => 
           p.id === piece.id 
             ? { 
                 ...p,
-                ...generated,
+                title: generatedData?.title || `${piece.type} for ${piece.platform}`,
+                content: generatedData?.content || "Generated content will appear here.",
+                hashtags: generatedData?.hashtags || [],
+                callToAction: generatedData?.platformOptimizations?.[piece.platform.toLowerCase()]?.cta || "Engage with your audience",
+                schedulingSuggestion: generatedData?.schedulingSuggestions?.[0] || "Optimal timing based on audience analysis",
+                aiGenerated: generatedData?.content || "Generated content",
+                variations: generatedData?.variations || [],
                 status: 'review',
                 progress: 100 
               }
             : p
         ));
 
-        if (i === dayContent.length - 1) {
-          toast({
-            title: "Content Generated",
-            description: `${dayContent.length} content pieces created for ${day}. Review and approve each piece.`
-          });
-        }
-      }, (i + 1) * 1500);
+      } catch (error) {
+        console.error(`Error generating content for ${piece.type}:`, error);
+        setContentPieces(prev => prev.map(p => 
+          p.id === piece.id 
+            ? { ...p, status: 'pending', progress: 0 }
+            : p
+        ));
+        
+        toast({
+          title: "Generation Failed",
+          description: `Failed to generate ${piece.type} content. Please try again.`,
+          variant: "destructive"
+        });
+      }
+
+      if (i === dayContent.length - 1) {
+        toast({
+          title: "Content Generated",
+          description: `${dayContent.length} content pieces created for ${day}. Review and approve each piece.`
+        });
+      }
     }
   };
 
-  const generateMockContent = (type: string, platform: string, week: string, day: string) => {
-    // In a real implementation, this would call the selected AI API
-    return {
-      title: `${type} for ${platform}`,
-      content: "AI-generated content will appear here when connected to your selected AI platform.",
-      hashtags: [],
-      callToAction: "Engage with your audience",
-      schedulingSuggestion: "Optimal timing based on audience analysis",
-      variations: []
-    };
-  };
 
   const approveContent = (contentId: string) => {
     setContentPieces(prev => prev.map(piece => 
@@ -137,28 +161,62 @@ export function IntelligentContentCreator({ contentPlans, onContentApproved }: I
     });
   };
 
-  const retryContent = (contentId: string) => {
+  const retryContent = async (contentId: string) => {
     const piece = contentPieces.find(p => p.id === contentId);
-    if (piece) {
+    if (!piece) return;
+    
+    setContentPieces(prev => prev.map(p => 
+      p.id === contentId 
+        ? { ...p, status: 'generating', progress: 0 }
+        : p
+    ));
+
+    try {
+      const response = await supabase.functions.invoke('generate-content', {
+        body: {
+          contentType: piece.type.toLowerCase().replace(' ', '-'),
+          strategy: `Week ${selectedWeek} - ${selectedDay} content`,
+          platforms: [piece.platform.toLowerCase()],
+          customPrompt: `Generate ${piece.type} content for ${piece.platform} for ${selectedDay} of week ${selectedWeek}. ${piece.userPrompt || ''}`,
+          aiTool: 'gpt-4o-mini'
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to generate content');
+      }
+
+      const generatedData = response.data;
+      
       setContentPieces(prev => prev.map(p => 
         p.id === contentId 
-          ? { ...p, status: 'generating', progress: 0 }
+          ? { 
+              ...p,
+              title: generatedData?.title || `${piece.type} for ${piece.platform}`,
+              content: generatedData?.content || "Generated content will appear here.",
+              hashtags: generatedData?.hashtags || [],
+              callToAction: generatedData?.platformOptimizations?.[piece.platform.toLowerCase()]?.cta || "Engage with your audience",
+              schedulingSuggestion: generatedData?.schedulingSuggestions?.[0] || "Optimal timing based on audience analysis",
+              aiGenerated: generatedData?.content || "Generated content",
+              variations: generatedData?.variations || [],
+              status: 'review',
+              progress: 100 
+            }
           : p
       ));
-
-      setTimeout(() => {
-        const generated = generateMockContent(piece.type, piece.platform, selectedWeek, selectedDay);
-        setContentPieces(prev => prev.map(p => 
-          p.id === contentId 
-            ? { 
-                ...p,
-                ...generated,
-                status: 'review',
-                progress: 100 
-              }
-            : p
-        ));
-      }, 2000);
+    } catch (error) {
+      console.error('Error retrying content generation:', error);
+      setContentPieces(prev => prev.map(p => 
+        p.id === contentId 
+          ? { ...p, status: 'pending', progress: 0 }
+          : p
+      ));
+      
+      toast({
+        title: "Generation Failed",
+        description: "Failed to regenerate content. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
