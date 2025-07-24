@@ -241,13 +241,49 @@ async function publishToFacebook(credentials: any, content: string, postData: an
     
     console.log('Token is valid. App ID:', debugInfo.data.app_id, 'Scopes:', debugInfo.data.scopes);
     
-    // Get the user's pages
+    // Check if this is already a page access token by trying to post directly first
+    let pageToken = credentials.access_token;
+    
+    // If this fails, we'll try to get a page access token
+    let shouldTryPageToken = false;
+    
+    // First attempt: try posting directly with the provided token
+    console.log('Attempting direct post with provided token...');
+    const directResponse = await fetch(`https://graph.facebook.com/v19.0/${credentials.page_id}/feed`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: content,
+        access_token: pageToken
+      })
+    });
+
+    const directResult = await directResponse.json();
+    
+    if (directResponse.ok) {
+      console.log('Direct post successful:', directResult);
+      return {
+        success: true,
+        postId: directResult.id,
+        metrics: {
+          platform_post_id: directResult.id,
+          published_at: new Date().toISOString()
+        }
+      };
+    }
+    
+    console.log('Direct post failed:', directResult);
+    console.log('Attempting to get page access token...');
+    
+    // If direct post failed, try to get page access token
     const pagesResponse = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${credentials.access_token}`);
     const pagesResult = await pagesResponse.json();
     
     if (!pagesResponse.ok) {
       console.error('Failed to get pages:', pagesResult);
-      throw new Error(`Cannot access Facebook pages: ${pagesResult.error?.message || 'Failed to retrieve pages'}. Make sure your token has 'pages_show_list' and 'pages_manage_posts' permissions.`);
+      throw new Error(`Cannot access Facebook pages: ${pagesResult.error?.message || 'Failed to retrieve pages'}. This usually means your access token doesn't have the required permissions. Please regenerate your Facebook access token with 'pages_show_list' and 'pages_manage_posts' permissions, or use a long-lived page access token directly.`);
     }
     
     console.log('Available pages:', pagesResult.data?.map((p: any) => ({ id: p.id, name: p.name })));
@@ -263,9 +299,9 @@ async function publishToFacebook(credentials: any, content: string, postData: an
     console.log('Found target page:', targetPage.name);
     
     // Use the page access token for posting
-    const pageToken = targetPage.access_token;
+    pageToken = targetPage.access_token;
     if (!pageToken) {
-      throw new Error(`No page access token available for page ${targetPage.name}. Make sure your user token has 'pages_manage_posts' permission.`);
+      throw new Error(`No page access token available for page ${targetPage.name}. Please use a long-lived page access token or ensure your user token has 'pages_manage_posts' permission.`);
     }
     
     // Post to the page
