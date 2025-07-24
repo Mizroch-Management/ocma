@@ -107,65 +107,7 @@ export default function Calendar() {
   const { state: workflowState } = useWorkflow();
   
   // Combine manual and AI-generated content
-  const [manualContent, setManualContent] = useState<ContentPiece[]>([
-    {
-      id: '1',
-      title: 'Summer Product Launch',
-      content: 'Excited to announce our new summer collection! 🌞',
-      platforms: ['instagram', 'twitter', 'facebook'],
-      scheduledDate: new Date(2024, 11, 25, 10, 0),
-      timezone: 'America/New_York',
-      status: 'scheduled',
-      platformOptimizations: {
-        instagram: {
-          content: 'Excited to announce our new summer collection! 🌞 Perfect for your summer adventures! #SummerVibes #NewCollection',
-          hashtags: ['#SummerVibes', '#NewCollection', '#Fashion'],
-          visualType: 'Carousel',
-          cta: 'Shop Now',
-          language: 'English'
-        },
-        twitter: {
-          content: 'New summer collection is here! 🌞 Get ready for amazing summer adventures!',
-          hashtags: ['#Summer2024', '#NewDrop'],
-          visualType: 'Single Image',
-          cta: 'Learn More',
-          language: 'English'
-        },
-        facebook: {
-          content: 'We\'re thrilled to introduce our brand new summer collection! Designed with comfort and style in mind for all your summer activities.',
-          hashtags: ['#SummerCollection', '#ComfortableStyle'],
-          visualType: 'Video',
-          cta: 'Discover More',
-          language: 'English'
-        }
-      }
-    },
-    {
-      id: '2',
-      title: 'Weekly Tips Tuesday',
-      content: 'Here are 5 productivity tips to boost your workday!',
-      platforms: ['linkedin', 'twitter'],
-      scheduledDate: new Date(2024, 11, 26, 14, 30),
-      timezone: 'UTC',
-      status: 'scheduled',
-      platformOptimizations: {
-        linkedin: {
-          content: 'Here are 5 evidence-based productivity tips that can transform your workday and help you achieve better work-life balance.',
-          hashtags: ['#Productivity', '#WorkLife', '#ProfessionalDevelopment'],
-          visualType: 'Single Image',
-          cta: 'Read More',
-          language: 'English'
-        },
-        twitter: {
-          content: '5 productivity tips to boost your workday! 🚀 Thread below 👇',
-          hashtags: ['#ProductivityTips', '#WorkSmart'],
-          visualType: 'Single Image',
-          cta: 'See Thread',
-          language: 'English'
-        }
-      }
-    }
-  ]);
+  const [manualContent, setManualContent] = useState<ContentPiece[]>([]);
 
   // Merge AI workflow content with manual content
   const scheduledContent = [

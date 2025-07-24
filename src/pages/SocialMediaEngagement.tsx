@@ -84,9 +84,7 @@ export default function SocialMediaEngagement() {
   ];
 
   const mockInfluencers: any[] = [];
-
   const mockHashtagResults: any[] = [];
-
   const mockEngagementQueue: any[] = [];
 
   const handleSearchInfluencers = async () => {
@@ -194,8 +192,8 @@ export default function SocialMediaEngagement() {
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">127</div>
-                <p className="text-xs text-muted-foreground">+23% from yesterday</p>
+                <div className="text-2xl font-bold">0</div>
+                <p className="text-xs text-muted-foreground">No engagements yet</p>
               </CardContent>
             </Card>
 
@@ -205,8 +203,8 @@ export default function SocialMediaEngagement() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">12</div>
-                <p className="text-xs text-muted-foreground">Avg. response time: 2.3h</p>
+                <div className="text-2xl font-bold">0</div>
+                <p className="text-xs text-muted-foreground">No pending replies</p>
               </CardContent>
             </Card>
 
@@ -216,8 +214,8 @@ export default function SocialMediaEngagement() {
                 <Star className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">45.2K</div>
-                <p className="text-xs text-muted-foreground">Potential impressions</p>
+                <div className="text-2xl font-bold">0</div>
+                <p className="text-xs text-muted-foreground">No influencer connections</p>
               </CardContent>
             </Card>
 
@@ -227,8 +225,8 @@ export default function SocialMediaEngagement() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">4.8%</div>
-                <p className="text-xs text-muted-foreground">+0.3% this week</p>
+                <div className="text-2xl font-bold">0%</div>
+                <p className="text-xs text-muted-foreground">No engagement data</p>
               </CardContent>
             </Card>
           </div>
@@ -246,37 +244,19 @@ export default function SocialMediaEngagement() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockEngagementQueue.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-full ${item.priority === 'high' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                        {item.type === 'reply' && <MessageSquare className="h-4 w-4" />}
-                        {item.type === 'like' && <Heart className="h-4 w-4" />}
-                        {item.type === 'comment' && <MessageSquare className="h-4 w-4" />}
-                      </div>
-                      <div>
-                        <p className="font-medium">{item.user}</p>
-                        <p className="text-sm text-muted-foreground">{item.content}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs">{item.platform}</Badge>
-                          <Badge variant={item.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
-                            {item.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                      <Button size="sm">
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        Engage
-                      </Button>
-                    </div>
+                {mockEngagementQueue.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No engagement queue items</p>
+                    <p className="text-sm">Start engaging with your audience to see items here</p>
                   </div>
-                ))}
+                ) : (
+                  mockEngagementQueue.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      {/* ... existing item rendering ... */}
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
