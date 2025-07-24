@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,9 +22,23 @@ serve(async (req) => {
       aiTool = 'gpt-4o-mini'
     } = await req.json();
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get OpenAI API key from database
+    const { data: apiKeyData, error: apiKeyError } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'openai_api_key')
+      .single();
+
+    if (apiKeyError || !apiKeyData?.setting_value?.api_key) {
+      throw new Error('OpenAI API key not configured in system settings');
     }
+
+    const openAIApiKey = apiKeyData.setting_value.api_key;
 
     // Build the content generation prompt based on parameters
     let systemPrompt = `You are an expert content marketing strategist and copywriter. Generate high-quality, engaging content based on the user's requirements.`;
