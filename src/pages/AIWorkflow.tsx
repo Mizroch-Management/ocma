@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { BusinessInfoCollector } from "@/components/ai-workflow/business-info-collector";
 import { AIStrategyConsultant } from "@/components/ai-workflow/ai-strategy-consultant";
 import { SmartContentPlanner } from "@/components/ai-workflow/smart-content-planner";
 import { IntelligentContentCreator } from "@/components/ai-workflow/intelligent-content-creator";
@@ -19,7 +20,8 @@ import {
   Calendar, 
   Wand2, 
   BarChart3,
-  Lightbulb
+  Lightbulb,
+  Building2
 } from "lucide-react";
 
 interface WorkflowStep {
@@ -30,16 +32,40 @@ interface WorkflowStep {
   progress: number;
 }
 
+interface BusinessInfo {
+  company: string;
+  industry: string;
+  productService: string;
+  primaryObjectives: string;
+  targetAudience: string;
+  targetMarkets: string;
+  budget: string;
+  uniqueSellingPoints: string;
+  competitors: string;
+  brandPersonality: string;
+  keyMetrics: string;
+  additionalContext: string;
+}
+
 export default function AIWorkflow() {
   const { toast } = useToast();
   const { state, dispatch } = useWorkflow();
+  const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
   
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([
+    {
+      id: 'business-info',
+      title: 'Business Information',
+      description: 'Collect business details to personalize your strategy',
+      status: businessInfo ? 'completed' : 'active',
+      progress: businessInfo ? 100 : 0
+    },
     {
       id: 'strategy',
       title: 'AI Strategy Consultant',
       description: 'AI analyzes your goals and creates comprehensive marketing strategy',
-      status: state.progress.strategyApproved ? 'completed' : 'active',
+      status: state.progress.strategyApproved ? 'completed' : 
+             businessInfo ? 'active' : 'pending',
       progress: state.progress.strategyApproved ? 100 : 0
     },
     {
@@ -68,40 +94,47 @@ export default function AIWorkflow() {
     }
   ]);
 
-  // Mock master strategy - in real app this would come from user input or existing data
-  const masterStrategy = {
-    objectives: "Increase brand awareness and drive sales through strategic content marketing",
-    targetMarkets: "Millennials and Gen Z professionals aged 25-40",
-    budget: "$200,000 annual marketing budget",
-    compliance: "Follow GDPR guidelines, FTC disclosure requirements",
-    toneOfVoice: "Professional yet approachable, authentic, data-driven",
-    brandGuidelines: "Use primary brand colors, maintain consistent messaging",
-    keyMetrics: "Brand awareness, engagement rate, conversion rate, ROI",
-    additionalContext: "Focus on sustainability and innovation messaging"
-  };
-
-  const handleStrategyApproved = (strategy: any) => {
-    const workflowStrategy = {
-      id: Date.now().toString(),
-      title: strategy.title || "AI-Generated Marketing Strategy",
-      objectives: strategy.objectives,
-      targetMarkets: strategy.targetMarkets,
-      budget: strategy.budget,
-      compliance: strategy.compliance,
-      toneOfVoice: strategy.toneOfVoice,
-      brandGuidelines: strategy.brandGuidelines,
-      keyMetrics: strategy.keyMetrics,
-      additionalContext: strategy.additionalContext,
-      createdAt: new Date(),
-      isAIGenerated: true,
-    };
-
-    dispatch({ type: 'SET_APPROVED_STRATEGY', payload: workflowStrategy });
+  const handleBusinessInfoSubmitted = (info: BusinessInfo) => {
+    setBusinessInfo(info);
     
     setWorkflowSteps(prev => prev.map((step, index) => 
       index === 0 
         ? { ...step, status: 'completed', progress: 100 }
         : index === 1 
+        ? { ...step, status: 'active' }
+        : step
+    ));
+    
+    toast({
+      title: "Business Information Saved",
+      description: "Information collected. Ready to create your AI strategy!"
+    });
+  };
+
+  const handleStrategyApproved = (strategy: any) => {
+    const workflowStrategy = {
+      id: Date.now().toString(),
+      title: strategy.name || "AI-Generated Marketing Strategy",
+      objectives: businessInfo?.primaryObjectives || "",
+      targetMarkets: businessInfo?.targetMarkets || "",
+      budget: businessInfo?.budget || "",
+      compliance: "Standard compliance requirements",
+      toneOfVoice: businessInfo?.brandPersonality || "Professional and engaging",
+      brandGuidelines: businessInfo?.uniqueSellingPoints || "",
+      keyMetrics: businessInfo?.keyMetrics || "",
+      additionalContext: businessInfo?.additionalContext || "",
+      createdAt: new Date(),
+      isAIGenerated: true,
+      businessInfo: businessInfo,
+      strategySteps: strategy.steps || []
+    };
+
+    dispatch({ type: 'SET_APPROVED_STRATEGY', payload: workflowStrategy });
+    
+    setWorkflowSteps(prev => prev.map((step, index) => 
+      index === 1 
+        ? { ...step, status: 'completed', progress: 100 }
+        : index === 2 
         ? { ...step, status: 'active' }
         : step
     ));
@@ -128,9 +161,9 @@ export default function AIWorkflow() {
     dispatch({ type: 'SET_APPROVED_PLANS', payload: contentPlans });
     
     setWorkflowSteps(prev => prev.map((step, index) => 
-      index === 1 
+      index === 2 
         ? { ...step, status: 'completed', progress: 100 }
-        : index === 2 
+        : index === 3 
         ? { ...step, status: 'active' }
         : step
     ));
@@ -158,9 +191,9 @@ export default function AIWorkflow() {
     dispatch({ type: 'SET_APPROVED_CONTENT', payload: generatedContent });
     
     setWorkflowSteps(prev => prev.map((step, index) => 
-      index === 2 
+      index === 3 
         ? { ...step, status: 'completed', progress: 100 }
-        : index === 3 
+        : index === 4 
         ? { ...step, status: 'active' }
         : step
     ));
@@ -178,7 +211,7 @@ export default function AIWorkflow() {
     });
     
     setWorkflowSteps(prev => prev.map((step, index) => 
-      index === 3 ? { ...step, status: 'completed', progress: 100 } : step
+      index === 4 ? { ...step, status: 'completed', progress: 100 } : step
     ));
     
     toast({
@@ -195,6 +228,7 @@ export default function AIWorkflow() {
     }
     
     switch (stepId) {
+      case 'business-info': return <Building2 {...iconProps} />;
       case 'strategy': return <Brain {...iconProps} />;
       case 'planning': return <Calendar {...iconProps} />;
       case 'creation': return <Wand2 {...iconProps} />;
@@ -204,7 +238,7 @@ export default function AIWorkflow() {
   };
 
   const overallProgress = workflowSteps.reduce((acc, step) => acc + step.progress, 0) / workflowSteps.length;
-  const currentStep = state.progress.currentStep;
+  const currentStep = state.progress.currentStep || 0;
 
   return (
     <div className="space-y-8">
@@ -240,7 +274,7 @@ export default function AIWorkflow() {
           <div className="space-y-4">
             <Progress value={overallProgress} className="w-full h-2" />
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {workflowSteps.map((step, index) => (
                 <div key={step.id} className="flex items-center gap-3">
                   <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
@@ -272,16 +306,21 @@ export default function AIWorkflow() {
 
       {/* Step Components */}
       <div className="space-y-8">
-        {/* Step 1: AI Strategy Consultant */}
-        {currentStep >= 0 && (
+        {/* Step 1: Business Info Collector */}
+        {!businessInfo && (
+          <BusinessInfoCollector onInfoSubmitted={handleBusinessInfoSubmitted} />
+        )}
+
+        {/* Step 2: AI Strategy Consultant */}
+        {businessInfo && !state.progress.strategyApproved && (
           <AIStrategyConsultant 
             onStrategyApproved={handleStrategyApproved}
-            masterStrategy={masterStrategy}
+            businessInfo={businessInfo}
           />
         )}
 
-        {/* Step 2: Smart Content Planner */}
-        {currentStep >= 1 && state.approvedStrategy && (
+        {/* Step 3: Smart Content Planner */}
+        {state.progress.strategyApproved && !state.progress.plansApproved && (
           <>
             <Separator />
             <SmartContentPlanner 
@@ -291,8 +330,8 @@ export default function AIWorkflow() {
           </>
         )}
 
-        {/* Step 3: Intelligent Content Creator */}
-        {currentStep >= 2 && state.approvedPlans.length > 0 && (
+        {/* Step 4: Intelligent Content Creator */}
+        {state.progress.plansApproved && !state.progress.contentApproved && (
           <>
             <Separator />
             <IntelligentContentCreator 
@@ -302,8 +341,8 @@ export default function AIWorkflow() {
           </>
         )}
 
-        {/* Step 4: Automated Scheduler */}
-        {currentStep >= 3 && state.approvedContent.length > 0 && (
+        {/* Step 5: Automated Scheduler */}
+        {state.progress.contentApproved && !state.progress.schedulingComplete && (
           <>
             <Separator />
             <Card className="border-green-200 bg-gradient-to-r from-green-50 to-background">

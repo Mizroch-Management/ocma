@@ -22,12 +22,27 @@ interface AIStrategyStep {
   progress: number;
 }
 
-interface AIStrategyConsultantProps {
-  onStrategyApproved: (strategy: any) => void;
-  masterStrategy: any;
+interface BusinessInfo {
+  company: string;
+  industry: string;
+  productService: string;
+  primaryObjectives: string;
+  targetAudience: string;
+  targetMarkets: string;
+  budget: string;
+  uniqueSellingPoints: string;
+  competitors: string;
+  brandPersonality: string;
+  keyMetrics: string;
+  additionalContext: string;
 }
 
-export function AIStrategyConsultant({ onStrategyApproved, masterStrategy }: AIStrategyConsultantProps) {
+interface AIStrategyConsultantProps {
+  onStrategyApproved: (strategy: any) => void;
+  businessInfo: BusinessInfo;
+}
+
+export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStrategyConsultantProps) {
   const { toast } = useToast();
   const { platforms, getPlatformsWithTools } = useAIPlatforms();
   const [selectedPlatform, setSelectedPlatform] = useState<string>("");
@@ -90,12 +105,34 @@ export function AIStrategyConsultant({ onStrategyApproved, masterStrategy }: AIS
         ));
       }, 500);
 
+      const businessContext = `
+Company: ${businessInfo.company}
+Industry: ${businessInfo.industry}
+Product/Service: ${businessInfo.productService}
+Primary Objectives: ${businessInfo.primaryObjectives}
+Target Audience: ${businessInfo.targetAudience}
+Target Markets: ${businessInfo.targetMarkets}
+Budget: ${businessInfo.budget}
+Unique Selling Points: ${businessInfo.uniqueSellingPoints}
+Competitors: ${businessInfo.competitors}
+Brand Personality: ${businessInfo.brandPersonality}
+Key Metrics: ${businessInfo.keyMetrics}
+Additional Context: ${businessInfo.additionalContext}
+      `;
+
       const response = await supabase.functions.invoke('generate-content', {
         body: {
-          contentType: 'blog-article',
+          contentType: 'strategy-section',
           strategy: step.title,
           platforms: [selectedPlatform],
-          customPrompt: `Generate content for strategy step: ${step.title}. ${step.description}. ${customPrompt || step.userPrompt || ''}`,
+          customPrompt: `
+Create a comprehensive marketing strategy section for: ${step.title}
+Section Description: ${step.description}
+Business Context: ${businessContext}
+Additional Instructions: ${customPrompt || step.userPrompt || ''}
+
+Please provide detailed, actionable recommendations specific to this business.
+          `,
           aiTool: 'gpt-4o-mini'
         }
       });
