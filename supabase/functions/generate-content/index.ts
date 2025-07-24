@@ -22,9 +22,9 @@ serve(async (req) => {
       aiTool = 'gpt-4o-mini'
     } = await req.json();
 
-    // Initialize Supabase client
+    // Initialize Supabase client with service role for system settings access
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get OpenAI API key from database
