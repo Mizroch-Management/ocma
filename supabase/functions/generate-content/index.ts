@@ -13,6 +13,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('Edge function called:', req.method);
   try {
     const { 
       contentType, 
