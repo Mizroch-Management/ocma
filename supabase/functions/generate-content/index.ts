@@ -32,7 +32,7 @@ serve(async (req) => {
       .from('system_settings')
       .select('setting_value')
       .eq('setting_key', 'openai_api_key')
-      .single();
+      .maybeSingle();
 
     if (apiKeyError || !apiKeyData?.setting_value?.api_key) {
       throw new Error('OpenAI API key not configured in system settings');
