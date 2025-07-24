@@ -123,6 +123,11 @@ export function ContentSchedulerDialog({ isOpen, onOpenChange, content, onSchedu
   const handleFinalApproval = async () => {
     setIsLoading(true);
     try {
+      // Ensure we have a valid content ID
+      if (!content?.id) {
+        throw new Error('Content ID is missing');
+      }
+
       // Update content in database with edited version and scheduling
       const { error } = await supabase
         .from('generated_content')
