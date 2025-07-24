@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -116,22 +117,40 @@ export default function ContentGenerator() {
 
     setIsGenerating(true);
     
-    // Simulate AI content generation with realistic content
-    setTimeout(() => {
-      const mockContent = generateMockContent(selectedContentType);
+    try {
+      // Call the Supabase edge function to generate real content
+      const { data, error } = await supabase.functions.invoke('generate-content', {
+        body: {
+          contentType: selectedContentType,
+          strategy: strategies.find(s => s.id === selectedStrategy)?.name,
+          platforms: selectedPlatforms,
+          customPrompt: contentPrompt,
+          aiTool: selectedAITool
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to generate content');
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       const newContent = {
         id: Date.now().toString(),
-        title: mockContent.title,
-        content: mockContent.content,
+        title: data.title,
+        content: data.content,
         type: selectedContentType,
         aiTool: selectedAITool,
         strategy: selectedStrategy,
         platforms: selectedPlatforms,
-        variations: mockContent.variations,
-        suggestions: mockContent.suggestions,
-        metadata: mockContent.metadata,
-        schedulingSuggestions: mockContent.schedulingSuggestions,
-        platformOptimizations: mockContent.platformOptimizations,
+        variations: data.variations || [],
+        suggestions: data.suggestions || [],
+        metadata: data.metadata || {},
+        schedulingSuggestions: data.schedulingSuggestions || [],
+        platformOptimizations: data.platformOptimizations || {},
+        hashtags: data.hashtags || [],
         createdAt: new Date()
       };
       
@@ -139,10 +158,20 @@ export default function ContentGenerator() {
       setIsGenerating(false);
       
       toast({
-        title: "Content Generated",
-        description: "Your content has been generated successfully with variations."
+        title: "Content Generated Successfully!",
+        description: "Your AI-generated content is ready for review and editing."
       });
-    }, 3000);
+
+    } catch (error) {
+      console.error('Content generation error:', error);
+      setIsGenerating(false);
+      
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate content. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const generateMockContent = (type: string) => {
@@ -464,10 +493,14 @@ export default function ContentGenerator() {
           </Button>
           
           {isGenerating && (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span className="text-sm">AI is generating your content using {aiTools.find(t => t.value === selectedAITool)?.label}...</span>
+              </div>
               <Progress value={65} className="w-full" />
               <p className="text-sm text-muted-foreground text-center">
-                AI is analyzing your strategy and creating optimized content...
+                Analyzing strategy, optimizing for platforms, and creating engaging content...
               </p>
             </div>
           )}
