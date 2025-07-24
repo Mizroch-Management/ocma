@@ -221,6 +221,26 @@ async function publishToFacebook(credentials: any, content: string, postData: an
   try {
     console.log('Publishing to Facebook with page ID:', credentials.page_id);
     
+    // First, get the page access token using the user access token
+    const pageTokenResponse = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${credentials.access_token}`);
+    const pageTokenResult = await pageTokenResponse.json();
+    
+    if (!pageTokenResponse.ok) {
+      console.error('Error getting page access token:', pageTokenResult);
+      throw new Error(pageTokenResult.error?.message || 'Failed to get page access token');
+    }
+    
+    // Find the specific page in the accounts
+    const targetPage = pageTokenResult.data?.find((page: any) => page.id === credentials.page_id);
+    
+    if (!targetPage) {
+      console.error('Available pages:', pageTokenResult.data?.map((p: any) => ({ id: p.id, name: p.name })));
+      throw new Error(`Page with ID ${credentials.page_id} not found in user's pages. Please check the page ID.`);
+    }
+    
+    console.log('Found target page:', targetPage.name);
+    
+    // Use the page access token to post
     const response = await fetch(`https://graph.facebook.com/v19.0/${credentials.page_id}/feed`, {
       method: 'POST',
       headers: {
@@ -228,7 +248,7 @@ async function publishToFacebook(credentials: any, content: string, postData: an
       },
       body: JSON.stringify({
         message: content,
-        access_token: credentials.access_token
+        access_token: targetPage.access_token
       })
     });
 
