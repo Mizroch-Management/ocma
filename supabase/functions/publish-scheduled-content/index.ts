@@ -222,86 +222,66 @@ async function publishToFacebook(credentials: any, content: string, postData: an
     console.log('Publishing to Facebook with page ID:', credentials.page_id);
     console.log('Access token type:', credentials.access_token?.substring(0, 20) + '...');
     
-    // Check if this is an app token or page token by trying to use it directly first
-    const directPostResponse = await fetch(`https://graph.facebook.com/v19.0/${credentials.page_id}/feed`, {
+    // First, let's verify what type of token we have by checking the token info
+    const tokenInfoResponse = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${credentials.access_token}`);
+    const tokenInfo = await tokenInfoResponse.json();
+    
+    if (!tokenInfoResponse.ok) {
+      console.error('Token verification failed:', tokenInfo);
+      throw new Error(`Invalid Facebook token: ${tokenInfo.error?.message || 'Token verification failed'}`);
+    }
+    
+    console.log('Token belongs to:', tokenInfo.name || tokenInfo.id);
+    
+    // Try to get pages that this token can access
+    const pagesResponse = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${credentials.access_token}`);
+    const pagesResult = await pagesResponse.json();
+    
+    if (!pagesResponse.ok) {
+      console.error('Failed to get pages:', pagesResult);
+      throw new Error(`Cannot access Facebook pages: ${pagesResult.error?.message || 'Failed to retrieve pages'}`);
+    }
+    
+    console.log('Available pages:', pagesResult.data?.map((p: any) => ({ id: p.id, name: p.name, access_token: p.access_token ? 'Yes' : 'No' })));
+    
+    // Check if the configured page is in the available pages
+    const targetPage = pagesResult.data?.find((page: any) => page.id === credentials.page_id);
+    
+    if (!targetPage) {
+      const availablePages = pagesResult.data?.map((p: any) => `${p.name} (${p.id})`).join(', ') || 'none';
+      throw new Error(`Page ID ${credentials.page_id} not found. Available pages: ${availablePages}. Please update your Facebook page ID in settings.`);
+    }
+    
+    console.log('Found target page:', targetPage.name, 'with page token:', targetPage.access_token ? 'Yes' : 'No');
+    
+    // Use the page access token to post
+    const pageToken = targetPage.access_token || credentials.access_token;
+    const response = await fetch(`https://graph.facebook.com/v19.0/${credentials.page_id}/feed`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         message: content,
-        access_token: credentials.access_token
+        access_token: pageToken
       })
     });
 
-    const directResult = await directPostResponse.json();
-    
-    if (directPostResponse.ok) {
-      console.log('Direct post successful:', directResult);
-      return {
-        success: true,
-        postId: directResult.id,
-        metrics: {
-          platform_post_id: directResult.id,
-          published_at: new Date().toISOString()
-        }
-      };
+    const result = await response.json();
+    console.log('Facebook post response:', result);
+
+    if (!response.ok) {
+      throw new Error(result.error?.message || `Facebook API error: ${response.status}`);
     }
-    
-    console.log('Direct post failed, trying to get page token:', directResult);
-    
-    // If direct post failed, try to get page access token (for user tokens)
-    try {
-      const pageTokenResponse = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${credentials.access_token}`);
-      const pageTokenResult = await pageTokenResponse.json();
-      
-      if (!pageTokenResponse.ok) {
-        console.error('Error getting page access token:', pageTokenResult);
-        throw new Error(`Facebook authentication failed: ${pageTokenResult.error?.message || 'Unable to access page tokens'}`);
-      }
-      
-      // Find the specific page in the accounts
-      const targetPage = pageTokenResult.data?.find((page: any) => page.id === credentials.page_id);
-      
-      if (!targetPage) {
-        console.error('Available pages:', pageTokenResult.data?.map((p: any) => ({ id: p.id, name: p.name })));
-        throw new Error(`Page with ID ${credentials.page_id} not found. Available pages: ${pageTokenResult.data?.map((p: any) => p.name).join(', ') || 'none'}`);
-      }
-      
-      console.log('Found target page:', targetPage.name);
-      
-      // Use the page access token to post
-      const response = await fetch(`https://graph.facebook.com/v19.0/${credentials.page_id}/feed`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: content,
-          access_token: targetPage.access_token
-        })
-      });
 
-      const result = await response.json();
-      console.log('Facebook API response with page token:', result);
-
-      if (!response.ok) {
-        throw new Error(result.error?.message || `Facebook API error: ${response.status}`);
+    return {
+      success: true,
+      postId: result.id,
+      metrics: {
+        platform_post_id: result.id,
+        published_at: new Date().toISOString()
       }
-
-      return {
-        success: true,
-        postId: result.id,
-        metrics: {
-          platform_post_id: result.id,
-          published_at: new Date().toISOString()
-        }
-      };
-    } catch (pageTokenError) {
-      console.error('Page token approach failed:', pageTokenError);
-      // Return the original direct post error if page token approach also fails
-      throw new Error(`Facebook publishing failed. Original error: ${directResult.error?.message || 'Unknown error'}. Page token error: ${pageTokenError.message}`);
-    }
+    };
   } catch (error) {
     console.error('Facebook publishing error:', error);
     return {
