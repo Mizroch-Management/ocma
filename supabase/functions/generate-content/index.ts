@@ -28,17 +28,27 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get OpenAI API key from database
+    console.log('Fetching OpenAI API key from database...');
     const { data: apiKeyData, error: apiKeyError } = await supabase
       .from('system_settings')
       .select('setting_value')
       .eq('setting_key', 'openai_api_key')
       .maybeSingle();
 
-    if (apiKeyError || !apiKeyData?.setting_value?.api_key) {
+    console.log('API key query result:', { apiKeyData, apiKeyError });
+
+    if (apiKeyError) {
+      console.error('Database error:', apiKeyError);
+      throw new Error(`Database error: ${apiKeyError.message}`);
+    }
+
+    if (!apiKeyData?.setting_value?.api_key) {
+      console.error('No API key found in database');
       throw new Error('OpenAI API key not configured in system settings');
     }
 
     const openAIApiKey = apiKeyData.setting_value.api_key;
+    console.log('API key found, length:', openAIApiKey.length);
 
     // Build the content generation prompt based on parameters
     let systemPrompt = `You are an expert content marketing strategist and copywriter. Generate high-quality, engaging content based on the user's requirements.`;
