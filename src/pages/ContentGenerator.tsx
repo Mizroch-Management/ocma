@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { ContentEditorDialog } from "@/components/content/content-editor-dialog";
+import { ContentSchedulerDialog } from "@/components/content/content-scheduler-dialog";
 import { 
   Wand2, 
   Brain, 
@@ -50,6 +52,8 @@ export default function ContentGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<any[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [editingContent, setEditingContent] = useState<any>(null);
+  const [schedulingContent, setSchedulingContent] = useState<any>(null);
 
   const strategies = [
     { id: "1", name: "Q1 Brand Awareness", type: "Brand Strategy" },
@@ -112,22 +116,101 @@ export default function ContentGenerator() {
 
     setIsGenerating(true);
     
-    // Simulate AI content generation
+    // Simulate AI content generation with realistic content
     setTimeout(() => {
-      // In a real implementation, this would call the selected AI API to generate content
-      setGeneratedContent(prev => []);
+      const mockContent = generateMockContent(selectedContentType);
+      const newContent = {
+        id: Date.now().toString(),
+        title: mockContent.title,
+        content: mockContent.content,
+        type: selectedContentType,
+        aiTool: selectedAITool,
+        strategy: selectedStrategy,
+        platforms: selectedPlatforms,
+        variations: mockContent.variations,
+        suggestions: mockContent.suggestions,
+        metadata: mockContent.metadata,
+        schedulingSuggestions: mockContent.schedulingSuggestions,
+        platformOptimizations: mockContent.platformOptimizations,
+        createdAt: new Date()
+      };
+      
+      setGeneratedContent([newContent]);
       setIsGenerating(false);
       
       toast({
         title: "Content Generated",
-        description: "Your content has been generated successfully with 2 variations."
+        description: "Your content has been generated successfully with variations."
       });
     }, 3000);
   };
 
   const generateMockContent = (type: string) => {
-    // In a real implementation, this would call the selected AI API
-    return "AI-generated content will appear here when connected to your selected AI platform.";
+    const baseContent = {
+      'social-post': {
+        title: "Engaging Social Media Post",
+        content: "🚀 Ready to transform your business with AI? Join thousands of successful entrepreneurs who are already leveraging cutting-edge technology to scale their operations and increase productivity. What's your biggest challenge right now? Drop a comment below! 👇\n\n#BusinessGrowth #AI #Entrepreneurship #Innovation",
+        variations: [
+          "💡 AI isn't just the future - it's happening NOW! Discover how smart businesses are using AI to automate tasks, improve customer service, and boost profits. Ready to join the revolution? 🔥\n\n#AIRevolution #SmartBusiness #Automation",
+          "⚡ Quick question: What if you could save 10 hours per week using AI tools? Our community members are doing exactly that! Want to know their secrets? 🤔\n\n#ProductivityHacks #TimeManagement #AI"
+        ]
+      },
+      'blog-article': {
+        title: "The Ultimate Guide to AI-Powered Business Growth",
+        content: "In today's rapidly evolving business landscape, artificial intelligence has emerged as a game-changing force that's reshaping how companies operate, compete, and grow. From startups to Fortune 500 companies, organizations are leveraging AI to streamline operations, enhance customer experiences, and drive unprecedented growth.\n\nThis comprehensive guide explores the practical applications of AI in business, providing actionable insights for leaders looking to harness this transformative technology...",
+        variations: [
+          "How AI is Revolutionizing Modern Business: A Strategic Approach",
+          "From Automation to Innovation: Building an AI-First Business Strategy"
+        ]
+      },
+      'video-script': {
+        title: "AI Business Transformation Video Script",
+        content: "[HOOK - 0-3 seconds]\n'What if I told you that AI could help you double your business efficiency in just 30 days?'\n\n[INTRODUCTION - 3-10 seconds]\nHi, I'm [Name], and today I'm sharing the exact AI strategies that helped my clients increase their revenue by 40% this quarter.\n\n[MAIN CONTENT - 10-45 seconds]\nHere are the top 3 AI tools every business owner needs:\n\n1. Customer Service Automation\n2. Content Creation AI\n3. Data Analytics Tools\n\n[CALL TO ACTION - 45-60 seconds]\nReady to transform your business? Download our free AI implementation guide in the link below!",
+        variations: [
+          "The 60-Second AI Business Makeover",
+          "3 AI Tools That Changed Everything for My Business"
+        ]
+      }
+    };
+
+    const content = baseContent[type as keyof typeof baseContent] || baseContent['social-post'];
+    
+    return {
+      ...content,
+      suggestions: [
+        "Consider adding more interactive elements to boost engagement",
+        "Include a clear call-to-action to drive conversions",
+        "Use trending hashtags relevant to your industry",
+        "Add emojis strategically to increase visual appeal"
+      ],
+      metadata: {
+        wordCount: content.content.split(' ').length,
+        readingTime: Math.ceil(content.content.split(' ').length / 200) + " min",
+        engagement: "High",
+        sentiment: "Positive"
+      },
+      schedulingSuggestions: [
+        "Tuesday 10:00 AM - Peak engagement time",
+        "Thursday 2:00 PM - Afternoon boost",
+        "Saturday 9:00 AM - Weekend reach"
+      ],
+      platformOptimizations: {
+        instagram: {
+          content: content.content + "\n\n📱 Save this post for later!",
+          hashtags: ["#BusinessGrowth", "#AI", "#Entrepreneurship"],
+          visualType: "Carousel",
+          cta: "Save & Share",
+          language: "English"
+        },
+        linkedin: {
+          content: "Professional insight: " + content.content,
+          hashtags: ["#Leadership", "#Innovation", "#BusinessStrategy"],
+          visualType: "Single Image",
+          cta: "Connect with me",
+          language: "English"
+        }
+      }
+    };
   };
 
   const togglePlatform = (platform: string) => {
@@ -136,6 +219,36 @@ export default function ContentGenerator() {
         ? prev.filter(p => p !== platform)
         : [...prev, platform]
     );
+  };
+
+  const handleEditContent = (content: any) => {
+    setEditingContent(content);
+  };
+
+  const handleSaveContent = (updatedContent: any) => {
+    setGeneratedContent(prev => 
+      prev.map(item => item.id === updatedContent.id ? updatedContent : item)
+    );
+  };
+
+  const handleScheduleContent = (content: any) => {
+    setSchedulingContent(content);
+  };
+
+  const handleDeleteContent = (contentId: string) => {
+    setGeneratedContent(prev => prev.filter(item => item.id !== contentId));
+    toast({
+      title: "Content Deleted",
+      description: "Content has been removed from your generated list."
+    });
+  };
+
+  const handleCopyContent = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast({
+      title: "Copied to Clipboard",
+      description: "Content has been copied to your clipboard."
+    });
   };
 
   return (
@@ -404,19 +517,16 @@ export default function ContentGenerator() {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleEditContent(content)}>
                         <Edit3 className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleCopyContent(content.content)}>
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        <Share className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" onClick={() => handleScheduleContent(content)}>
+                        <Calendar className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteContent(content.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -434,11 +544,20 @@ export default function ContentGenerator() {
                      </TabsList>
                     
                     <TabsContent value="main" className="space-y-4">
-                      <Textarea 
-                        value={content.content}
-                        className="min-h-[150px]"
-                        readOnly
-                      />
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label>Generated Content</Label>
+                          <Button variant="outline" size="sm" onClick={() => handleCopyContent(content.content)}>
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copy
+                          </Button>
+                        </div>
+                        <Textarea 
+                          value={content.content}
+                          className="min-h-[150px]"
+                          readOnly
+                        />
+                      </div>
                       
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
@@ -567,17 +686,17 @@ export default function ContentGenerator() {
                   </Tabs>
                   
                   <div className="flex gap-2 pt-4">
-                    <Button variant="default">
-                      <Save className="h-4 w-4 mr-2" />
-                      Save to Drafts
+                    <Button variant="default" onClick={() => handleEditContent(content)}>
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit Content
                     </Button>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={() => handleScheduleContent(content)}>
                       <Calendar className="h-4 w-4 mr-2" />
                       Schedule Post
                     </Button>
-                    <Button variant="outline">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
+                    <Button variant="outline" onClick={() => handleCopyContent(content.content)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Content
                     </Button>
                   </div>
                 </CardContent>
@@ -586,6 +705,22 @@ export default function ContentGenerator() {
           </div>
         </div>
       )}
+
+      {/* Content Editor Dialog */}
+      <ContentEditorDialog
+        isOpen={!!editingContent}
+        onOpenChange={(open) => !open && setEditingContent(null)}
+        content={editingContent}
+        onSave={handleSaveContent}
+      />
+
+      {/* Content Scheduler Dialog */}
+      <ContentSchedulerDialog
+        isOpen={!!schedulingContent}
+        onOpenChange={(open) => !open && setSchedulingContent(null)}
+        content={schedulingContent}
+        onSchedule={handleSaveContent}
+      />
     </div>
   );
 }
