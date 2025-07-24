@@ -220,42 +220,55 @@ async function publishToPlatform(platform: string, content: any, supabase: any) 
 async function publishToFacebook(credentials: any, content: string, postData: any) {
   try {
     console.log('Publishing to Facebook with page ID:', credentials.page_id);
-    console.log('Access token type:', credentials.access_token?.substring(0, 20) + '...');
+    console.log('Access token provided:', credentials.access_token ? 'Yes' : 'No');
     
-    // First, let's verify what type of token we have by checking the token info
-    const tokenInfoResponse = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${credentials.access_token}`);
-    const tokenInfo = await tokenInfoResponse.json();
-    
-    if (!tokenInfoResponse.ok) {
-      console.error('Token verification failed:', tokenInfo);
-      throw new Error(`Invalid Facebook token: ${tokenInfo.error?.message || 'Token verification failed'}`);
+    if (!credentials.access_token) {
+      throw new Error('No Facebook access token provided');
     }
     
-    console.log('Token belongs to:', tokenInfo.name || tokenInfo.id);
+    if (!credentials.page_id) {
+      throw new Error('No Facebook page ID provided');
+    }
     
-    // Try to get pages that this token can access
+    // Check token validity and get token info
+    const debugTokenResponse = await fetch(`https://graph.facebook.com/v19.0/debug_token?input_token=${credentials.access_token}&access_token=${credentials.access_token}`);
+    const debugInfo = await debugTokenResponse.json();
+    
+    if (!debugTokenResponse.ok || debugInfo.data?.is_valid !== true) {
+      console.error('Token debug info:', debugInfo);
+      throw new Error(`Invalid or expired Facebook access token. Please reconnect your Facebook account. Debug info: ${JSON.stringify(debugInfo.data || debugInfo.error)}`);
+    }
+    
+    console.log('Token is valid. App ID:', debugInfo.data.app_id, 'Scopes:', debugInfo.data.scopes);
+    
+    // Get the user's pages
     const pagesResponse = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${credentials.access_token}`);
     const pagesResult = await pagesResponse.json();
     
     if (!pagesResponse.ok) {
       console.error('Failed to get pages:', pagesResult);
-      throw new Error(`Cannot access Facebook pages: ${pagesResult.error?.message || 'Failed to retrieve pages'}`);
+      throw new Error(`Cannot access Facebook pages: ${pagesResult.error?.message || 'Failed to retrieve pages'}. Make sure your token has 'pages_show_list' and 'pages_manage_posts' permissions.`);
     }
     
-    console.log('Available pages:', pagesResult.data?.map((p: any) => ({ id: p.id, name: p.name, access_token: p.access_token ? 'Yes' : 'No' })));
+    console.log('Available pages:', pagesResult.data?.map((p: any) => ({ id: p.id, name: p.name })));
     
-    // Check if the configured page is in the available pages
+    // Find the target page
     const targetPage = pagesResult.data?.find((page: any) => page.id === credentials.page_id);
     
     if (!targetPage) {
       const availablePages = pagesResult.data?.map((p: any) => `${p.name} (${p.id})`).join(', ') || 'none';
-      throw new Error(`Page ID ${credentials.page_id} not found. Available pages: ${availablePages}. Please update your Facebook page ID in settings.`);
+      throw new Error(`Page ID ${credentials.page_id} not found in your accessible pages. Available pages: ${availablePages}. Please check your page ID in settings.`);
     }
     
-    console.log('Found target page:', targetPage.name, 'with page token:', targetPage.access_token ? 'Yes' : 'No');
+    console.log('Found target page:', targetPage.name);
     
-    // Use the page access token to post
-    const pageToken = targetPage.access_token || credentials.access_token;
+    // Use the page access token for posting
+    const pageToken = targetPage.access_token;
+    if (!pageToken) {
+      throw new Error(`No page access token available for page ${targetPage.name}. Make sure your user token has 'pages_manage_posts' permission.`);
+    }
+    
+    // Post to the page
     const response = await fetch(`https://graph.facebook.com/v19.0/${credentials.page_id}/feed`, {
       method: 'POST',
       headers: {
