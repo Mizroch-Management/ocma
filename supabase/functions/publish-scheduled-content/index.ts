@@ -219,6 +219,8 @@ async function publishToPlatform(platform: string, content: any, supabase: any) 
 // Facebook Publishing
 async function publishToFacebook(credentials: any, content: string, postData: any) {
   try {
+    console.log('Publishing to Facebook with page ID:', credentials.page_id);
+    
     const response = await fetch(`https://graph.facebook.com/v19.0/${credentials.page_id}/feed`, {
       method: 'POST',
       headers: {
@@ -230,12 +232,13 @@ async function publishToFacebook(credentials: any, content: string, postData: an
       })
     });
 
+    const result = await response.json();
+    console.log('Facebook API response:', result);
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Failed to publish to Facebook');
+      throw new Error(result.error?.message || `Facebook API error: ${response.status}`);
     }
 
-    const result = await response.json();
     return {
       success: true,
       postId: result.id,
@@ -245,6 +248,7 @@ async function publishToFacebook(credentials: any, content: string, postData: an
       }
     };
   } catch (error) {
+    console.error('Facebook publishing error:', error);
     return {
       success: false,
       error: error.message
@@ -252,28 +256,30 @@ async function publishToFacebook(credentials: any, content: string, postData: an
   }
 }
 
-// Instagram Publishing
+// Instagram Publishing (Updated for current API)
 async function publishToInstagram(credentials: any, content: string, postData: any) {
   try {
-    // Create media container
-    const containerResponse = await fetch(`https://graph.facebook.com/v19.0/${credentials.user_id}/media`, {
+    console.log('Publishing to Instagram with user ID:', credentials.user_id);
+    
+    // Use Instagram Basic Display API or Instagram Graph API
+    // For text posts, we need to use the newer Instagram Content Publishing API
+    const response = await fetch(`https://graph.facebook.com/v19.0/${credentials.user_id}/media`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         caption: content,
-        media_type: 'TEXT',
         access_token: credentials.access_token
       })
     });
 
-    if (!containerResponse.ok) {
-      const error = await containerResponse.json();
-      throw new Error(error.error?.message || 'Failed to create Instagram media container');
-    }
+    const containerResult = await response.json();
+    console.log('Instagram container response:', containerResult);
 
-    const containerResult = await containerResponse.json();
+    if (!response.ok) {
+      throw new Error(containerResult.error?.message || `Instagram API error: ${response.status}`);
+    }
 
     // Publish the media
     const publishResponse = await fetch(`https://graph.facebook.com/v19.0/${credentials.user_id}/media_publish`, {
@@ -287,12 +293,13 @@ async function publishToInstagram(credentials: any, content: string, postData: a
       })
     });
 
+    const publishResult = await publishResponse.json();
+    console.log('Instagram publish response:', publishResult);
+
     if (!publishResponse.ok) {
-      const error = await publishResponse.json();
-      throw new Error(error.error?.message || 'Failed to publish to Instagram');
+      throw new Error(publishResult.error?.message || `Instagram publish error: ${publishResponse.status}`);
     }
 
-    const publishResult = await publishResponse.json();
     return {
       success: true,
       postId: publishResult.id,
@@ -302,6 +309,7 @@ async function publishToInstagram(credentials: any, content: string, postData: a
       }
     };
   } catch (error) {
+    console.error('Instagram publishing error:', error);
     return {
       success: false,
       error: error.message
