@@ -36,7 +36,8 @@ import {
   Settings,
   Eye,
   Send,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from "lucide-react";
 import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -113,6 +114,8 @@ export default function Calendar() {
   const [scheduledContent, setScheduledContent] = useState<any[]>([]);
   const [publicationLogs, setPublicationLogs] = useState<any[]>([]);
   const [isLoadingGeneratedContent, setIsLoadingGeneratedContent] = useState(false);
+  const [isLoadingPublicationLogs, setIsLoadingPublicationLogs] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Merge AI workflow content with manual content
   const allScheduledContent = [
@@ -149,6 +152,46 @@ export default function Calendar() {
     loadGeneratedContent();
     loadScheduledContent();
     loadPublicationLogs();
+    
+    // Set up real-time subscription for publication logs
+    const publicationChannel = supabase
+      .channel('publication-logs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'publication_logs'
+        },
+        (payload) => {
+          console.log('Publication log change detected:', payload);
+          loadPublicationLogs();
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for content updates
+    const contentChannel = supabase
+      .channel('content-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'generated_content'
+        },
+        (payload) => {
+          console.log('Content change detected:', payload);
+          loadScheduledContent();
+          loadGeneratedContent();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(publicationChannel);
+      supabase.removeChannel(contentChannel);
+    };
   }, []);
 
   const loadGeneratedContent = async () => {
@@ -197,6 +240,7 @@ export default function Calendar() {
   };
 
   const loadPublicationLogs = async () => {
+    setIsLoadingPublicationLogs(true);
     try {
       const { data, error } = await supabase
         .from('publication_logs')
@@ -217,9 +261,12 @@ export default function Calendar() {
 
       if (data) {
         setPublicationLogs(data);
+        setLastUpdated(new Date());
       }
     } catch (error) {
       console.error('Error loading publication logs:', error);
+    } finally {
+      setIsLoadingPublicationLogs(false);
     }
   };
 
@@ -844,16 +891,38 @@ export default function Calendar() {
           {/* Publication Logs */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-green-600" />
-                Publication Logs
-              </CardTitle>
-              <CardDescription>
-                Recent publishing activity and status
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-green-600" />
+                    Publication Logs
+                  </CardTitle>
+                  <CardDescription>
+                    Recent publishing activity and status
+                    {lastUpdated && (
+                      <span className="text-xs block mt-1">
+                        Last updated: {format(lastUpdated, "h:mm a")}
+                      </span>
+                    )}
+                  </CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={loadPublicationLogs}
+                  disabled={isLoadingPublicationLogs}
+                >
+                  <RefreshCw className={cn("h-4 w-4", isLoadingPublicationLogs && "animate-spin")} />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              {publicationLogs.length === 0 ? (
+              {isLoadingPublicationLogs ? (
+                <div className="text-sm text-muted-foreground text-center py-4">
+                  <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
+                  Loading publication logs...
+                </div>
+              ) : publicationLogs.length === 0 ? (
                 <div className="text-sm text-muted-foreground text-center py-4">
                   No publication activity yet
                 </div>
