@@ -840,6 +840,96 @@ export default function Calendar() {
               )}
             </CardContent>
           </Card>
+
+          {/* Publication Logs */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-green-600" />
+                Publication Logs
+              </CardTitle>
+              <CardDescription>
+                Recent publishing activity and status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {publicationLogs.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-4">
+                  No publication activity yet
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {publicationLogs.slice(0, 10).map(log => {
+                    const platform = platforms.find(p => p.id === log.platform);
+                    const isSuccess = log.status === 'success';
+                    const isPending = log.status === 'pending';
+                    
+                    return (
+                      <div key={log.id} className={cn(
+                        "p-3 border rounded-lg",
+                        isSuccess ? "border-green-200 bg-green-50/50" : 
+                        isPending ? "border-yellow-200 bg-yellow-50/50" :
+                        "border-red-200 bg-red-50/50"
+                      )}>
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            {platform && (
+                              <div className={cn("p-1 rounded", platform.color)}>
+                                <platform.icon className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                            <span className="font-medium text-sm">
+                              {log.generated_content?.title || 'Unknown Content'}
+                            </span>
+                          </div>
+                          <Badge variant={
+                            isSuccess ? "default" : 
+                            isPending ? "secondary" : 
+                            "destructive"
+                          }>
+                            {log.status}
+                          </Badge>
+                        </div>
+                        
+                        {log.published_at && (
+                          <p className="text-xs text-muted-foreground mb-1">
+                            Published: {format(new Date(log.published_at), "MMM d, yyyy 'at' h:mm a")}
+                          </p>
+                        )}
+                        
+                        {log.platform_post_id && (
+                          <p className="text-xs text-muted-foreground mb-1">
+                            Post ID: {log.platform_post_id}
+                          </p>
+                        )}
+                        
+                        {log.error_message && (
+                          <p className="text-xs text-red-600 mb-1">
+                            Error: {log.error_message}
+                          </p>
+                        )}
+                        
+                        {log.metrics && Object.keys(log.metrics).length > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                             {Object.entries(log.metrics || {}).map(([key, value]) => (
+                               <span key={key} className="mr-3">
+                                 {key}: {String(value)}
+                               </span>
+                             ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {publicationLogs.length > 10 && (
+                    <div className="text-xs text-muted-foreground text-center pt-2 border-t">
+                      +{publicationLogs.length - 10} more logs
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
