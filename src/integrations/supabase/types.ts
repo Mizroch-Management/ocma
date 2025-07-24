@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      generated_content: {
+        Row: {
+          ai_tool: string | null
+          content: string
+          content_type: string
+          created_at: string
+          hashtags: string[] | null
+          id: string
+          is_scheduled: boolean | null
+          metadata: Json | null
+          platform_optimizations: Json | null
+          platforms: string[] | null
+          scheduled_date: string | null
+          scheduled_platforms: string[] | null
+          scheduling_suggestions: Json | null
+          strategy: string | null
+          suggestions: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+          variations: Json | null
+        }
+        Insert: {
+          ai_tool?: string | null
+          content: string
+          content_type: string
+          created_at?: string
+          hashtags?: string[] | null
+          id?: string
+          is_scheduled?: boolean | null
+          metadata?: Json | null
+          platform_optimizations?: Json | null
+          platforms?: string[] | null
+          scheduled_date?: string | null
+          scheduled_platforms?: string[] | null
+          scheduling_suggestions?: Json | null
+          strategy?: string | null
+          suggestions?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+          variations?: Json | null
+        }
+        Update: {
+          ai_tool?: string | null
+          content?: string
+          content_type?: string
+          created_at?: string
+          hashtags?: string[] | null
+          id?: string
+          is_scheduled?: boolean | null
+          metadata?: Json | null
+          platform_optimizations?: Json | null
+          platforms?: string[] | null
+          scheduled_date?: string | null
+          scheduled_platforms?: string[] | null
+          scheduling_suggestions?: Json | null
+          strategy?: string | null
+          suggestions?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          variations?: Json | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,7 @@ export default function ContentGenerator() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [editingContent, setEditingContent] = useState<any>(null);
   const [schedulingContent, setSchedulingContent] = useState<any>(null);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
 
   const strategies = [
     { id: "1", name: "Q1 Brand Awareness", type: "Brand Strategy" },
@@ -105,6 +106,94 @@ export default function ContentGenerator() {
     { name: "Motivational Quote", prompt: "Create an inspiring motivational post about...", category: "Inspirational" }
   ];
 
+  // Load saved content on component mount
+  useEffect(() => {
+    loadSavedContent();
+  }, []);
+
+  const loadSavedContent = async () => {
+    setIsLoadingContent(true);
+    try {
+      const { data, error } = await supabase
+        .from('generated_content')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading content:', error);
+        return;
+      }
+
+      if (data) {
+        const formattedContent = data.map(item => ({
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          type: item.content_type,
+          aiTool: item.ai_tool,
+          strategy: item.strategy,
+          platforms: item.platforms || [],
+          variations: item.variations || [],
+          suggestions: item.suggestions || [],
+          metadata: item.metadata || {},
+          schedulingSuggestions: item.scheduling_suggestions || [],
+          platformOptimizations: item.platform_optimizations || {},
+          hashtags: item.hashtags || [],
+          createdAt: new Date(item.created_at),
+          isScheduled: item.is_scheduled,
+          scheduledDate: item.scheduled_date,
+          scheduledPlatforms: item.scheduled_platforms || []
+        }));
+        setGeneratedContent(formattedContent);
+      }
+    } catch (error) {
+      console.error('Error loading saved content:', error);
+      toast({
+        title: "Error Loading Content",
+        description: "Failed to load your saved content.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingContent(false);
+    }
+  };
+
+  const saveContentToDatabase = async (content: any) => {
+    try {
+      const { error } = await supabase
+        .from('generated_content')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          title: content.title,
+          content: content.content,
+          content_type: content.type,
+          strategy: content.strategy,
+          platforms: content.platforms,
+          ai_tool: content.aiTool,
+          variations: content.variations,
+          suggestions: content.suggestions,
+          hashtags: content.hashtags,
+          platform_optimizations: content.platformOptimizations,
+          metadata: content.metadata,
+          scheduling_suggestions: content.schedulingSuggestions
+        });
+
+      if (error) {
+        console.error('Error saving content:', error);
+        toast({
+          title: "Save Error",
+          description: "Failed to save content to database.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error saving content:', error);
+      return false;
+    }
+  };
+
   const handleGenerateContent = async () => {
     if (!selectedStrategy || !selectedContentType || !selectedAITool) {
       toast({
@@ -154,13 +243,26 @@ export default function ContentGenerator() {
         createdAt: new Date()
       };
       
-      setGeneratedContent([newContent]);
-      setIsGenerating(false);
+      // Save to database and add to top of list
+      const saved = await saveContentToDatabase(newContent);
+      if (saved) {
+        setGeneratedContent(prev => [newContent, ...prev]);
+        
+        toast({
+          title: "Content Generated & Saved!",
+          description: "Your AI-generated content is ready and saved to your library."
+        });
+      } else {
+        // If database save fails, still add to local state
+        setGeneratedContent(prev => [newContent, ...prev]);
+        
+        toast({
+          title: "Content Generated!",
+          description: "Content generated but not saved to database. It will be lost on refresh."
+        });
+      }
       
-      toast({
-        title: "Content Generated Successfully!",
-        description: "Your AI-generated content is ready for review and editing."
-      });
+      setIsGenerating(false);
 
     } catch (error) {
       console.error('Content generation error:', error);
@@ -264,12 +366,36 @@ export default function ContentGenerator() {
     setSchedulingContent(content);
   };
 
-  const handleDeleteContent = (contentId: string) => {
-    setGeneratedContent(prev => prev.filter(item => item.id !== contentId));
-    toast({
-      title: "Content Deleted",
-      description: "Content has been removed from your generated list."
-    });
+  const handleDeleteContent = async (contentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('generated_content')
+        .delete()
+        .eq('id', contentId);
+
+      if (error) {
+        console.error('Error deleting content:', error);
+        toast({
+          title: "Delete Error",
+          description: "Failed to delete content from database.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setGeneratedContent(prev => prev.filter(item => item.id !== contentId));
+      toast({
+        title: "Content Deleted",
+        description: "Content has been permanently deleted."
+      });
+    } catch (error) {
+      console.error('Error deleting content:', error);
+      toast({
+        title: "Delete Error", 
+        description: "Failed to delete content.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCopyContent = (content: string) => {

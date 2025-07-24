@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -108,6 +109,8 @@ export default function Calendar() {
   
   // Combine manual and AI-generated content
   const [manualContent, setManualContent] = useState<ContentPiece[]>([]);
+  const [generatedContent, setGeneratedContent] = useState<any[]>([]);
+  const [isLoadingGeneratedContent, setIsLoadingGeneratedContent] = useState(false);
 
   // Merge AI workflow content with manual content
   const scheduledContent = [
@@ -127,6 +130,61 @@ export default function Calendar() {
     status: 'draft',
     platformOptimizations: {}
   });
+
+  // Load generated content from database
+  useEffect(() => {
+    loadGeneratedContent();
+  }, []);
+
+  const loadGeneratedContent = async () => {
+    setIsLoadingGeneratedContent(true);
+    try {
+      const { data, error } = await supabase
+        .from('generated_content')
+        .select('*')
+        .eq('is_scheduled', false) // Only show unscheduled content
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading generated content:', error);
+        return;
+      }
+
+      if (data) {
+        setGeneratedContent(data);
+      }
+    } catch (error) {
+      console.error('Error loading generated content:', error);
+    } finally {
+      setIsLoadingGeneratedContent(false);
+    }
+  };
+
+  const scheduleGeneratedContent = async (contentId: string, scheduledDate: Date, timezone: string, platforms: string[]) => {
+    try {
+      // Update the database to mark content as scheduled
+      const { error } = await supabase
+        .from('generated_content')
+        .update({
+          is_scheduled: true,
+          scheduled_date: scheduledDate.toISOString(),
+          scheduled_platforms: platforms
+        })
+        .eq('id', contentId);
+
+      if (error) {
+        console.error('Error scheduling content:', error);
+        return false;
+      }
+
+      // Reload generated content to remove scheduled item
+      await loadGeneratedContent();
+      return true;
+    } catch (error) {
+      console.error('Error scheduling content:', error);
+      return false;
+    }
+  };
 
   const getContentForDate = (date: Date) => {
     return scheduledContent.filter(content => 
@@ -634,7 +692,167 @@ export default function Calendar() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Generated Content Available for Scheduling */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-600" />
+                Available Content
+              </CardTitle>
+              <CardDescription>
+                Generated content ready to schedule
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingGeneratedContent ? (
+                <div className="text-sm text-muted-foreground text-center py-4">
+                  Loading generated content...
+                </div>
+              ) : generatedContent.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-4">
+                  No generated content available for scheduling
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {generatedContent.slice(0, 5).map(content => (
+                    <div key={content.id} className="p-3 border border-purple-200 bg-purple-50/50 rounded-lg">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium text-sm">{content.title}</h4>
+                        <Badge variant="outline" className="text-purple-600 border-purple-300">
+                          {content.content_type}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                        {content.content}
+                      </p>
+                      <div className="flex items-center gap-1 mb-2">
+                        {content.platforms?.slice(0, 3).map((platformId: string) => {
+                          const platform = platforms.find(p => p.id === platformId);
+                          return platform ? (
+                            <div key={platformId} className={cn("p-1 rounded", platform.color)}>
+                              <platform.icon className="h-3 w-3 text-white" />
+                            </div>
+                          ) : null;
+                        })}
+                        {content.platforms?.length > 3 && (
+                          <span className="text-xs text-muted-foreground">
+                            +{content.platforms.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" className="w-full">
+                            <CalendarIcon className="h-3 w-3 mr-2" />
+                            Schedule This
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Schedule Generated Content</DialogTitle>
+                            <DialogDescription>
+                              Choose when and where to publish this content
+                            </DialogDescription>
+                          </DialogHeader>
+                          <QuickScheduleForm 
+                            content={content} 
+                            onSchedule={scheduleGeneratedContent}
+                            onSuccess={() => loadGeneratedContent()}
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  ))}
+                  {generatedContent.length > 5 && (
+                    <div className="text-xs text-muted-foreground text-center pt-2 border-t">
+                      +{generatedContent.length - 5} more items available
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Quick Schedule Form Component
+function QuickScheduleForm({ content, onSchedule, onSuccess }: {
+  content: any;
+  onSchedule: (contentId: string, scheduledDate: Date, timezone: string, platforms: string[]) => Promise<boolean>;
+  onSuccess: () => void;
+}) {
+  const [scheduledDate, setScheduledDate] = useState(new Date());
+  const [timezone, setTimezone] = useState('UTC');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(content.platforms || []);
+
+  const handleSchedule = async () => {
+    const success = await onSchedule(content.id, scheduledDate, timezone, selectedPlatforms);
+    if (success) {
+      onSuccess();
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Scheduled Date & Time</Label>
+        <Input
+          type="datetime-local"
+          value={format(scheduledDate, "yyyy-MM-dd'T'HH:mm")}
+          onChange={(e) => setScheduledDate(new Date(e.target.value))}
+        />
+      </div>
+      
+      <div>
+        <Label>Timezone</Label>
+        <Select value={timezone} onValueChange={setTimezone}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timezones.map(tz => (
+              <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label>Target Platforms</Label>
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          {platforms.map(platform => {
+            const isSelected = selectedPlatforms.includes(platform.id);
+            return (
+              <Button
+                key={platform.id}
+                variant={isSelected ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setSelectedPlatforms(prev => 
+                    isSelected 
+                      ? prev.filter(p => p !== platform.id)
+                      : [...prev, platform.id]
+                  );
+                }}
+                className="justify-start"
+              >
+                <platform.icon className="h-4 w-4 mr-2" />
+                {platform.name}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-4">
+        <Button onClick={handleSchedule} className="flex-1">
+          <CalendarIcon className="h-4 w-4 mr-2" />
+          Schedule Content
+        </Button>
       </div>
     </div>
   );
