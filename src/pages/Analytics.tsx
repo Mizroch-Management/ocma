@@ -7,31 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import { TrendingUp, TrendingDown, Users, DollarSign, Eye, Heart, MessageSquare, Target, Calendar, Download } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, DollarSign, Eye, Heart, MessageSquare, Target, Calendar, Download, MoreHorizontal } from "lucide-react";
+import { useAnalyticsData } from "@/hooks/use-analytics-data";
+import { useExportAnalytics } from "@/hooks/use-export-analytics";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const chartConfig = {
-  visitors: { label: "Visitors", color: "hsl(var(--primary))" },
-  engagement: { label: "Engagement", color: "hsl(var(--secondary))" },
-  conversions: { label: "Conversions", color: "hsl(var(--accent))" },
-  revenue: { label: "Revenue", color: "hsl(var(--muted))" },
+  content: { label: "Content", color: "hsl(var(--primary))" },
+  success: { label: "Successful Publications", color: "hsl(var(--secondary))" },
+  engagement: { label: "Engagement", color: "hsl(var(--accent))" },
+  publications: { label: "Publications", color: "hsl(var(--muted))" },
 };
-
-const performanceData = [
-  { month: "Jan", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
-  { month: "Feb", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
-  { month: "Mar", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
-  { month: "Apr", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
-  { month: "May", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
-  { month: "Jun", visitors: 0, engagement: 0, conversions: 0, revenue: 0 },
-];
-
-const platformData = [
-  { name: "Instagram", value: 0, color: "hsl(var(--primary))" },
-  { name: "Twitter", value: 0, color: "hsl(var(--secondary))" },
-  { name: "LinkedIn", value: 0, color: "hsl(var(--accent))" },
-  { name: "Facebook", value: 0, color: "hsl(var(--muted))" },
-  { name: "TikTok", value: 0, color: "hsl(var(--destructive))" },
-];
 
 // This would typically come from a shared state or API - connected to Strategy page metrics
 const getPerformanceTargets = () => {
@@ -83,8 +69,10 @@ const getPerformanceTargets = () => {
 const kpiTargets = getPerformanceTargets();
 
 export default function Analytics() {
-  const [timeRange, setTimeRange] = useState("6months");
+  const [timeRange, setTimeRange] = useState("30days");
   const [activeTab, setActiveTab] = useState("overview");
+  const { data: analyticsData, loading, error } = useAnalyticsData(timeRange);
+  const { exportToCsv, exportToJson } = useExportAnalytics();
 
   const getProgressPercentage = (current: number, target: number) => {
     return Math.min((current / target) * 100, 100);
@@ -125,10 +113,22 @@ export default function Analytics() {
               <SelectItem value="1year">Last year</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => exportToCsv(timeRange)}>
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToJson(timeRange)}>
+                Export as JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -141,141 +141,172 @@ export default function Analytics() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* Key Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Visitors</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-muted-foreground flex items-center">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    +0%
-                  </span>
-                  from last month
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">$0</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-muted-foreground flex items-center">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    +0%
-                  </span>
-                  from last month
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
-                <Heart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0%</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-muted-foreground flex items-center">
-                    <TrendingDown className="h-3 w-3 mr-1" />
-                    +0%
-                  </span>
-                  from last month
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Conversions</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-muted-foreground flex items-center">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    +0%
-                  </span>
-                  from last month
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          {loading && (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground mt-2">Loading analytics data...</p>
+            </div>
+          )}
+          
+          {error && (
+            <div className="text-center py-8">
+              <p className="text-destructive">Error loading analytics: {error}</p>
+            </div>
+          )}
 
-          {/* Performance Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Trends</CardTitle>
-              <CardDescription>Track your key metrics over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={performanceData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="visitors" 
-                      stroke="var(--color-visitors)" 
-                      strokeWidth={2}
-                      dot={{ fill: "var(--color-visitors)" }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="conversions" 
-                      stroke="var(--color-conversions)" 
-                      strokeWidth={2}
-                      dot={{ fill: "var(--color-conversions)" }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+          {analyticsData && (
+            <>
+              {/* Key Metrics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Content</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{analyticsData.totalContent}</div>
+                    <p className="text-xs text-muted-foreground">
+                      pieces created
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Published Content</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{analyticsData.publishedContent}</div>
+                    <p className="text-xs text-muted-foreground">
+                      successfully published
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+                    <Heart className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {analyticsData.platformStats.length > 0 
+                        ? Math.round(analyticsData.platformStats.reduce((acc, p) => acc + p.successRate, 0) / analyticsData.platformStats.length)
+                        : 0}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      average across platforms
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Scheduled Content</CardTitle>
+                    <Target className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{analyticsData.scheduledContent}</div>
+                    <p className="text-xs text-muted-foreground">
+                      ready to publish
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
 
-          {/* Platform Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Traffic by Platform</CardTitle>
-              <CardDescription>Distribution of visitors across social media platforms</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={platformData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}%`}
-                    >
-                      {platformData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+          {analyticsData && analyticsData.monthlyTrends.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Performance Trends</CardTitle>
+                <CardDescription>Track your content creation and publication success over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={analyticsData.monthlyTrends}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="content" 
+                        stroke="var(--color-content)" 
+                        strokeWidth={2}
+                        dot={{ fill: "var(--color-content)" }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="success" 
+                        stroke="var(--color-success)" 
+                        strokeWidth={2}
+                        dot={{ fill: "var(--color-success)" }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {analyticsData && analyticsData.platformStats.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Platform Performance</CardTitle>
+                <CardDescription>Success rates across social media platforms</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analyticsData.platformStats}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="platform" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="successRate" fill="hsl(var(--primary))" name="Success Rate %" radius={4} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {analyticsData && analyticsData.platformStats.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {analyticsData.platformStats.map((platform, index) => (
+                <Card key={index}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{platform.platform}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Total Publications:</span>
+                      <span className="font-medium">{platform.total}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Successful:</span>
+                      <span className="font-medium text-green-600">{platform.success}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Failed:</span>
+                      <span className="font-medium text-red-600">{platform.failed}</span>
+                    </div>
+                    <div className="pt-2">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Success Rate:</span>
+                        <span className="font-medium">{platform.successRate.toFixed(1)}%</span>
+                      </div>
+                      <Progress value={platform.successRate} className="h-2" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-6">
@@ -351,28 +382,29 @@ export default function Analytics() {
             </Card>
           </div>
 
-          {/* Target vs Actual Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Targets vs Actual Performance</CardTitle>
-              <CardDescription>Monthly comparison of key metrics</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={performanceData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Bar dataKey="visitors" fill="var(--color-visitors)" name="Visitors" />
-                    <Bar dataKey="conversions" fill="var(--color-conversions)" name="Conversions" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+          {analyticsData && analyticsData.monthlyTrends.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Targets vs Actual Performance</CardTitle>
+                <CardDescription>Monthly comparison of content creation and success</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analyticsData.monthlyTrends}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <Bar dataKey="content" fill="var(--color-content)" name="Total Content" />
+                      <Bar dataKey="success" fill="var(--color-success)" name="Successful Publications" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          )}
 
           {/* AI-Powered Breakdown Analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -472,31 +504,33 @@ export default function Analytics() {
 
         <TabsContent value="content" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Content Performance</CardTitle>
-                <CardDescription>Engagement metrics for your content</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={performanceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Area 
-                        type="monotone" 
-                        dataKey="engagement" 
-                        stroke="var(--color-engagement)" 
-                        fill="var(--color-engagement)" 
-                        fillOpacity={0.3}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-            </Card>
+            {analyticsData && analyticsData.monthlyTrends.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Content Performance</CardTitle>
+                  <CardDescription>Engagement metrics for your content</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={chartConfig} className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={analyticsData.monthlyTrends}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Area 
+                          type="monotone" 
+                          dataKey="engagement" 
+                          stroke="var(--color-engagement)" 
+                          fill="var(--color-engagement)" 
+                          fillOpacity={0.3}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
@@ -534,21 +568,27 @@ export default function Analytics() {
                 <CardDescription>Follower growth across platforms</CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={performanceData}>
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Line 
-                        type="monotone" 
-                        dataKey="visitors" 
-                        stroke="var(--color-visitors)" 
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                {analyticsData && analyticsData.dailyStats.length > 0 ? (
+                  <ChartContainer config={chartConfig} className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={analyticsData.dailyStats.slice(-7)}>
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Line 
+                          type="monotone" 
+                          dataKey="publications" 
+                          stroke="var(--color-publications)" 
+                          strokeWidth={2}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                    No data available for the selected time period
+                  </div>
+                )}
               </CardContent>
             </Card>
 
