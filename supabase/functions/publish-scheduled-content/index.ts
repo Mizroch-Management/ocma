@@ -406,7 +406,20 @@ async function publishToTwitter(credentials: any, content: string, postData: any
   try {
     const { createHmac } = await import("node:crypto");
 
-    // Generate OAuth 1.0a signature
+    console.log('Publishing to Twitter with credentials:', {
+      api_key: credentials.api_key ? 'present' : 'missing',
+      api_secret: credentials.api_secret ? 'present' : 'missing', 
+      access_token: credentials.access_token ? 'present' : 'missing',
+      access_token_secret: credentials.access_token_secret ? 'present' : 'missing'
+    });
+
+    // Validate required credentials
+    if (!credentials.api_key || !credentials.api_secret || !credentials.access_token || !credentials.access_token_secret) {
+      throw new Error('Missing required Twitter API credentials. Please ensure API Key, API Secret, Access Token, and Access Token Secret are all configured.');
+    }
+
+    // Generate OAuth 1.0a signature - Use X.com API endpoint
+    const url = 'https://api.x.com/2/tweets';
     const oauthParams = {
       oauth_consumer_key: credentials.api_key,
       oauth_nonce: Math.random().toString(36).substring(2),
@@ -416,7 +429,9 @@ async function publishToTwitter(credentials: any, content: string, postData: any
       oauth_version: "1.0",
     };
 
-    const signatureBaseString = `POST&${encodeURIComponent('https://api.twitter.com/2/tweets')}&${encodeURIComponent(
+    console.log('OAuth params:', oauthParams);
+
+    const signatureBaseString = `POST&${encodeURIComponent(url)}&${encodeURIComponent(
       Object.entries(oauthParams)
         .sort()
         .map(([k, v]) => `${k}=${v}`)
@@ -426,6 +441,9 @@ async function publishToTwitter(credentials: any, content: string, postData: any
     const signingKey = `${encodeURIComponent(credentials.api_secret)}&${encodeURIComponent(credentials.access_token_secret)}`;
     const hmacSha1 = createHmac("sha1", signingKey);
     const signature = hmacSha1.update(signatureBaseString).digest("base64");
+
+    console.log('Signature base string:', signatureBaseString);
+    console.log('Generated signature:', signature);
 
     const signedOAuthParams = {
       ...oauthParams,
@@ -437,23 +455,48 @@ async function publishToTwitter(credentials: any, content: string, postData: any
       .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
       .join(", ");
 
-    const response = await fetch('https://api.twitter.com/2/tweets', {
+    console.log('Authorization header:', authHeader);
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: content
+        text: content.substring(0, 280) // Ensure content fits Twitter's limit
       })
     });
 
+    const responseText = await response.text();
+    console.log('Twitter API response status:', response.status);
+    console.log('Twitter API response body:', responseText);
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to publish to Twitter');
+      let errorMessage = 'Failed to publish to Twitter';
+      try {
+        const error = JSON.parse(responseText);
+        if (error.detail) {
+          errorMessage = error.detail;
+        } else if (error.errors && error.errors.length > 0) {
+          errorMessage = error.errors[0].message || error.errors[0].detail;
+        } else if (error.title) {
+          errorMessage = error.title;
+        }
+        
+        // Provide specific guidance for common errors
+        if (errorMessage.includes('not permitted')) {
+          errorMessage += '. Please check that your Twitter app has "Read and Write" permissions enabled in the Developer Portal, and that you have applied for and received Elevated access if required.';
+        }
+      } catch (parseError) {
+        errorMessage = `HTTP ${response.status}: ${responseText}`;
+      }
+      throw new Error(errorMessage);
     }
 
-    const result = await response.json();
+    const result = JSON.parse(responseText);
+    console.log('Tweet posted successfully:', result);
+    
     return {
       success: true,
       postId: result.data.id,
@@ -463,6 +506,7 @@ async function publishToTwitter(credentials: any, content: string, postData: any
       }
     };
   } catch (error) {
+    console.error('Twitter publishing error:', error);
     return {
       success: false,
       error: error.message
