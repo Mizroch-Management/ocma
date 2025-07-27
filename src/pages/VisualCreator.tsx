@@ -629,17 +629,23 @@ export default function VisualCreator() {
                         <SelectTrigger>
                           <SelectValue placeholder="Select AI platform" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background border border-border shadow-lg z-50">
                           {aiPlatformsByType[selectedMediaType]
                             .filter(platform => configuredPlatforms.some(cp => cp.key === platform.key))
                             .map((platform) => (
-                            <SelectItem key={platform.key} value={platform.key}>
+                            <SelectItem key={platform.key} value={platform.key} className="bg-background hover:bg-accent">
                               <div>
                                 <div className="font-medium">{platform.name}</div>
                                 <div className="text-sm text-muted-foreground">{platform.description}</div>
                               </div>
                             </SelectItem>
                           ))}
+                          {aiPlatformsByType[selectedMediaType]
+                            .filter(platform => configuredPlatforms.some(cp => cp.key === platform.key)).length === 0 && (
+                            <SelectItem value="" disabled className="bg-background">
+                              No configured AI platforms for {selectedMediaType}
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
