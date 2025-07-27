@@ -109,6 +109,12 @@ export default function VisualCreator() {
       { key: "stability_ai", name: "Stability Video", quality: "high", speed: "slow", cost: "$$$", description: "Stable Video Diffusion" }
     ]
   };
+  
+  // Get configured platforms for debugging
+  const configuredPlatforms = getConfiguredPlatforms();
+  console.log('Configured platforms:', configuredPlatforms);
+  console.log('Video platforms available:', aiPlatformsByType.video);
+  console.log('Filtered video platforms:', aiPlatformsByType.video.filter(platform => configuredPlatforms.some(cp => cp.key === platform.key)));
 
   const visualStyles = {
     image: [
@@ -441,7 +447,6 @@ export default function VisualCreator() {
     loadAISuggestions();
   }, [loadAISuggestions]);
 
-  const configuredPlatforms = getConfiguredPlatforms();
   const hasConfiguredPlatforms = configuredPlatforms.length > 0;
   const currentStyles = visualStyles[selectedMediaType] || visualStyles.image;
   const currentDimensions = dimensionsByType[selectedMediaType] || dimensionsByType.image;
