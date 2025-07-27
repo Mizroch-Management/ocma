@@ -112,7 +112,7 @@ async function generateWithOpenAI(prompt: string, style: string, dimensions: str
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-image-1',
+      model: 'dall-e-3',
       prompt: enhancedPrompt,
       size: dimensionMap[dimensions] || '1024x1024',
       quality: 'hd',
