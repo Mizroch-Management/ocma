@@ -10,6 +10,8 @@ import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, X
 import { TrendingUp, TrendingDown, Users, DollarSign, Eye, Heart, MessageSquare, Target, Calendar, Download, MoreHorizontal } from "lucide-react";
 import { useAnalyticsData } from "@/hooks/use-analytics-data";
 import { useExportAnalytics } from "@/hooks/use-export-analytics";
+import { useContentAnalytics } from "@/hooks/use-content-analytics";
+import { useAudienceAnalytics } from "@/hooks/use-audience-analytics";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const chartConfig = {
@@ -72,6 +74,8 @@ export default function Analytics() {
   const [timeRange, setTimeRange] = useState("30days");
   const [activeTab, setActiveTab] = useState("overview");
   const { data: analyticsData, loading, error } = useAnalyticsData(timeRange);
+  const { data: contentData } = useContentAnalytics(timeRange);
+  const { data: audienceData } = useAudienceAnalytics(timeRange);
   const { exportToCsv, exportToJson } = useExportAnalytics();
 
   const getProgressPercentage = (current: number, target: number) => {
@@ -174,7 +178,7 @@ export default function Analytics() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Published Content</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <Eye className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{analyticsData.publishedContent}</div>
@@ -504,7 +508,7 @@ export default function Analytics() {
 
         <TabsContent value="content" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {analyticsData && analyticsData.monthlyTrends.length > 0 && (
+            {contentData && contentData.engagementTrends.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Content Performance</CardTitle>
@@ -513,9 +517,9 @@ export default function Analytics() {
                 <CardContent>
                   <ChartContainer config={chartConfig} className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={analyticsData.monthlyTrends}>
+                      <AreaChart data={contentData.engagementTrends}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
+                        <XAxis dataKey="date" />
                         <YAxis />
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <Area 
@@ -524,6 +528,13 @@ export default function Analytics() {
                           stroke="var(--color-engagement)" 
                           fill="var(--color-engagement)" 
                           fillOpacity={0.3}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="reach" 
+                          stroke="var(--color-content)" 
+                          fill="var(--color-content)" 
+                          fillOpacity={0.2}
                         />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -538,29 +549,85 @@ export default function Analytics() {
                 <CardDescription>Your most engaging posts this month</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {[
-                  { title: "AI Tools for Content Creation", engagement: 1250, platform: "LinkedIn" },
-                  { title: "Social Media Strategy Tips", engagement: 980, platform: "Instagram" },
-                  { title: "Marketing Automation Guide", engagement: 750, platform: "Twitter" },
-                  { title: "Content Calendar Template", engagement: 620, platform: "Facebook" },
-                ].map((content, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div>
-                      <p className="font-medium">{content.title}</p>
-                      <p className="text-sm text-muted-foreground">{content.platform}</p>
+                {contentData && contentData.topPerformingContent.length > 0 ? (
+                  contentData.topPerformingContent.slice(0, 5).map((content, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                      <div>
+                        <p className="font-medium">{content.title}</p>
+                        <p className="text-sm text-muted-foreground">{content.platform}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">{content.engagement}</p>
+                        <p className="text-xs text-muted-foreground">engagements</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">{content.engagement}</p>
-                      <p className="text-xs text-muted-foreground">engagements</p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No published content found for the selected time period
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
           </div>
+
+          {contentData && contentData.contentByType.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Performance by Type</CardTitle>
+                <CardDescription>Analyze which content types perform best</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={contentData.contentByType}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="type" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="averageEngagement" fill="hsl(var(--primary))" name="Avg Engagement" radius={4} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="audience" className="space-y-6">
+          {/* Audience Metrics Summary */}
+          {audienceData && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Total Followers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatNumber(audienceData.engagementMetrics.totalFollowers)}</div>
+                  <p className="text-xs text-muted-foreground">across all platforms</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Engagement Rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{audienceData.engagementMetrics.averageEngagementRate}%</div>
+                  <p className="text-xs text-muted-foreground">average per post</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Monthly Growth</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{audienceData.engagementMetrics.monthlyGrowthRate}%</div>
+                  <p className="text-xs text-muted-foreground">follower growth rate</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
@@ -568,17 +635,17 @@ export default function Analytics() {
                 <CardDescription>Follower growth across platforms</CardDescription>
               </CardHeader>
               <CardContent>
-                {analyticsData && analyticsData.dailyStats.length > 0 ? (
+                {audienceData && audienceData.audienceGrowth.length > 0 ? (
                   <ChartContainer config={chartConfig} className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={analyticsData.dailyStats.slice(-7)}>
+                      <LineChart data={audienceData.audienceGrowth.slice(-7)}>
                         <XAxis dataKey="date" />
                         <YAxis />
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <Line 
                           type="monotone" 
-                          dataKey="publications" 
-                          stroke="var(--color-publications)" 
+                          dataKey="followers" 
+                          stroke="var(--color-content)" 
                           strokeWidth={2}
                         />
                       </LineChart>
@@ -586,7 +653,7 @@ export default function Analytics() {
                   </ChartContainer>
                 ) : (
                   <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                    No data available for the selected time period
+                    No audience data available for the selected time period
                   </div>
                 )}
               </CardContent>
@@ -598,13 +665,7 @@ export default function Analytics() {
                 <CardDescription>Audience age distribution</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {[
-                  { age: "18-24", percentage: 25 },
-                  { age: "25-34", percentage: 40 },
-                  { age: "35-44", percentage: 20 },
-                  { age: "45-54", percentage: 10 },
-                  { age: "55+", percentage: 5 },
-                ].map((demo, index) => (
+                {audienceData ? audienceData.demographics.map((demo, index) => (
                   <div key={index} className="flex items-center justify-between">
                     <span className="text-sm">{demo.age}</span>
                     <div className="flex items-center gap-2">
@@ -612,7 +673,11 @@ export default function Analytics() {
                       <span className="text-xs w-8">{demo.percentage}%</span>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No demographic data available
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -622,13 +687,7 @@ export default function Analytics() {
                 <CardDescription>Where your audience is located</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {[
-                  { country: "United States", percentage: 45 },
-                  { country: "United Kingdom", percentage: 15 },
-                  { country: "Canada", percentage: 12 },
-                  { country: "Australia", percentage: 8 },
-                  { country: "Germany", percentage: 6 },
-                ].map((location, index) => (
+                {audienceData ? audienceData.topLocations.map((location, index) => (
                   <div key={index} className="flex items-center justify-between">
                     <span className="text-sm">{location.country}</span>
                     <div className="flex items-center gap-2">
@@ -636,7 +695,11 @@ export default function Analytics() {
                       <span className="text-xs w-8">{location.percentage}%</span>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No location data available
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
