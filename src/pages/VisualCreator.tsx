@@ -104,7 +104,6 @@ export default function VisualCreator() {
       { key: "huggingface", name: "Hugging Face", quality: "medium", speed: "medium", cost: "free", description: "Free open-source models" }
     ],
     video: [
-      { key: "openai", name: "OpenAI Video", quality: "high", speed: "slow", cost: "$$$", description: "AI video generation (coming soon)" },
       { key: "runware", name: "Runware Video", quality: "high", speed: "slow", cost: "$$$", description: "AI video generation and editing" },
       { key: "stability_ai", name: "Stability Video", quality: "high", speed: "slow", cost: "$$$", description: "Stable Video Diffusion" }
     ]
