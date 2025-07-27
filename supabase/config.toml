@@ -1,4 +1,16 @@
 project_id = "wxxjbkqnvpbjywejfrox"
 
+[functions.generate-visual-content]
+verify_jwt = true
+
+[functions.generate-visual-suggestions]
+verify_jwt = true
+
+[functions.generate-video-content]
+verify_jwt = true
+
+[functions.generate-audio-content]
+verify_jwt = true
+
 [functions.test-platform-config]
 verify_jwt = true
