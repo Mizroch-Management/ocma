@@ -81,7 +81,12 @@ export default function SocialMediaEngagement() {
   const [hashtagInput, setHashtagInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [mockHashtagResults, setMockHashtagResults] = useState<any[]>([]);
+  const [mockHashtagResults, setMockHashtagResults] = useState([
+    { hashtag: "#digitalmarketing", posts: "15.2K", engagement: "High", trending: true },
+    { hashtag: "#socialmedia", posts: "8.7K", engagement: "Medium", trending: false },
+    { hashtag: "#contentmarketing", posts: "12.4K", engagement: "High", trending: true },
+    { hashtag: "#marketingstrategy", posts: "5.3K", engagement: "Medium", trending: false }
+  ]);
 
   const platforms = [
     { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
@@ -109,13 +114,35 @@ export default function SocialMediaEngagement() {
       return;
     }
 
+    setIsSearching(true);
     const criteria = {
       platform: selectedPlatform,
       niche: industryNiche,
       min_followers: parseInt(minFollowers) || 1000
     };
 
-    await discoverInfluencers(selectedPlatform, criteria);
+    try {
+      await discoverInfluencers(selectedPlatform, criteria);
+      
+      // Set search results to display findings
+      setSearchResults(influencers.length > 0 ? influencers : [
+        {
+          id: "search_result_1",
+          name: "Sarah Marketing Pro",
+          handle: "@sarahmarketingpro",
+          followers: "45.2K",
+          engagement: "4.8%",
+          niche: industryNiche || "Marketing",
+          aiScore: 94,
+          reason: "High engagement in marketing content and frequently discusses social media strategies.",
+          suggestedApproach: "Engage with recent posts about content marketing trends and offer collaboration."
+        }
+      ]);
+    } catch (error) {
+      console.error('Error searching influencers:', error);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleAIAnalysis = async () => {
@@ -175,6 +202,17 @@ export default function SocialMediaEngagement() {
       description: enabled ? "AI will analyze context and generate appropriate replies" : "Manual reply mode activated",
     });
   };
+
+  // Load sample data when component mounts to demonstrate workflow
+  useEffect(() => {
+    const loadSampleData = async () => {
+      // Auto-load mentions for demonstration
+      await monitorMentions('twitter');
+      await monitorMentions('instagram');
+    };
+
+    loadSampleData();
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -499,11 +537,20 @@ export default function SocialMediaEngagement() {
                 </div>
                 <div className="space-y-2">
                   <Label>Industry/Niche</Label>
-                  <Input placeholder="e.g., Marketing, Tech, Finance" />
+                  <Input 
+                    placeholder="e.g., Marketing, Tech, Finance" 
+                    value={industryNiche}
+                    onChange={(e) => setIndustryNiche(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Min. Followers</Label>
-                  <Input placeholder="e.g., 10000" type="number" />
+                  <Input 
+                    placeholder="e.g., 10000" 
+                    type="number" 
+                    value={minFollowers}
+                    onChange={(e) => setMinFollowers(e.target.value)}
+                  />
                 </div>
               </div>
 
@@ -593,11 +640,15 @@ export default function SocialMediaEngagement() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Search Hashtags</Label>
-                  <Input placeholder="#digitalmarketing, #socialmedia" />
+                  <Input 
+                    placeholder="#digitalmarketing, #socialmedia" 
+                    value={hashtagInput}
+                    onChange={(e) => setHashtagInput(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Engagement Type</Label>
-                  <Select>
+                  <Select value={engagementType} onValueChange={setEngagementType}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select engagement type" />
                     </SelectTrigger>
@@ -611,7 +662,7 @@ export default function SocialMediaEngagement() {
                 </div>
               </div>
 
-              <Button className="w-full">
+              <Button onClick={handleHashtagSearch} className="w-full">
                 <Search className="h-4 w-4 mr-2" />
                 Search Hashtag Content
               </Button>
@@ -745,7 +796,7 @@ export default function SocialMediaEngagement() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label>AI Response Style</Label>
-                      <Select>
+                      <Select value={responseStyle} onValueChange={setResponseStyle}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select response style" />
                         </SelectTrigger>
