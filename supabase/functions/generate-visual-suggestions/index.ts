@@ -33,15 +33,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    const { data: apiKeyData } = await supabase
+    const { data: apiKeyData, error } = await supabase
       .from('system_settings')
       .select('setting_value')
       .eq('setting_key', 'openai_api_key')
-      .single();
+      .eq('category', 'ai_platforms')
+      .maybeSingle();
       
+    console.log('API key query result:', { apiKeyData, error });
+      
+    if (error) {
+      console.error('Database error:', error);
+      throw new Error(`Database error: ${error.message}`);
+    }
+    
     const openAIApiKey = apiKeyData?.setting_value?.api_key;
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      console.error('No OpenAI API key found in database');
+      throw new Error('OpenAI API key not configured in system settings');
     }
 
     // Build context for AI suggestions
