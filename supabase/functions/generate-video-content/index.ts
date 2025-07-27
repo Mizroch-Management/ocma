@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,8 +45,31 @@ serve(async (req) => {
 });
 
 async function generateWithRunware(prompt: string, style: string, dimensions: string, settings: any) {
-  const apiKey = Deno.env.get('RUNWARE_API_KEY');
-  if (!apiKey) throw new Error('Runware API key not configured');
+  // Get API key from database
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  
+  const { data: apiKeyData, error } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('setting_key', 'runware_api_key')
+    .eq('category', 'ai_platforms')
+    .maybeSingle();
+    
+  console.log('Runware API key query result:', { apiKeyData, error });
+    
+  if (error) {
+    console.error('Database error:', error);
+    throw new Error(`Database error: ${error.message}`);
+  }
+  
+  const apiKey = apiKeyData?.setting_value?.api_key;
+  if (!apiKey) {
+    console.error('No Runware API key found in database');
+    throw new Error('Runware API key not configured in system settings');
+  }
 
   const enhancedPrompt = `${prompt}, ${style} style, cinematic quality, smooth motion`;
 

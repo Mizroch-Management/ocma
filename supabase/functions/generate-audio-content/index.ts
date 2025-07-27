@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,8 +45,31 @@ serve(async (req) => {
 });
 
 async function generateWithElevenLabs(prompt: string, style: string, settings: any) {
-  const apiKey = Deno.env.get('ELEVENLABS_API_KEY');
-  if (!apiKey) throw new Error('ElevenLabs API key not configured');
+  // Get API key from database
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  
+  const { data: apiKeyData, error } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('setting_key', 'elevenlabs_api_key')
+    .eq('category', 'ai_platforms')
+    .maybeSingle();
+    
+  console.log('ElevenLabs API key query result:', { apiKeyData, error });
+    
+  if (error) {
+    console.error('Database error:', error);
+    throw new Error(`Database error: ${error.message}`);
+  }
+  
+  const apiKey = apiKeyData?.setting_value?.api_key;
+  if (!apiKey) {
+    console.error('No ElevenLabs API key found in database');
+    throw new Error('ElevenLabs API key not configured in system settings');
+  }
 
   // Voice selection based on style
   const voiceMap: { [key: string]: string } = {
@@ -94,8 +118,31 @@ async function generateWithElevenLabs(prompt: string, style: string, settings: a
 }
 
 async function generateWithOpenAI(prompt: string, style: string, settings: any) {
-  const apiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!apiKey) throw new Error('OpenAI API key not configured');
+  // Get API key from database
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  
+  const { data: apiKeyData, error } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('setting_key', 'openai_api_key')
+    .eq('category', 'ai_platforms')
+    .maybeSingle();
+    
+  console.log('OpenAI API key query result for TTS:', { apiKeyData, error });
+    
+  if (error) {
+    console.error('Database error:', error);
+    throw new Error(`Database error: ${error.message}`);
+  }
+  
+  const apiKey = apiKeyData?.setting_value?.api_key;
+  if (!apiKey) {
+    console.error('No OpenAI API key found in database');
+    throw new Error('OpenAI API key not configured in system settings');
+  }
 
   // Voice selection based on style
   const voiceMap: { [key: string]: string } = {

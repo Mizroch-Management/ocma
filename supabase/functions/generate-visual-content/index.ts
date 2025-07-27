@@ -125,8 +125,31 @@ async function generateWithOpenAI(prompt: string, style: string, dimensions: str
 }
 
 async function generateWithStabilityAI(prompt: string, style: string, dimensions: string, settings: any) {
-  const apiKey = Deno.env.get('STABILITY_AI_API_KEY');
-  if (!apiKey) throw new Error('Stability AI API key not configured');
+  // Get API key from database
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  
+  const { data: apiKeyData, error } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('setting_key', 'stability_ai_api_key')
+    .eq('category', 'ai_platforms')
+    .maybeSingle();
+    
+  console.log('Stability AI API key query result:', { apiKeyData, error });
+    
+  if (error) {
+    console.error('Database error:', error);
+    throw new Error(`Database error: ${error.message}`);
+  }
+  
+  const apiKey = apiKeyData?.setting_value?.api_key;
+  if (!apiKey) {
+    console.error('No Stability AI API key found in database');
+    throw new Error('Stability AI API key not configured in system settings');
+  }
 
   const dimensionMap: { [key: string]: { width: number, height: number } } = {
     'square': { width: 1024, height: 1024 },
@@ -170,8 +193,31 @@ async function generateWithStabilityAI(prompt: string, style: string, dimensions
 }
 
 async function generateWithRunware(prompt: string, style: string, dimensions: string, settings: any) {
-  const apiKey = Deno.env.get('RUNWARE_API_KEY');
-  if (!apiKey) throw new Error('Runware API key not configured');
+  // Get API key from database
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  
+  const { data: apiKeyData, error } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('setting_key', 'runware_api_key')
+    .eq('category', 'ai_platforms')
+    .maybeSingle();
+    
+  console.log('Runware API key query result:', { apiKeyData, error });
+    
+  if (error) {
+    console.error('Database error:', error);
+    throw new Error(`Database error: ${error.message}`);
+  }
+  
+  const apiKey = apiKeyData?.setting_value?.api_key;
+  if (!apiKey) {
+    console.error('No Runware API key found in database');
+    throw new Error('Runware API key not configured in system settings');
+  }
 
   const dimensionMap: { [key: string]: { width: number, height: number } } = {
     'square': { width: 1024, height: 1024 },
@@ -227,8 +273,31 @@ async function generateWithRunware(prompt: string, style: string, dimensions: st
 }
 
 async function generateWithHuggingFace(prompt: string, style: string, dimensions: string, settings: any) {
-  const apiKey = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
-  if (!apiKey) throw new Error('Hugging Face API key not configured');
+  // Get API key from database
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  
+  const { data: apiKeyData, error } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('setting_key', 'huggingface_api_key')
+    .eq('category', 'ai_platforms')
+    .maybeSingle();
+    
+  console.log('HuggingFace API key query result:', { apiKeyData, error });
+    
+  if (error) {
+    console.error('Database error:', error);
+    throw new Error(`Database error: ${error.message}`);
+  }
+  
+  const apiKey = apiKeyData?.setting_value?.api_key;
+  if (!apiKey) {
+    console.error('No HuggingFace API key found in database');
+    throw new Error('HuggingFace API key not configured in system settings');
+  }
 
   const enhancedPrompt = `${prompt}, ${style} style, high quality`;
 
