@@ -81,12 +81,71 @@ export default function SocialMediaEngagement() {
   const [hashtagInput, setHashtagInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [mockHashtagResults, setMockHashtagResults] = useState([
-    { hashtag: "#digitalmarketing", posts: "15.2K", engagement: "High", trending: true },
-    { hashtag: "#socialmedia", posts: "8.7K", engagement: "Medium", trending: false },
-    { hashtag: "#contentmarketing", posts: "12.4K", engagement: "High", trending: true },
-    { hashtag: "#marketingstrategy", posts: "5.3K", engagement: "Medium", trending: false }
-  ]);
+  const strategicTrendingHashtags = [
+    {
+      hashtag: '#ContentMarketing',
+      posts: 45220,
+      engagement: 'Very High',
+      growth: '+25%',
+      relevanceScore: 95,
+      reason: 'Aligns with content creation strategy',
+      suggestedAction: 'Create tutorial content series'
+    },
+    {
+      hashtag: '#AIMarketing',
+      posts: 18930,
+      engagement: 'High',
+      growth: '+42%',
+      relevanceScore: 88,
+      reason: 'Emerging trend in our industry',
+      suggestedAction: 'Share AI-powered campaign results'
+    },
+    {
+      hashtag: '#SocialMediaROI',
+      posts: 12150,
+      engagement: 'Medium',
+      growth: '+15%',
+      relevanceScore: 92,
+      reason: 'Direct match to our expertise',
+      suggestedAction: 'Post case studies and metrics'
+    }
+  ];
+
+  const trackedHashtags = [
+    {
+      hashtag: '#BrandStrategy',
+      engagementType: 'Content Creation',
+      platforms: {
+        twitter: { posts: 12, engagement_rate: '4.2%', reach: 15420, status: 'active' },
+        linkedin: { posts: 8, engagement_rate: '6.8%', reach: 8930, status: 'active' },
+        instagram: { posts: 15, engagement_rate: '3.9%', reach: 12150, status: 'active' }
+      },
+      totalProgress: 35,
+      targetPosts: 50
+    },
+    {
+      hashtag: '#DigitalTransformation',
+      engagementType: 'Thought Leadership',
+      platforms: {
+        twitter: { posts: 6, engagement_rate: '5.1%', reach: 8240, status: 'active' },
+        linkedin: { posts: 18, engagement_rate: '8.2%', reach: 22400, status: 'active' },
+        instagram: { posts: 4, engagement_rate: '2.8%', reach: 3200, status: 'paused' }
+      },
+      totalProgress: 28,
+      targetPosts: 40
+    },
+    {
+      hashtag: '#MarketingAutomation',
+      engagementType: 'Product Showcase',
+      platforms: {
+        twitter: { posts: 9, engagement_rate: '3.8%', reach: 11200, status: 'active' },
+        linkedin: { posts: 12, engagement_rate: '7.4%', reach: 18600, status: 'active' },
+        instagram: { posts: 8, engagement_rate: '4.5%', reach: 9800, status: 'active' }
+      },
+      totalProgress: 29,
+      targetPosts: 35
+    }
+  ];
 
   const platforms = [
     { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
@@ -667,30 +726,117 @@ export default function SocialMediaEngagement() {
                 Search Hashtag Content
               </Button>
 
-              {/* Hashtag Results */}
+              {/* Strategic Trending Hashtags */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Trending Hashtags</h3>
-                {mockHashtagResults.map((hashtag, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-muted rounded-full">
-                        <Tag className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{hashtag.hashtag}</p>
-                        <div className="flex items-center gap-4 mt-1">
-                          <span className="text-xs text-muted-foreground">{hashtag.posts} posts</span>
-                          <Badge variant={hashtag.engagement === 'High' ? 'default' : 'secondary'} className="text-xs">
-                            {hashtag.engagement} engagement
-                          </Badge>
-                          {hashtag.trending && <Badge variant="outline" className="text-xs text-green-600">Trending</Badge>}
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Strategic Trending Hashtags</h3>
+                  <Badge variant="secondary" className="text-xs">Strategy Aligned</Badge>
+                </div>
+                {strategicTrendingHashtags.map((hashtag, index) => (
+                  <div key={index} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-primary/10 rounded-full">
+                          <TrendingUp className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{hashtag.hashtag}</p>
+                          <div className="flex items-center gap-4 mt-1">
+                            <span className="text-xs text-muted-foreground">{hashtag.posts.toLocaleString()} posts</span>
+                            <Badge variant={hashtag.engagement === 'Very High' ? 'default' : 'secondary'} className="text-xs">
+                              {hashtag.engagement}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs text-green-600">{hashtag.growth}</Badge>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 text-yellow-500" />
+                              <span className="text-xs">{hashtag.relevanceScore}% match</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
+                      <Button size="sm">
+                        <Target className="h-4 w-4 mr-1" />
+                        Track
+                      </Button>
                     </div>
-                    <Button size="sm">
-                      <Target className="h-4 w-4 mr-1" />
-                      Target
-                    </Button>
+                    <div className="pl-12 space-y-2">
+                      <p className="text-sm text-muted-foreground">{hashtag.reason}</p>
+                      <div className="flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4 text-orange-500" />
+                        <span className="text-sm font-medium">Suggested: {hashtag.suggestedAction}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tracked Hashtags with Progress */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Tracked Hashtags</h3>
+                  <Badge variant="secondary" className="text-xs">Active Tracking</Badge>
+                </div>
+                {trackedHashtags.map((hashtag, index) => (
+                  <div key={index} className="p-4 border rounded-lg space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-blue-50 dark:bg-blue-950 rounded-full">
+                          <Tag className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{hashtag.hashtag}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">{hashtag.engagementType}</Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {hashtag.totalProgress}/{hashtag.targetPosts} posts
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">
+                          {Math.round((hashtag.totalProgress / hashtag.targetPosts) * 100)}% Complete
+                        </div>
+                        <Progress value={(hashtag.totalProgress / hashtag.targetPosts) * 100} className="w-20 mt-1" />
+                      </div>
+                    </div>
+                    
+                    {/* Platform Progress */}
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {Object.entries(hashtag.platforms).map(([platform, data]: [string, any]) => {
+                        const platformConfig = platforms.find(p => p.value === platform);
+                        const Icon = platformConfig?.icon || Target;
+                        
+                        return (
+                          <div key={platform} className="p-3 bg-muted/50 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Icon className={`h-4 w-4 ${platformConfig?.color || 'text-muted-foreground'}`} />
+                              <span className="text-sm font-medium capitalize">{platform}</span>
+                              <Badge 
+                                variant={data.status === 'active' ? 'default' : 'secondary'} 
+                                className="text-xs"
+                              >
+                                {data.status}
+                              </Badge>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span>Posts:</span>
+                                <span className="font-medium">{data.posts}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Engagement:</span>
+                                <span className="font-medium">{data.engagement_rate}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Reach:</span>
+                                <span className="font-medium">{data.reach.toLocaleString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
               </div>
