@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useWorkflow } from "@/contexts/workflow-context";
 import { useAIPlatforms } from "@/hooks/use-ai-platforms";
 import { useToast } from "@/hooks/use-toast";
@@ -20,19 +21,23 @@ import {
   Sparkles, 
   Eye,
   Video,
-  Music,
   AlertTriangle,
   Settings,
   Copy,
   Save,
   Loader2,
   PlayCircle,
-  VolumeX,
   Star,
   Zap,
   Camera,
   Film,
-  Grid3X3
+  Grid3X3,
+  Calendar,
+  Edit,
+  Trash2,
+  Clock,
+  Filter,
+  Search
 } from "lucide-react";
 
 interface GeneratedVisual {
@@ -45,17 +50,27 @@ interface GeneratedVisual {
   contentId?: string;
   createdAt: Date;
   isAIEnhanced: boolean;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video';
   aiPlatform: string;
   generation_time?: number;
   cost?: number;
+  dbId?: string; // Database ID for saved content
 }
 
 interface AIPlatformRecommendation {
   platform: string;
   score: number;
   reasons: string[];
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video';
+}
+
+interface AISuggestion {
+  text: string;
+  style: string;
+  reasoning: string;
+  planId: string | null;
+  platforms: string[];
+  isAIGenerated: boolean;
 }
 
 export default function VisualCreator() {
@@ -65,10 +80,17 @@ export default function VisualCreator() {
   const [selectedPlatform, setSelectedPlatform] = useState("");
   const [selectedContentPlan, setSelectedContentPlan] = useState("");
   const [selectedAIPlatform, setSelectedAIPlatform] = useState("");
-  const [selectedMediaType, setSelectedMediaType] = useState<'image' | 'video' | 'audio'>('image');
+  const [selectedMediaType, setSelectedMediaType] = useState<'image' | 'video'>('image');
   const [generatedVisuals, setGeneratedVisuals] = useState<GeneratedVisual[]>([]);
+  const [savedVisuals, setSavedVisuals] = useState<any[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const [showSavedContent, setShowSavedContent] = useState(false);
   const [recommendations, setRecommendations] = useState<AIPlatformRecommendation[]>([]);
+  const [aiSuggestions, setAISuggestions] = useState<AISuggestion[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterPlatform, setFilterPlatform] = useState("");
   const { state: workflowState } = useWorkflow();
   const { platforms: aiPlatforms, getConfiguredPlatforms } = useAIPlatforms();
   const { toast } = useToast();
@@ -84,10 +106,6 @@ export default function VisualCreator() {
     video: [
       { key: "runware", name: "Runware Video", quality: "high", speed: "slow", cost: "$$$", description: "AI video generation and editing" },
       { key: "stability_ai", name: "Stability Video", quality: "high", speed: "slow", cost: "$$$", description: "Stable Video Diffusion" }
-    ],
-    audio: [
-      { key: "elevenlabs", name: "ElevenLabs", quality: "high", speed: "fast", cost: "$$", description: "Premium voice synthesis and cloning" },
-      { key: "openai", name: "OpenAI TTS", quality: "high", speed: "fast", cost: "$$", description: "Natural text-to-speech" }
     ]
   };
 
@@ -108,13 +126,6 @@ export default function VisualCreator() {
       { id: "documentary", name: "Documentary", description: "Real-world storytelling" },
       { id: "promotional", name: "Promotional", description: "Marketing focused" },
       { id: "social-media", name: "Social Media", description: "Platform optimized" }
-    ],
-    audio: [
-      { id: "professional", name: "Professional", description: "Business presentation voice" },
-      { id: "conversational", name: "Conversational", description: "Natural dialogue" },
-      { id: "energetic", name: "Energetic", description: "Upbeat and engaging" },
-      { id: "calm", name: "Calm", description: "Soothing and relaxing" },
-      { id: "authoritative", name: "Authoritative", description: "Expert and confident" }
     ]
   };
 
@@ -132,27 +143,124 @@ export default function VisualCreator() {
       { id: "story", name: "Story (9:16)", size: "1080x1920", platforms: ["Instagram", "TikTok", "Snapchat"] },
       { id: "landscape", name: "Landscape (16:9)", size: "1920x1080", platforms: ["YouTube", "LinkedIn", "Facebook"] },
       { id: "short", name: "Short Form (9:16)", size: "1080x1920", platforms: ["TikTok", "Instagram Reels", "YouTube Shorts"] }
-    ],
-    audio: [
-      { id: "podcast", name: "Podcast Quality", duration: "unlimited", platforms: ["Spotify", "Apple Podcasts"] },
-      { id: "voiceover", name: "Voiceover", duration: "1-5 minutes", platforms: ["Video", "Presentations"] },
-      { id: "short-form", name: "Short Audio", duration: "15-60 seconds", platforms: ["Social Media", "Ads"] }
     ]
   };
 
   const socialPlatforms = [
-    { id: "instagram", name: "Instagram", icon: "📸", supports: ["image", "video", "audio"] },
-    { id: "facebook", name: "Facebook", icon: "👥", supports: ["image", "video", "audio"] },
-    { id: "linkedin", name: "LinkedIn", icon: "💼", supports: ["image", "video", "audio"] },
-    { id: "twitter", name: "Twitter", icon: "🐦", supports: ["image", "video", "audio"] },
-    { id: "tiktok", name: "TikTok", icon: "🎵", supports: ["video", "audio"] },
-    { id: "youtube", name: "YouTube", icon: "🎬", supports: ["video", "audio"] },
+    { id: "instagram", name: "Instagram", icon: "📸", supports: ["image", "video"] },
+    { id: "facebook", name: "Facebook", icon: "👥", supports: ["image", "video"] },
+    { id: "linkedin", name: "LinkedIn", icon: "💼", supports: ["image", "video"] },
+    { id: "twitter", name: "Twitter", icon: "🐦", supports: ["image", "video"] },
+    { id: "tiktok", name: "TikTok", icon: "🎵", supports: ["video"] },
+    { id: "youtube", name: "YouTube", icon: "🎬", supports: ["video"] },
     { id: "pinterest", name: "Pinterest", icon: "📌", supports: ["image"] },
     { id: "snapchat", name: "Snapchat", icon: "👻", supports: ["image", "video"] }
   ];
 
+  // Load AI-powered suggestions
+  const loadAISuggestions = useCallback(async () => {
+    if (!selectedMediaType) return;
+    
+    setIsLoadingSuggestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-visual-suggestions', {
+        body: {
+          mediaType: selectedMediaType,
+          strategy: workflowState.approvedStrategy,
+          contentPlans: workflowState.approvedPlans,
+          existingContent: [], // Could load recent content here
+          targetPlatforms: socialPlatforms
+            .filter(p => p.supports.includes(selectedMediaType))
+            .map(p => p.id),
+          brandContext: null
+        }
+      });
+
+      if (error) throw error;
+
+      setAISuggestions(data.suggestions.map((s: any) => ({
+        ...s,
+        isAIGenerated: true
+      })));
+    } catch (error: any) {
+      console.error('Failed to load AI suggestions:', error);
+      // Fallback to basic suggestions
+      setAISuggestions([
+        {
+          text: `Professional ${selectedMediaType} with modern design`,
+          style: 'professional',
+          reasoning: 'Clean, business-oriented approach',
+          planId: null,
+          platforms: ['linkedin', 'facebook'],
+          isAIGenerated: false
+        }
+      ]);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  }, [selectedMediaType, workflowState]);
+
+  // Load saved visual content
+  const loadSavedContent = useCallback(async () => {
+    setIsLoadingSaved(true);
+    try {
+      const { data, error } = await supabase
+        .from('generated_content')
+        .select('*')
+        .eq('content_type', selectedMediaType)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSavedVisuals(data || []);
+    } catch (error: any) {
+      console.error('Failed to load saved content:', error);
+    } finally {
+      setIsLoadingSaved(false);
+    }
+  }, [selectedMediaType]);
+
+  // Save visual content to database
+  const saveVisualContent = async (visual: GeneratedVisual) => {
+    try {
+      const { error } = await supabase
+        .from('generated_content')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          title: visual.prompt.slice(0, 100),
+          content: visual.url,
+          content_type: visual.type,
+          metadata: {
+            style: visual.style,
+            dimensions: visual.dimensions,
+            platform: visual.platform,
+            aiPlatform: visual.aiPlatform,
+            generation_time: visual.generation_time,
+            cost: visual.cost,
+            isAIEnhanced: visual.isAIEnhanced
+          },
+          ai_tool: visual.aiPlatform
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Content Saved",
+        description: "Visual content has been saved to your library.",
+      });
+
+      loadSavedContent();
+    } catch (error: any) {
+      console.error('Failed to save content:', error);
+      toast({
+        title: "Save Failed",
+        description: error.message || "Failed to save content. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Generate AI platform recommendations based on requirements
-  const generateRecommendations = useCallback((mediaType: 'image' | 'video' | 'audio', prompt: string) => {
+  const generateRecommendations = useCallback((mediaType: 'image' | 'video', prompt: string) => {
     const availablePlatforms = aiPlatformsByType[mediaType];
     const configuredPlatforms = getConfiguredPlatforms();
     
@@ -185,9 +293,6 @@ export default function VisualCreator() {
         }
         if (mediaType === "video" && platform.key === "runware") {
           score += 10; reasons.push("Specialized video generation");
-        }
-        if (mediaType === "audio" && platform.key === "elevenlabs") {
-          score += 10; reasons.push("Industry leading voice quality");
         }
 
         return {
@@ -247,8 +352,6 @@ export default function VisualCreator() {
         functionName = 'generate-visual-content';
       } else if (selectedMediaType === 'video') {
         functionName = 'generate-video-content';
-      } else if (selectedMediaType === 'audio') {
-        functionName = 'generate-audio-content';
       }
 
       const { data, error } = await supabase.functions.invoke(functionName, {
@@ -271,7 +374,7 @@ export default function VisualCreator() {
       
       const newVisual: GeneratedVisual = {
         id: Date.now().toString(),
-        url: data.url || data.audioUrl || data.videoUrl,
+        url: data.url || data.videoUrl,
         prompt: enhancedPrompt,
         style: selectedStyle,
         dimensions: selectedDimensions,
@@ -304,54 +407,43 @@ export default function VisualCreator() {
     }
   };
 
-  const suggestedPrompts = {
-    image: workflowState.approvedPlans.length > 0 
-      ? workflowState.approvedPlans.map(plan => ({
-          text: `${plan.theme} visual for ${plan.keyMessages[0]}`,
-          planId: plan.id,
-          isAIGenerated: true
-        }))
-      : [
-          { text: "Professional team collaboration in modern office", planId: "", isAIGenerated: false },
-          { text: "Minimalist product showcase with clean background", planId: "", isAIGenerated: false },
-          { text: "Abstract data visualization with vibrant colors", planId: "", isAIGenerated: false }
-        ],
-    video: workflowState.approvedPlans.length > 0 
-      ? workflowState.approvedPlans.map(plan => ({
-          text: `${plan.theme} video showcasing ${plan.keyMessages[0]}`,
-          planId: plan.id,
-          isAIGenerated: true
-        }))
-      : [
-          { text: "Dynamic product demonstration with smooth transitions", planId: "", isAIGenerated: false },
-          { text: "Professional corporate introduction video", planId: "", isAIGenerated: false },
-          { text: "Animated explainer video with clear messaging", planId: "", isAIGenerated: false }
-        ],
-    audio: workflowState.approvedPlans.length > 0 
-      ? workflowState.approvedPlans.map(plan => ({
-          text: `Professional voiceover explaining ${plan.keyMessages[0]}`,
-          planId: plan.id,
-          isAIGenerated: true
-        }))
-      : [
-          { text: "Welcome message for website visitors", planId: "", isAIGenerated: false },
-          { text: "Product feature explanation in friendly tone", planId: "", isAIGenerated: false },
-          { text: "Professional presentation narration", planId: "", isAIGenerated: false }
-        ]
+  // Handle quick actions
+  const handleQuickAction = async (action: string) => {
+    switch (action) {
+      case 'saved-content':
+        setShowSavedContent(true);
+        loadSavedContent();
+        break;
+      case 'refresh-suggestions':
+        loadAISuggestions();
+        break;
+      case 'batch-generate':
+        toast({
+          title: "Batch Generation",
+          description: "This feature will be available soon!",
+        });
+        break;
+      default:
+        break;
+    }
   };
 
   // Update recommendations when relevant fields change
-  React.useEffect(() => {
+  useEffect(() => {
     if (prompt && selectedMediaType) {
       generateRecommendations(selectedMediaType, prompt);
     }
   }, [prompt, selectedMediaType, generateRecommendations]);
 
+  // Load AI suggestions when media type changes
+  useEffect(() => {
+    loadAISuggestions();
+  }, [loadAISuggestions]);
+
   const configuredPlatforms = getConfiguredPlatforms();
   const hasConfiguredPlatforms = configuredPlatforms.length > 0;
   const currentStyles = visualStyles[selectedMediaType] || visualStyles.image;
   const currentDimensions = dimensionsByType[selectedMediaType] || dimensionsByType.image;
-  const currentSuggestions = suggestedPrompts[selectedMediaType] || suggestedPrompts.image;
 
   return (
     <div className="space-y-8">
@@ -374,7 +466,7 @@ export default function VisualCreator() {
         <Alert className="mb-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            No AI platforms configured. Please go to <strong>Settings</strong> to configure your API keys for image, video, and audio generation.
+            No AI platforms configured. Please go to <strong>Settings</strong> to configure your API keys for image and video generation.
           </AlertDescription>
         </Alert>
       )}
@@ -505,21 +597,17 @@ export default function VisualCreator() {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-foreground">
-                        {selectedMediaType === 'audio' ? 'Audio Type' : 'Dimensions'}
-                      </label>
+                      <label className="text-sm font-medium text-foreground">Dimensions</label>
                       <Select value={selectedDimensions} onValueChange={setSelectedDimensions}>
                         <SelectTrigger>
-                          <SelectValue placeholder={`Choose ${selectedMediaType === 'audio' ? 'type' : 'dimensions'}`} />
+                          <SelectValue placeholder="Choose dimensions" />
                         </SelectTrigger>
                         <SelectContent>
                           {currentDimensions.map((dim) => (
                             <SelectItem key={dim.id} value={dim.id}>
                               <div>
                                 <div className="font-medium">{dim.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {selectedMediaType === 'audio' ? dim.duration : dim.size}
-                                </div>
+                                <div className="text-sm text-muted-foreground">{dim.size}</div>
                               </div>
                             </SelectItem>
                           ))}
@@ -597,15 +685,16 @@ export default function VisualCreator() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-primary" />
-                    Suggested Prompts
+                    AI Suggested Prompts
+                    {isLoadingSuggestions && <Loader2 className="h-4 w-4 animate-spin" />}
                   </CardTitle>
                   <CardDescription>
-                    AI-generated suggestions for {selectedMediaType} content
+                    AI-generated suggestions based on your strategy
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {currentSuggestions.map((suggestion, index) => (
+                    {aiSuggestions.map((suggestion, index) => (
                       <div key={index} className="space-y-2">
                         <Button
                           variant="outline"
@@ -617,7 +706,12 @@ export default function VisualCreator() {
                         >
                           <div className="flex items-start gap-2 w-full">
                             {suggestion.isAIGenerated && <Sparkles className="h-3 w-3 text-purple-600 mt-1 flex-shrink-0" />}
-                            <span className="text-sm">{suggestion.text}</span>
+                            <div className="text-left">
+                              <div className="text-sm font-medium">{suggestion.text}</div>
+                              {suggestion.reasoning && (
+                                <div className="text-xs text-muted-foreground mt-1">{suggestion.reasoning}</div>
+                              )}
+                            </div>
                           </div>
                         </Button>
                       </div>
@@ -635,17 +729,29 @@ export default function VisualCreator() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start">
-                      <Grid3X3 className="h-4 w-4 mr-2" />
-                      Template Library
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Batch Generate
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => handleQuickAction('saved-content')}
+                    >
                       <Eye className="h-4 w-4 mr-2" />
-                      Preview Gallery
+                      View Saved Content
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => handleQuickAction('refresh-suggestions')}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh AI Suggestions
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => handleQuickAction('batch-generate')}
+                    >
+                      <Grid3X3 className="h-4 w-4 mr-2" />
+                      Batch Generate
                     </Button>
                   </div>
                 </CardContent>
@@ -662,7 +768,6 @@ export default function VisualCreator() {
             <CardTitle className="flex items-center gap-2">
               {selectedMediaType === 'image' && <ImageIcon className="h-5 w-5 text-primary" />}
               {selectedMediaType === 'video' && <Video className="h-5 w-5 text-primary" />}
-              {selectedMediaType === 'audio' && <Music className="h-5 w-5 text-primary" />}
               Generated {selectedMediaType.charAt(0).toUpperCase() + selectedMediaType.slice(1)} Content
             </CardTitle>
             <CardDescription>
@@ -685,14 +790,6 @@ export default function VisualCreator() {
                       {visual.type === 'video' && (
                         <div className="w-full h-full flex items-center justify-center bg-gray-900">
                           <PlayCircle className="h-12 w-12 text-white" />
-                        </div>
-                      )}
-                      {visual.type === 'audio' && (
-                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
-                          <Music className="h-12 w-12 text-white mb-2" />
-                          <audio controls className="w-full">
-                            <source src={visual.url} type="audio/mpeg" />
-                          </audio>
                         </div>
                       )}
                     </div>
@@ -745,7 +842,12 @@ export default function VisualCreator() {
                           <Copy className="h-3 w-3 mr-1" />
                           Duplicate
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => saveVisualContent(visual)}
+                        >
                           <Save className="h-3 w-3 mr-1" />
                           Save
                         </Button>
@@ -766,6 +868,102 @@ export default function VisualCreator() {
           </CardContent>
         </Card>
       )}
+
+      {/* Saved Content Dialog */}
+      <Dialog open={showSavedContent} onOpenChange={setShowSavedContent}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Saved Visual Content</DialogTitle>
+            <DialogDescription>
+              Manage your saved {selectedMediaType} content
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <Input
+                placeholder="Search content..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+              />
+              <Select value={filterPlatform} onValueChange={setFilterPlatform}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All platforms</SelectItem>
+                  {socialPlatforms.map((platform) => (
+                    <SelectItem key={platform.id} value={platform.id}>
+                      {platform.icon} {platform.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isLoadingSaved ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {savedVisuals
+                  .filter(content => 
+                    (!searchQuery || content.title.toLowerCase().includes(searchQuery.toLowerCase())) &&
+                    (!filterPlatform || content.metadata?.platform === filterPlatform)
+                  )
+                  .map((content) => (
+                    <Card key={content.id}>
+                      <CardContent className="p-4">
+                        <div className="aspect-square bg-muted rounded-lg mb-3 overflow-hidden">
+                          {content.content_type === 'image' ? (
+                            <img
+                              src={content.content}
+                              alt={content.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                              <PlayCircle className="h-8 w-8 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm line-clamp-2">{content.title}</h4>
+                          
+                          <div className="flex gap-1 flex-wrap">
+                            <Badge variant="secondary" className="text-xs">
+                              {content.metadata?.style}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {content.metadata?.aiPlatform}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex gap-2 pt-2">
+                            <Button variant="outline" size="sm" className="flex-1">
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex-1">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              Schedule
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
