@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePublishedContent } from "@/components/calendar/content-integration";
+import { useSocialEngagement, type AIResponse } from "@/hooks/use-social-engagement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,17 +56,29 @@ import {
 export default function SocialMediaEngagement() {
   const { toast } = useToast();
   const publishedContent = usePublishedContent();
+  const {
+    mentions,
+    opportunities,
+    influencers,
+    loading,
+    analyzing,
+    monitorMentions,
+    getEngagementOpportunities,
+    discoverInfluencers,
+    generateAIResponse,
+    analyzeSentiment,
+    trackHashtags
+  } = useSocialEngagement();
   
   const [selectedPlatform, setSelectedPlatform] = useState("");
   const [engagementType, setEngagementType] = useState("");
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [engagementQueue, setEngagementQueue] = useState<any[]>([]);
-  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
   const [selectedThread, setSelectedThread] = useState<any>(null);
+  const [aiResponseData, setAiResponseData] = useState<AIResponse | null>(null);
+  const [responseStyle, setResponseStyle] = useState("professional");
+  const [industryNiche, setIndustryNiche] = useState("");
+  const [minFollowers, setMinFollowers] = useState("");
+  const [hashtagInput, setHashtagInput] = useState("");
 
   const platforms = [
     { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
@@ -83,60 +96,66 @@ export default function SocialMediaEngagement() {
     { value: "trend-participation", label: "Trend Participation", icon: TrendingUp, description: "Participate in trending conversations" }
   ];
 
-  const mockInfluencers: any[] = [];
-  const mockHashtagResults: any[] = [];
-  const mockEngagementQueue: any[] = [];
-
   const handleSearchInfluencers = async () => {
-    setIsSearching(true);
-    // Simulate AI analysis
-    setTimeout(() => {
-      setSearchResults(mockInfluencers);
-      setIsSearching(false);
+    if (!selectedPlatform) {
       toast({
-        title: "AI Analysis Complete",
-        description: "Found 3 high-potential influencers with engagement recommendations",
+        title: "Platform Required",
+        description: "Please select a platform to search for influencers.",
+        variant: "destructive"
       });
-    }, 2000);
+      return;
+    }
+
+    const criteria = {
+      platform: selectedPlatform,
+      niche: industryNiche,
+      min_followers: parseInt(minFollowers) || 1000
+    };
+
+    await discoverInfluencers(selectedPlatform, criteria);
   };
 
   const handleAIAnalysis = async () => {
-    setIsAnalyzing(true);
-    // Simulate AI analysis of current engagement opportunities
-    setTimeout(() => {
-      setAiRecommendations([
-        {
-          type: "thread_reply",
-          priority: "high",
-          suggestion: "Reply to @sarahjohnson's comment with personalized marketing advice",
-          confidence: 94
-        },
-        {
-          type: "influencer_outreach", 
-          priority: "medium",
-          suggestion: "Reach out to @bizleader with collaboration proposal",
-          confidence: 87
-        }
-      ]);
-      setIsAnalyzing(false);
-      toast({
-        title: "AI Recommendations Ready",
-        description: "Generated 2 high-priority engagement opportunities",
-      });
-    }, 1500);
+    const platforms = ['twitter', 'facebook', 'instagram', 'linkedin'];
+    
+    for (const platform of platforms) {
+      await getEngagementOpportunities(platform);
+    }
   };
 
-  const handleGenerateAIResponse = async (thread: any) => {
-    setIsGeneratingResponse(true);
-    setSelectedThread(thread);
-    // Simulate AI response generation
-    setTimeout(() => {
-      setIsGeneratingResponse(false);
+  const handleGenerateAIResponse = async (mention: any) => {
+    setSelectedThread(mention);
+    
+    const response = await generateAIResponse(
+      mention.content,
+      {
+        user: mention.user,
+        platform: mention.platform,
+        sentiment: mention.sentiment
+      },
+      responseStyle,
+      mention.platform
+    );
+
+    if (response) {
+      setAiResponseData(response);
+    }
+  };
+
+  const handleHashtagSearch = async () => {
+    if (!hashtagInput.trim()) {
       toast({
-        title: "AI Response Generated",
-        description: "Personalized response ready for review",
+        title: "Hashtags Required",
+        description: "Please enter hashtags to track.",
+        variant: "destructive"
       });
-    }, 1000);
+      return;
+    }
+
+    const hashtags = hashtagInput.split(',').map(h => h.trim()).filter(h => h);
+    const platform = selectedPlatform || 'twitter';
+    
+    await trackHashtags(platform, hashtags);
   };
 
   const handleEngageWithInfluencer = (influencer: any) => {
@@ -165,9 +184,9 @@ export default function SocialMediaEngagement() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleAIAnalysis} disabled={isAnalyzing}>
-            {isAnalyzing ? <Refresh className="h-4 w-4 mr-2 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
-            {isAnalyzing ? "Analyzing..." : "AI Analysis"}
+          <Button onClick={handleAIAnalysis} disabled={analyzing}>
+            {analyzing ? <Refresh className="h-4 w-4 mr-2 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
+            {analyzing ? "Analyzing..." : "AI Analysis"}
           </Button>
         </div>
       </div>
@@ -244,16 +263,33 @@ export default function SocialMediaEngagement() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockEngagementQueue.length === 0 ? (
+                {mentions.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No engagement queue items</p>
                     <p className="text-sm">Start engaging with your audience to see items here</p>
                   </div>
                 ) : (
-                  mockEngagementQueue.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      {/* ... existing item rendering ... */}
+                  mentions.filter(mention => mention.requires_response).map((mention) => (
+                    <div key={mention.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-medium">{mention.user}</span>
+                          <Badge variant="outline" className="text-xs">{mention.platform}</Badge>
+                          <Badge variant={mention.sentiment === 'positive' ? 'default' : 'secondary'} className="text-xs">
+                            {mention.sentiment}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{mention.content}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {new Date(mention.timestamp).toLocaleString()}
+                        </div>
+                      </div>
+                      <Button size="sm" onClick={() => handleGenerateAIResponse(mention)}>
+                        <Brain className="h-4 w-4 mr-1" />
+                        AI Reply
+                      </Button>
                     </div>
                   ))
                 )}
@@ -276,7 +312,7 @@ export default function SocialMediaEngagement() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Analysis Progress */}
-              {isAnalyzing && (
+              {analyzing && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Refresh className="h-4 w-4 animate-spin" />
@@ -296,18 +332,18 @@ export default function SocialMediaEngagement() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {mockEngagementQueue.filter(item => item.status === 'pending').map((item) => (
-                      <div key={item.id} className="p-4 border rounded-lg space-y-3">
+                    {mentions.filter(mention => mention.requires_response).slice(0, 3).map((mention) => (
+                      <div key={mention.id} className="p-4 border rounded-lg space-y-3">
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="font-medium">{item.user}</p>
-                            <p className="text-sm text-muted-foreground">{item.content}</p>
+                            <p className="font-medium">{mention.user}</p>
+                            <p className="text-sm text-muted-foreground">{mention.content}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="text-xs">{item.platform}</Badge>
-                              <Badge variant={item.sentiment === 'positive' ? 'default' : 'secondary'} className="text-xs">
-                                {item.sentiment}
+                              <Badge variant="outline" className="text-xs">{mention.platform}</Badge>
+                              <Badge variant={mention.sentiment === 'positive' ? 'default' : 'secondary'} className="text-xs">
+                                {mention.sentiment}
                               </Badge>
-                              <Badge variant="outline" className="text-xs">{item.engagement_potential} potential</Badge>
+                              <Badge variant="outline" className="text-xs">{mention.engagement_potential} potential</Badge>
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
@@ -318,13 +354,13 @@ export default function SocialMediaEngagement() {
                         
                         <div className="bg-muted p-3 rounded-lg">
                           <Label className="text-xs font-medium text-muted-foreground">AI Suggested Response:</Label>
-                          <p className="text-sm mt-1">{item.aiSuggestion}</p>
+                          <p className="text-sm mt-1">AI will generate personalized response...</p>
                         </div>
                         
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleGenerateAIResponse(item)}>
+                          <Button size="sm" onClick={() => handleGenerateAIResponse(mention)}>
                             <Wand2 className="h-4 w-4 mr-1" />
-                            Refine
+                            Generate
                           </Button>
                           <Button size="sm" variant="outline">
                             <Copy className="h-4 w-4 mr-1" />
@@ -348,7 +384,7 @@ export default function SocialMediaEngagement() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {mockInfluencers.slice(0, 2).map((influencer) => (
+                    {influencers.slice(0, 2).map((influencer) => (
                       <div key={influencer.id} className="p-4 border rounded-lg space-y-3">
                         <div className="flex items-start justify-between">
                           <div>
@@ -358,7 +394,7 @@ export default function SocialMediaEngagement() {
                               <Badge variant="outline" className="text-xs">{influencer.platform}</Badge>
                               <div className="flex items-center gap-1">
                                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span className="text-xs">AI Score: {influencer.aiScore}%</span>
+                                <span className="text-xs">AI Score: {influencer.ai_score}%</span>
                               </div>
                             </div>
                           </div>
