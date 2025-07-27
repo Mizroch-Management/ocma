@@ -380,18 +380,14 @@ export default function VisualCreator() {
       )}
 
       <Tabs value={selectedMediaType} onValueChange={(value: any) => setSelectedMediaType(value)} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="image" className="flex items-center gap-2">
             <Camera className="h-4 w-4" />
             Images
           </TabsTrigger>
           <TabsTrigger value="video" className="flex items-center gap-2">
             <Film className="h-4 w-4" />
-            Videos
-          </TabsTrigger>
-          <TabsTrigger value="audio" className="flex items-center gap-2">
-            <Music className="h-4 w-4" />
-            Audio
+            Videos (with Audio)
           </TabsTrigger>
         </TabsList>
 
