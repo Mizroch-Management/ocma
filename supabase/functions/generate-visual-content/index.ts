@@ -64,23 +64,31 @@ async function generateWithOpenAI(prompt: string, style: string, dimensions: str
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
   
+  console.log('Attempting to fetch OpenAI API key from database...');
+  
   const { data: apiKeyData, error } = await supabase
     .from('system_settings')
-    .select('setting_value')
+    .select('*')
     .eq('setting_key', 'openai_api_key')
-    .eq('category', 'ai_platforms')
-    .maybeSingle();
+    .eq('category', 'ai_platforms');
     
-  console.log('API key query result:', { apiKeyData, error });
-    
+  console.log('Raw API key query result:', { apiKeyData, error, count: apiKeyData?.length });
+  
   if (error) {
     console.error('Database error:', error);
     throw new Error(`Database error: ${error.message}`);
   }
   
-  const apiKey = apiKeyData?.setting_value?.api_key;
+  if (!apiKeyData || apiKeyData.length === 0) {
+    console.error('No OpenAI API key record found in database');
+    throw new Error('OpenAI API key not found in system settings');
+  }
+  
+  const apiKey = apiKeyData[0]?.setting_value?.api_key;
+  console.log('Extracted API key exists:', !!apiKey);
+  
   if (!apiKey) {
-    console.error('No OpenAI API key found in database');
+    console.error('No OpenAI API key found in setting_value');
     throw new Error('OpenAI API key not configured in system settings');
   }
 
