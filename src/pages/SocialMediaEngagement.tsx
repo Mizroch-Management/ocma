@@ -79,6 +79,9 @@ export default function SocialMediaEngagement() {
   const [industryNiche, setIndustryNiche] = useState("");
   const [minFollowers, setMinFollowers] = useState("");
   const [hashtagInput, setHashtagInput] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [mockHashtagResults, setMockHashtagResults] = useState<any[]>([]);
 
   const platforms = [
     { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
@@ -408,7 +411,7 @@ export default function SocialMediaEngagement() {
                           
                           <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg">
                             <Label className="text-xs font-medium text-green-700 dark:text-green-300">Suggested Approach:</Label>
-                            <p className="text-sm mt-1 text-green-600 dark:text-green-400">{influencer.suggestedApproach}</p>
+                            <p className="text-sm mt-1 text-green-600 dark:text-green-400">{influencer.suggested_approach}</p>
                           </div>
                         </div>
                         
