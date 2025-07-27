@@ -569,7 +569,7 @@ export default function VisualCreator() {
                           <SelectValue placeholder="Select content plan (optional)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No specific plan</SelectItem>
+                          <SelectItem value="none">No specific plan</SelectItem>
                           {workflowState.approvedPlans.map((plan) => (
                             <SelectItem key={plan.id} value={plan.id}>
                               <div className="flex items-center gap-2">
@@ -643,9 +643,9 @@ export default function VisualCreator() {
                           ))}
                           {aiPlatformsByType[selectedMediaType]
                             .filter(platform => configuredPlatforms.some(cp => cp.key === platform.key)).length === 0 && (
-                            <SelectItem value="" disabled className="bg-background">
-                              No configured AI platforms for {selectedMediaType}
-                            </SelectItem>
+                             <SelectItem value="no-platforms" disabled className="bg-background">
+                               No configured AI platforms for {selectedMediaType}
+                             </SelectItem>
                           )}
                         </SelectContent>
                       </Select>
@@ -905,7 +905,7 @@ export default function VisualCreator() {
                   <SelectValue placeholder="Filter by platform" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All platforms</SelectItem>
+                  <SelectItem value="all">All platforms</SelectItem>
                   {socialPlatforms.map((platform) => (
                     <SelectItem key={platform.id} value={platform.id}>
                       {platform.icon} {platform.name}
@@ -924,7 +924,7 @@ export default function VisualCreator() {
                 {savedVisuals
                   .filter(content => 
                     (!searchQuery || content.title.toLowerCase().includes(searchQuery.toLowerCase())) &&
-                    (!filterPlatform || content.metadata?.platform === filterPlatform)
+                    (!filterPlatform || filterPlatform === "all" || content.metadata?.platform === filterPlatform)
                   )
                   .map((content) => (
                     <Card key={content.id}>
