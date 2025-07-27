@@ -104,6 +104,8 @@ export default function VisualCreator() {
       { key: "huggingface", name: "Hugging Face", quality: "medium", speed: "medium", cost: "free", description: "Free open-source models" }
     ],
     video: [
+      { key: "google_ai", name: "Google VEO3", quality: "high", speed: "medium", cost: "$$", description: "Google's advanced video generation model" },
+      { key: "runware", name: "Runware Flow", quality: "high", speed: "fast", cost: "$$", description: "Fast AI video generation with Flow" },
       { key: "runware", name: "Runware Video", quality: "high", speed: "slow", cost: "$$$", description: "AI video generation and editing" },
       { key: "stability_ai", name: "Stability Video", quality: "high", speed: "slow", cost: "$$$", description: "Stable Video Diffusion" }
     ]
