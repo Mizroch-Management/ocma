@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +14,12 @@ serve(async (req) => {
 
   try {
     const { prompt, style, dimensions, platform, mediaType, settings } = await req.json();
+    
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     console.log('Generating visual content:', { prompt, style, dimensions, platform, mediaType });
 
@@ -51,7 +58,19 @@ serve(async (req) => {
 });
 
 async function generateWithOpenAI(prompt: string, style: string, dimensions: string, settings: any) {
-  const apiKey = Deno.env.get('OPENAI_API_KEY');
+  // Get API key from database
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  
+  const { data: apiKeyData } = await supabase
+    .from('system_settings')
+    .select('setting_value')
+    .eq('setting_key', 'openai_api_key')
+    .single();
+    
+  const apiKey = apiKeyData?.setting_value?.api_key;
   if (!apiKey) throw new Error('OpenAI API key not configured');
 
   const dimensionMap: { [key: string]: string } = {

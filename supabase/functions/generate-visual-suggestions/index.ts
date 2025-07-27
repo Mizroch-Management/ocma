@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,6 +25,23 @@ serve(async (req) => {
 
     if (!mediaType) {
       throw new Error('Media type is required');
+    }
+
+    // Get OpenAI API key from database
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    const { data: apiKeyData } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'openai_api_key')
+      .single();
+      
+    const openAIApiKey = apiKeyData?.setting_value?.api_key;
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
     }
 
     // Build context for AI suggestions
