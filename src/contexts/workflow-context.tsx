@@ -59,6 +59,72 @@ interface WorkflowProgress {
   schedulingComplete: boolean;
 }
 
+interface AIStrategyStep {
+  id: string;
+  title: string;
+  description: string;
+  aiGenerated: string;
+  userPrompt: string;
+  status: 'pending' | 'generating' | 'review' | 'approved' | 'retry';
+  progress: number;
+}
+
+interface ContentPlan {
+  id: string;
+  week: number;
+  theme: string;
+  objectives: string[];
+  contentTypes: {
+    type: string;
+    count: number;
+    platforms: string[];
+    description: string;
+  }[];
+  platforms: {
+    name: string;
+    postingSchedule: string[];
+    contentFocus: string;
+  }[];
+  kpis: string[];
+  aiGenerated: string;
+  userPrompt: string;
+  status: 'pending' | 'generating' | 'review' | 'approved' | 'retry';
+  progress: number;
+}
+
+interface ContentPiece {
+  id: string;
+  type: string;
+  platform: string;
+  title: string;
+  content: string;
+  hashtags: string[];
+  callToAction: string;
+  schedulingSuggestion: string;
+  aiGenerated: string;
+  userPrompt: string;
+  status: 'pending' | 'generating' | 'review' | 'approved' | 'retry';
+  progress: number;
+  variations: string[];
+}
+
+interface WorkflowDraftData {
+  strategySteps: AIStrategyStep[];
+  currentStrategyStep: number;
+  selectedAIPlatform: string;
+  monthlyOverview: {
+    aiGenerated: string;
+    userPrompt: string;
+    status: 'pending' | 'generating' | 'review' | 'approved';
+    progress: number;
+  };
+  planningPhase: 'overview' | 'weekly';
+  weeklyPlans: ContentPlan[];
+  contentPieces: ContentPiece[];
+  selectedWeek: string;
+  selectedDay: string;
+}
+
 interface BusinessInfo {
   company: string;
   industry: string;
@@ -76,6 +142,7 @@ interface BusinessInfo {
 
 interface WorkflowState {
   businessInfo: BusinessInfo | null;
+  draftData: WorkflowDraftData | null;
   approvedStrategy: WorkflowStrategy | null;
   approvedPlans: ContentPlan[];
   approvedContent: GeneratedContent[];
@@ -85,6 +152,7 @@ interface WorkflowState {
 
 type WorkflowAction = 
   | { type: 'SET_BUSINESS_INFO'; payload: BusinessInfo }
+  | { type: 'SET_DRAFT_DATA'; payload: Partial<WorkflowDraftData> }
   | { type: 'SET_APPROVED_STRATEGY'; payload: WorkflowStrategy }
   | { type: 'SET_APPROVED_PLANS'; payload: ContentPlan[] }
   | { type: 'SET_APPROVED_CONTENT'; payload: GeneratedContent[] }
@@ -94,6 +162,7 @@ type WorkflowAction =
 
 const initialState: WorkflowState = {
   businessInfo: null,
+  draftData: null,
   approvedStrategy: null,
   approvedPlans: [],
   approvedContent: [],
@@ -114,6 +183,11 @@ const workflowReducer = (state: WorkflowState, action: WorkflowAction): Workflow
       return {
         ...state,
         businessInfo: action.payload,
+      };
+    case 'SET_DRAFT_DATA':
+      return {
+        ...state,
+        draftData: state.draftData ? { ...state.draftData, ...action.payload } : action.payload as WorkflowDraftData,
       };
     case 'SET_APPROVED_STRATEGY':
       return {
@@ -236,4 +310,4 @@ export const useWorkflow = () => {
   return context;
 };
 
-export type { BusinessInfo, WorkflowStrategy, ContentPlan, GeneratedContent, WorkflowProgress, WorkflowState };
+export type { BusinessInfo, WorkflowStrategy, ContentPlan, GeneratedContent, WorkflowProgress, WorkflowState, AIStrategyStep, ContentPiece, WorkflowDraftData };

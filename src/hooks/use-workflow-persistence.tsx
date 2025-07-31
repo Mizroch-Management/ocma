@@ -29,6 +29,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         status: state.isWorkflowActive ? 'active' : 'draft',
         current_step: state.progress.currentStep,
         business_info_data: state.businessInfo ? JSON.parse(JSON.stringify(state.businessInfo)) : null,
+        draft_data: state.draftData ? JSON.parse(JSON.stringify(state.draftData)) : null,
         strategy_data: state.approvedStrategy ? JSON.parse(JSON.stringify(state.approvedStrategy)) : null,
         plans_data: JSON.parse(JSON.stringify(state.approvedPlans)),
         content_data: JSON.parse(JSON.stringify(state.approvedContent)),
@@ -97,6 +98,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
       // Reconstruct the WorkflowState from database
       const state: WorkflowState = {
         businessInfo: (workflow.business_info_data as any) || null,
+        draftData: (workflow.draft_data as any) || null,
         approvedStrategy: workflow.strategy_data as any || null,
         approvedPlans: (workflow.plans_data as any) || [],
         approvedContent: (workflow.content_data as any) || [],
