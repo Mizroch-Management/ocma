@@ -291,6 +291,7 @@ export type Database = {
       }
       workflows: {
         Row: {
+          business_info_data: Json | null
           content_data: Json | null
           created_at: string
           current_step: number
@@ -307,6 +308,7 @@ export type Database = {
           workflow_type: string
         }
         Insert: {
+          business_info_data?: Json | null
           content_data?: Json | null
           created_at?: string
           current_step?: number
@@ -323,6 +325,7 @@ export type Database = {
           workflow_type?: string
         }
         Update: {
+          business_info_data?: Json | null
           content_data?: Json | null
           created_at?: string
           current_step?: number
