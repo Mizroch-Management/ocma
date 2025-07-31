@@ -22,6 +22,13 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
     if (!user?.id) return;
 
     try {
+      console.log('Saving workflow state:', {
+        businessInfo: state.businessInfo,
+        hasBusinessInfo: !!state.businessInfo,
+        approvedStrategy: state.approvedStrategy,
+        progress: state.progress
+      });
+
       const workflowData = {
         user_id: user.id,
         workflow_type: 'ai_workflow',
@@ -94,6 +101,13 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
       }
 
       if (!workflow) return null;
+
+      console.log('Loading workflow from database:', {
+        id: workflow.id,
+        business_info_data: workflow.business_info_data,
+        hasBusinessInfo: !!workflow.business_info_data,
+        updated_at: workflow.updated_at
+      });
 
       // Reconstruct the WorkflowState from database
       const state: WorkflowState = {

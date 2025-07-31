@@ -12,6 +12,7 @@ import { SmartContentPlanner } from "@/components/ai-workflow/smart-content-plan
 import { IntelligentContentCreator } from "@/components/ai-workflow/intelligent-content-creator";
 import { WorkflowIntegrationDashboard } from "@/components/workflow/workflow-integration-dashboard";
 import { useWorkflow, type BusinessInfo } from "@/contexts/workflow-context";
+import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { 
   ArrowRight, 
   CheckCircle, 
@@ -36,6 +37,7 @@ interface WorkflowStep {
 export default function AIWorkflow() {
   const { toast } = useToast();
   const { state, dispatch } = useWorkflow();
+  const { saveWorkflow } = useWorkflowPersistence();
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
   
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([
@@ -236,9 +238,18 @@ export default function AIWorkflow() {
           </p>
         </div>
         
-        <div className="text-right">
-          <div className="text-2xl font-bold text-primary">{Math.round(overallProgress)}%</div>
-          <div className="text-sm text-muted-foreground">Complete</div>
+        <div className="flex items-center gap-4">
+          <Button 
+            onClick={() => saveWorkflow(state)}
+            variant="outline"
+            size="sm"
+          >
+            Debug Save
+          </Button>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-primary">{Math.round(overallProgress)}%</div>
+            <div className="text-sm text-muted-foreground">Complete</div>
+          </div>
         </div>
       </div>
 
