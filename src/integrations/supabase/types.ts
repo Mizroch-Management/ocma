@@ -295,6 +295,7 @@ export type Database = {
           content_data: Json | null
           created_at: string
           current_step: number
+          draft_data: Json | null
           id: string
           last_saved_at: string
           metadata: Json | null
@@ -312,6 +313,7 @@ export type Database = {
           content_data?: Json | null
           created_at?: string
           current_step?: number
+          draft_data?: Json | null
           id?: string
           last_saved_at?: string
           metadata?: Json | null
@@ -329,6 +331,7 @@ export type Database = {
           content_data?: Json | null
           created_at?: string
           current_step?: number
+          draft_data?: Json | null
           id?: string
           last_saved_at?: string
           metadata?: Json | null

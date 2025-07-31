@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,31 +11,7 @@ import { Brain, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, TrendingUp, Wr
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-
-interface AIStrategyStep {
-  id: string;
-  title: string;
-  description: string;
-  aiGenerated: string;
-  userPrompt: string;
-  status: 'pending' | 'generating' | 'review' | 'approved' | 'retry';
-  progress: number;
-}
-
-interface BusinessInfo {
-  company: string;
-  industry: string;
-  productService: string;
-  primaryObjectives: string;
-  targetAudience: string;
-  targetMarkets: string;
-  budget: string;
-  uniqueSellingPoints: string;
-  competitors: string;
-  brandPersonality: string;
-  keyMetrics: string;
-  additionalContext: string;
-}
+import { useWorkflow, type BusinessInfo, type AIStrategyStep } from "@/contexts/workflow-context";
 
 interface AIStrategyConsultantProps {
   onStrategyApproved: (strategy: any) => void;
@@ -45,6 +21,8 @@ interface AIStrategyConsultantProps {
 export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStrategyConsultantProps) {
   const { toast } = useToast();
   const { platforms, getPlatformsWithTools } = useAIPlatforms();
+  const { state, dispatch } = useWorkflow();
+  
   const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<AIStrategyStep[]>([
@@ -85,6 +63,31 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
       progress: 0
     }
   ]);
+
+  // Load saved draft data on mount
+  useEffect(() => {
+    if (state.draftData?.strategySteps) {
+      setSteps(state.draftData.strategySteps);
+    }
+    if (state.draftData?.currentStrategyStep !== undefined) {
+      setCurrentStep(state.draftData.currentStrategyStep);
+    }
+    if (state.draftData?.selectedAIPlatform) {
+      setSelectedPlatform(state.draftData.selectedAIPlatform);
+    }
+  }, [state.draftData]);
+
+  // Auto-save when steps change
+  useEffect(() => {
+    dispatch({
+      type: 'SET_DRAFT_DATA',
+      payload: {
+        strategySteps: steps,
+        currentStrategyStep: currentStep,
+        selectedAIPlatform: selectedPlatform,
+      }
+    });
+  }, [steps, currentStep, selectedPlatform, dispatch]);
 
   const generateStepContent = async (stepIndex: number, customPrompt?: string) => {
     const step = steps[stepIndex];

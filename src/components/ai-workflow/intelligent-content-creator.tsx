@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,36 +9,48 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Wand2, Edit3, RefreshCw, CheckCircle, Copy, Eye, Share, MessageSquare, Image, Video, FileText, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
-interface ContentPiece {
-  id: string;
-  type: string;
-  platform: string;
-  title: string;
-  content: string;
-  hashtags: string[];
-  callToAction: string;
-  schedulingSuggestion: string;
-  aiGenerated: string;
-  userPrompt: string;
-  status: 'pending' | 'generating' | 'review' | 'approved' | 'retry';
-  progress: number;
-  variations: string[];
-}
+import { useWorkflow, type ContentPiece } from "@/contexts/workflow-context";
 
 interface IntelligentContentCreatorProps {
   contentPlans: any[];
-  onContentApproved: (content: ContentPiece[]) => void;
+  onContentApproved: (content: any[]) => void;
 }
 
 export function IntelligentContentCreator({ contentPlans, onContentApproved }: IntelligentContentCreatorProps) {
   const { toast } = useToast();
+  const { state, dispatch } = useWorkflow();
+  
   const [selectedWeek, setSelectedWeek] = useState("1");
   const [selectedDay, setSelectedDay] = useState("monday");
   const [contentPieces, setContentPieces] = useState<ContentPiece[]>([]);
   
   const platforms = ['LinkedIn', 'Instagram', 'Twitter', 'Email', 'Blog'];
   const contentTypes = ['Educational Post', 'Behind-the-Scenes', 'Product Focus', 'Customer Story', 'Industry Insight'];
+
+  // Load saved draft data on mount
+  useEffect(() => {
+    if (state.draftData?.contentPieces) {
+      setContentPieces(state.draftData.contentPieces);
+    }
+    if (state.draftData?.selectedWeek) {
+      setSelectedWeek(state.draftData.selectedWeek);
+    }
+    if (state.draftData?.selectedDay) {
+      setSelectedDay(state.draftData.selectedDay);
+    }
+  }, [state.draftData]);
+
+  // Auto-save when data changes
+  useEffect(() => {
+    dispatch({
+      type: 'SET_DRAFT_DATA',
+      payload: {
+        contentPieces,
+        selectedWeek,
+        selectedDay,
+      }
+    });
+  }, [contentPieces, selectedWeek, selectedDay, dispatch]);
 
   const generateContentForDay = async (week: string, day: string, customPrompt?: string) => {
     // Create content pieces for the selected day

@@ -69,7 +69,7 @@ interface AIStrategyStep {
   progress: number;
 }
 
-interface ContentPlan {
+interface WorkflowContentPlan {
   id: string;
   week: number;
   theme: string;
@@ -119,7 +119,7 @@ interface WorkflowDraftData {
     progress: number;
   };
   planningPhase: 'overview' | 'weekly';
-  weeklyPlans: ContentPlan[];
+  weeklyPlans: WorkflowContentPlan[];
   contentPieces: ContentPiece[];
   selectedWeek: string;
   selectedDay: string;
@@ -310,4 +310,4 @@ export const useWorkflow = () => {
   return context;
 };
 
-export type { BusinessInfo, WorkflowStrategy, ContentPlan, GeneratedContent, WorkflowProgress, WorkflowState, AIStrategyStep, ContentPiece, WorkflowDraftData };
+export type { BusinessInfo, WorkflowStrategy, ContentPlan, GeneratedContent, WorkflowProgress, WorkflowState, AIStrategyStep, ContentPiece, WorkflowDraftData, WorkflowContentPlan };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,37 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, Clock, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
-interface ContentPlan {
-  id: string;
-  week: number;
-  theme: string;
-  objectives: string[];
-  contentTypes: {
-    type: string;
-    count: number;
-    platforms: string[];
-    description: string;
-  }[];
-  platforms: {
-    name: string;
-    postingSchedule: string[];
-    contentFocus: string;
-  }[];
-  kpis: string[];
-  aiGenerated: string;
-  userPrompt: string;
-  status: 'pending' | 'generating' | 'review' | 'approved' | 'retry';
-  progress: number;
-}
+import { useWorkflow, type WorkflowContentPlan } from "@/contexts/workflow-context";
 
 interface SmartContentPlannerProps {
   strategy: any;
-  onPlanApproved: (plans: ContentPlan[]) => void;
+  onPlanApproved: (plans: any[]) => void;
 }
 
 export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPlannerProps) {
   const { toast } = useToast();
+  const { state, dispatch } = useWorkflow();
+  
   const [planningPhase, setPlanningPhase] = useState<'overview' | 'weekly'>('overview');
   const [monthlyOverview, setMonthlyOverview] = useState<{
     aiGenerated: string;
@@ -52,7 +32,7 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
     progress: 0
   });
   
-  const [weeklyPlans, setWeeklyPlans] = useState<ContentPlan[]>([
+  const [weeklyPlans, setWeeklyPlans] = useState<WorkflowContentPlan[]>([
     {
       id: 'week1',
       week: 1,
@@ -106,6 +86,31 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
       progress: 0
     }
   ]);
+
+  // Load saved draft data on mount
+  useEffect(() => {
+    if (state.draftData?.monthlyOverview) {
+      setMonthlyOverview(state.draftData.monthlyOverview);
+    }
+    if (state.draftData?.planningPhase) {
+      setPlanningPhase(state.draftData.planningPhase);
+    }
+    if (state.draftData?.weeklyPlans) {
+      setWeeklyPlans(state.draftData.weeklyPlans);
+    }
+  }, [state.draftData]);
+
+  // Auto-save when data changes
+  useEffect(() => {
+    dispatch({
+      type: 'SET_DRAFT_DATA',
+      payload: {
+        monthlyOverview,
+        planningPhase,
+        weeklyPlans,
+      }
+    });
+  }, [monthlyOverview, planningPhase, weeklyPlans, dispatch]);
 
   const generateMonthlyOverview = async (customPrompt?: string) => {
     setMonthlyOverview(prev => ({ ...prev, status: 'generating', progress: 0 }));
