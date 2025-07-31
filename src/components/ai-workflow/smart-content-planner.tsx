@@ -22,6 +22,7 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
   
   const [planningPhase, setPlanningPhase] = useState<'overview' | 'weekly'>('overview');
   const [showPrompts, setShowPrompts] = useState<{[key: string]: boolean}>({});
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [monthlyOverview, setMonthlyOverview] = useState<{
     aiGenerated: string;
     userPrompt: string;
@@ -142,10 +143,10 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
     setMonthlyOverview(prev => ({ ...prev, status: 'generating', progress: 0, aiPrompt }));
 
     try {
+      let progressValue = 0;
       const progressInterval = setInterval(() => {
-        setMonthlyOverview(prev => 
-          prev.progress < 90 ? { ...prev, progress: prev.progress + 15 } : prev
-        );
+        progressValue = Math.min(progressValue + 15, 90);
+        setMonthlyOverview(prev => ({ ...prev, progress: progressValue }));
       }, 500);
 
       const response = await supabase.functions.invoke('generate-content', {
@@ -232,11 +233,11 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
     ));
 
     try {
+      let progressValue = 0;
       const progressInterval = setInterval(() => {
+        progressValue = Math.min(progressValue + 12, 90);
         setWeeklyPlans(prev => prev.map((plan, i) => 
-          i === weekIndex && plan.progress < 90
-            ? { ...plan, progress: plan.progress + 12 }
-            : plan
+          i === weekIndex ? { ...plan, progress: progressValue } : plan
         ));
       }, 500);
 
@@ -461,9 +462,14 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
   };
 
   const approveOverview = () => {
+    setIsTransitioning(true);
     setMonthlyOverview(prev => ({ ...prev, status: 'approved' }));
-    setPlanningPhase('weekly');
-    generateWeeklyPlan(0);
+    
+    setTimeout(() => {
+      setPlanningPhase('weekly');
+      generateWeeklyPlan(0);
+      setIsTransitioning(false);
+    }, 300);
     
     toast({
       title: "Monthly Overview Approved",
@@ -535,13 +541,21 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
 
       {monthlyOverview.status !== 'pending' && (
         <CardContent className="space-y-6">
-          <Tabs value={planningPhase} onValueChange={setPlanningPhase as any}>
-            <TabsList>
-              <TabsTrigger value="overview">Monthly Overview</TabsTrigger>
-              <TabsTrigger value="weekly" disabled={monthlyOverview.status !== 'approved'}>
-                Weekly Plans
-              </TabsTrigger>
-            </TabsList>
+          {isTransitioning ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Transitioning to weekly planning...</span>
+              </div>
+            </div>
+          ) : (
+            <Tabs value={planningPhase} onValueChange={setPlanningPhase as any}>
+              <TabsList>
+                <TabsTrigger value="overview">Monthly Overview</TabsTrigger>
+                <TabsTrigger value="weekly" disabled={monthlyOverview.status !== 'approved'}>
+                  Weekly Plans
+                </TabsTrigger>
+              </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
               <div className="flex items-center gap-3">
@@ -692,7 +706,8 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
                 </div>
               ))}
             </TabsContent>
-          </Tabs>
+            </Tabs>
+          )}
         </CardContent>
       )}
     </Card>
