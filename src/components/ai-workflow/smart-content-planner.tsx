@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, Clock, BarChart3 } from "lucide-react";
+import { Calendar, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, Clock, BarChart3, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useWorkflow, type WorkflowContentPlan } from "@/contexts/workflow-context";
+import { useWorkflow, type WorkflowContentPlan, type BusinessInfo, type AIStrategyStep } from "@/contexts/workflow-context";
+import { buildPlanningPrompt } from "@/lib/ai-prompt-builder";
 
 interface SmartContentPlannerProps {
   strategy: any;
@@ -20,11 +21,13 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
   const { state, dispatch } = useWorkflow();
   
   const [planningPhase, setPlanningPhase] = useState<'overview' | 'weekly'>('overview');
+  const [showPrompts, setShowPrompts] = useState<{[key: string]: boolean}>({});
   const [monthlyOverview, setMonthlyOverview] = useState<{
     aiGenerated: string;
     userPrompt: string;
     status: 'pending' | 'generating' | 'review' | 'approved';
     progress: number;
+    aiPrompt?: string;
   }>({
     aiGenerated: '',
     userPrompt: '',
@@ -113,7 +116,30 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
   }, [monthlyOverview, planningPhase, weeklyPlans, dispatch]);
 
   const generateMonthlyOverview = async (customPrompt?: string) => {
-    setMonthlyOverview(prev => ({ ...prev, status: 'generating', progress: 0 }));
+    // Get business info and approved strategy steps from context
+    const businessInfo = state.businessInfo;
+    const approvedSteps = state.draftData?.strategySteps?.filter(s => s.status === 'approved') || [];
+    
+    if (!businessInfo) {
+      toast({
+        title: "Missing Information",
+        description: "Business information is required for content planning.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Build comprehensive AI prompt including all context
+    const aiPrompt = buildPlanningPrompt(
+      businessInfo,
+      approvedSteps,
+      'overview',
+      undefined,
+      undefined,
+      customPrompt || monthlyOverview.userPrompt
+    );
+
+    setMonthlyOverview(prev => ({ ...prev, status: 'generating', progress: 0, aiPrompt }));
 
     try {
       const progressInterval = setInterval(() => {
@@ -127,7 +153,7 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
           contentType: 'blog-article',
           strategy: strategy?.name || 'Monthly Content Strategy',
           platforms: ['instagram', 'linkedin', 'twitter'],
-          customPrompt: `Generate a comprehensive monthly content strategy overview. Include strategic focus areas, platform strategy, content distribution, success metrics, and content pillars. ${customPrompt || ''}`,
+          customPrompt: aiPrompt,
           aiTool: 'gpt-4o-mini'
         }
       });
@@ -176,9 +202,32 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
       "Social Proof & Customer Success"
     ];
 
+    // Get business info and approved strategy steps from context
+    const businessInfo = state.businessInfo;
+    const approvedSteps = state.draftData?.strategySteps?.filter(s => s.status === 'approved') || [];
+    
+    if (!businessInfo) {
+      toast({
+        title: "Missing Information",
+        description: "Business information is required for content planning.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Build comprehensive AI prompt including all context
+    const aiPrompt = buildPlanningPrompt(
+      businessInfo,
+      approvedSteps,
+      'weekly',
+      weekIndex + 1,
+      weekThemes[weekIndex],
+      customPrompt || weeklyPlans[weekIndex]?.userPrompt
+    );
+
     setWeeklyPlans(prev => prev.map((plan, i) => 
       i === weekIndex 
-        ? { ...plan, status: 'generating', progress: 0, theme: weekThemes[weekIndex] }
+        ? { ...plan, status: 'generating', progress: 0, theme: weekThemes[weekIndex], aiPrompt }
         : plan
     ));
 
@@ -196,7 +245,7 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
           contentType: 'blog-article',
           strategy: weekThemes[weekIndex],
           platforms: ['instagram', 'linkedin', 'twitter'],
-          customPrompt: `Generate detailed weekly content plan for week ${weekIndex + 1} with theme: ${weekThemes[weekIndex]}. Include specific content types, objectives, and KPIs. ${customPrompt || ''}`,
+          customPrompt: aiPrompt,
           aiTool: 'gpt-4o-mini'
         }
       });
@@ -448,6 +497,13 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
     generateWeeklyPlan(weekIndex, weeklyPlans[weekIndex].userPrompt);
   };
 
+  const togglePromptVisibility = (id: string) => {
+    setShowPrompts(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
   const startPlanning = () => {
     generateMonthlyOverview();
   };
@@ -507,10 +563,28 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
 
               {monthlyOverview.status === 'review' && (
                 <div className="space-y-4 p-4 border rounded-lg bg-background/50">
+                  {monthlyOverview.aiPrompt && (
+                    <div className="space-y-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => togglePromptVisibility('overview')}
+                        className="text-xs"
+                      >
+                        {showPrompts.overview ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+                        {showPrompts.overview ? 'Hide' : 'Show'} AI Prompt
+                      </Button>
+                      {showPrompts.overview && (
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border text-xs">
+                          <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300">{monthlyOverview.aiPrompt}</pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <label className="text-sm font-medium">AI Generated Strategy Overview:</label>
                     <div className="p-3 bg-muted rounded border max-h-96 overflow-y-auto">
-                      <pre className="whitespace-pre-wrap text-sm">{monthlyOverview.aiGenerated}</pre>
+                      <div className="whitespace-pre-wrap text-sm">{monthlyOverview.aiGenerated}</div>
                     </div>
                   </div>
                   

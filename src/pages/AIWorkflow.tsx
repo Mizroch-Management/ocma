@@ -11,7 +11,7 @@ import { AIStrategyConsultant } from "@/components/ai-workflow/ai-strategy-consu
 import { SmartContentPlanner } from "@/components/ai-workflow/smart-content-planner";
 import { IntelligentContentCreator } from "@/components/ai-workflow/intelligent-content-creator";
 import { WorkflowIntegrationDashboard } from "@/components/workflow/workflow-integration-dashboard";
-import { useWorkflow } from "@/contexts/workflow-context";
+import { useWorkflow, type BusinessInfo } from "@/contexts/workflow-context";
 import { 
   ArrowRight, 
   CheckCircle, 
@@ -32,20 +32,6 @@ interface WorkflowStep {
   progress: number;
 }
 
-interface BusinessInfo {
-  company: string;
-  industry: string;
-  productService: string;
-  primaryObjectives: string;
-  targetAudience: string;
-  targetMarkets: string;
-  budget: string;
-  uniqueSellingPoints: string;
-  competitors: string;
-  brandPersonality: string;
-  keyMetrics: string;
-  additionalContext: string;
-}
 
 export default function AIWorkflow() {
   const { toast } = useToast();

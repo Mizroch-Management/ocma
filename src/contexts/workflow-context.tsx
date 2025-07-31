@@ -67,6 +67,7 @@ interface AIStrategyStep {
   userPrompt: string;
   status: 'pending' | 'generating' | 'review' | 'approved' | 'retry';
   progress: number;
+  aiPrompt?: string;
 }
 
 interface WorkflowContentPlan {
@@ -90,6 +91,7 @@ interface WorkflowContentPlan {
   userPrompt: string;
   status: 'pending' | 'generating' | 'review' | 'approved' | 'retry';
   progress: number;
+  aiPrompt?: string;
 }
 
 interface ContentPiece {
@@ -106,6 +108,7 @@ interface ContentPiece {
   status: 'pending' | 'generating' | 'review' | 'approved' | 'retry';
   progress: number;
   variations: string[];
+  aiPrompt?: string;
 }
 
 interface WorkflowDraftData {
@@ -117,6 +120,7 @@ interface WorkflowDraftData {
     userPrompt: string;
     status: 'pending' | 'generating' | 'review' | 'approved';
     progress: number;
+    aiPrompt?: string;
   };
   planningPhase: 'overview' | 'weekly';
   weeklyPlans: WorkflowContentPlan[];
@@ -138,6 +142,7 @@ interface BusinessInfo {
   brandPersonality: string;
   keyMetrics: string;
   additionalContext: string;
+  teamMembers: string[];
 }
 
 interface WorkflowState {

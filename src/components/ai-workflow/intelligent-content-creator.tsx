@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Wand2, Edit3, RefreshCw, CheckCircle, Copy, Eye, Share, MessageSquare, Image, Video, FileText, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkflow, type ContentPiece } from "@/contexts/workflow-context";
+import { buildContentPrompt } from "@/lib/ai-prompt-builder";
 
 interface IntelligentContentCreatorProps {
   contentPlans: any[];
@@ -102,12 +103,27 @@ export function IntelligentContentCreator({ contentPlans, onContentApproved }: I
           ));
         }, 500);
 
+        // Build comprehensive prompt with all context
+        const businessInfo = state.businessInfo;
+        const approvedSteps = state.draftData?.strategySteps?.filter(s => s.status === 'approved') || [];
+        const weeklyPlans = state.draftData?.weeklyPlans?.filter(p => p.status === 'approved') || [];
+        
+        const aiPrompt = businessInfo ? buildContentPrompt(
+          businessInfo,
+          approvedSteps,
+          weeklyPlans,
+          piece.type,
+          piece.platform,
+          `${day} of week ${week}`,
+          customPrompt
+        ) : `Generate ${piece.type} content for ${piece.platform} for ${day} of week ${week}. ${customPrompt || ''}`;
+
         const response = await supabase.functions.invoke('generate-content', {
           body: {
             contentType: piece.type.toLowerCase().replace(' ', '-'),
             strategy: `Week ${week} - ${day} content`,
             platforms: [piece.platform.toLowerCase()],
-            customPrompt: `Generate ${piece.type} content for ${piece.platform} for ${day} of week ${week}. ${customPrompt || ''}`,
+            customPrompt: aiPrompt,
             aiTool: 'gpt-4o-mini'
           }
         });

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Target, Users, DollarSign, Globe, CheckCircle } from "lucide-react";
+import { Building2, Target, Users, DollarSign, Globe, CheckCircle, UserPlus, X } from "lucide-react";
 import { useWorkflow, type BusinessInfo } from "@/contexts/workflow-context";
 
 
@@ -31,7 +31,12 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
     competitors: "",
     brandPersonality: "",
     keyMetrics: "",
-    additionalContext: ""
+    additionalContext: "",
+    teamMembers: [
+      "The best Marketing strategy firm in the world",
+      "The best content creative director and brand manager", 
+      "The best social media marketer"
+    ]
   });
 
   // Load saved business info on mount
@@ -48,8 +53,30 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
     dispatch({ type: 'SET_BUSINESS_INFO', payload: updatedInfo });
   };
 
+  const addTeamMember = (member: string) => {
+    if (member.trim() && businessInfo.teamMembers.length < 8) {
+      const updatedInfo = { 
+        ...businessInfo, 
+        teamMembers: [...businessInfo.teamMembers, member.trim()] 
+      };
+      setBusinessInfo(updatedInfo);
+      dispatch({ type: 'SET_BUSINESS_INFO', payload: updatedInfo });
+    }
+  };
+
+  const removeTeamMember = (index: number) => {
+    if (index >= 3) { // Can't remove default team members
+      const updatedInfo = { 
+        ...businessInfo, 
+        teamMembers: businessInfo.teamMembers.filter((_, i) => i !== index) 
+      };
+      setBusinessInfo(updatedInfo);
+      dispatch({ type: 'SET_BUSINESS_INFO', payload: updatedInfo });
+    }
+  };
+
   const nextStep = () => {
-    if (step < 4) setStep(step + 1);
+    if (step < 5) setStep(step + 1);
   };
 
   const prevStep = () => {
@@ -87,6 +114,8 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
       case 3:
         return businessInfo.targetAudience && businessInfo.targetMarkets;
       case 4:
+        return true; // Team members
+      case 5:
         return true; // Optional step
       default:
         return false;
@@ -260,6 +289,79 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-6">
+              <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                <UserPlus className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Strategy Team Members</h3>
+                <p className="text-sm text-muted-foreground">Define your AI strategy team (up to 8 members)</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label>Default Team Members (Always Included)</Label>
+                <div className="space-y-2 mt-2">
+                  {businessInfo.teamMembers.slice(0, 3).map((member, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded border">
+                      <CheckCircle className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm">{member}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label>Additional Team Members (Optional - Add up to 5 more)</Label>
+                <div className="space-y-2 mt-2">
+                  {businessInfo.teamMembers.slice(3).map((member, index) => (
+                    <div key={index + 3} className="flex items-center gap-2 p-2 bg-muted rounded border">
+                      <span className="text-sm flex-1">{member}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeTeamMember(index + 3)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  
+                  {businessInfo.teamMembers.length < 8 && (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add team member role or expertise..."
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            addTeamMember(e.currentTarget.value);
+                            e.currentTarget.value = '';
+                          }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                          addTeamMember(input.value);
+                          input.value = '';
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
               <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
                 <Globe className="h-5 w-5 text-orange-600" />
               </div>
@@ -321,9 +423,9 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
             </CardDescription>
           </div>
           <div className="text-right">
-            <div className="text-sm text-muted-foreground">Step {step} of 4</div>
+            <div className="text-sm text-muted-foreground">Step {step} of 5</div>
             <div className="text-xs text-muted-foreground">
-              {Math.round((step / 4) * 100)}% Complete
+              {Math.round((step / 5) * 100)}% Complete
             </div>
           </div>
         </div>
@@ -333,7 +435,7 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
         <div className="space-y-6">
           {/* Progress indicator */}
           <div className="flex items-center justify-between mb-6">
-            {[1, 2, 3, 4].map((stepNumber) => (
+            {[1, 2, 3, 4, 5].map((stepNumber) => (
               <div key={stepNumber} className="flex items-center">
                 <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
                   stepNumber < step ? 'bg-green-500 text-white' :
@@ -346,8 +448,8 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
                     stepNumber
                   )}
                 </div>
-                {stepNumber < 4 && (
-                  <div className={`w-16 h-1 mx-2 ${
+                {stepNumber < 5 && (
+                  <div className={`w-12 h-1 mx-1 ${
                     stepNumber < step ? 'bg-green-500' : 'bg-gray-200'
                   }`} />
                 )}
@@ -369,7 +471,7 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
             </Button>
             
             <div className="flex gap-2">
-              {step < 4 ? (
+              {step < 5 ? (
                 <Button 
                   onClick={nextStep}
                   disabled={!isStepValid(step)}

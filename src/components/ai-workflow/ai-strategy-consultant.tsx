@@ -7,11 +7,12 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAIPlatforms } from "@/hooks/use-ai-platforms";
-import { Brain, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, TrendingUp, Wrench, Zap } from "lucide-react";
+import { Brain, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, TrendingUp, Wrench, Zap, Eye, EyeOff } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkflow, type BusinessInfo, type AIStrategyStep } from "@/contexts/workflow-context";
+import { buildStrategyPrompt } from "@/lib/ai-prompt-builder";
 
 interface AIStrategyConsultantProps {
   onStrategyApproved: (strategy: any) => void;
@@ -25,6 +26,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
   
   const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const [currentStep, setCurrentStep] = useState(0);
+  const [showPrompts, setShowPrompts] = useState<{[key: string]: boolean}>({});
   const [steps, setSteps] = useState<AIStrategyStep[]>([
     {
       id: 'objectives',
@@ -92,9 +94,21 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
   const generateStepContent = async (stepIndex: number, customPrompt?: string) => {
     const step = steps[stepIndex];
     
+    // Get approved steps for context
+    const approvedSteps = steps.slice(0, stepIndex).filter(s => s.status === 'approved');
+    
+    // Build comprehensive AI prompt
+    const aiPrompt = buildStrategyPrompt(
+      businessInfo,
+      step.title,
+      step.description,
+      approvedSteps,
+      customPrompt || step.userPrompt
+    );
+    
     setSteps(prev => prev.map((s, i) => 
       i === stepIndex 
-        ? { ...s, status: 'generating', progress: 0 }
+        ? { ...s, status: 'generating', progress: 0, aiPrompt }
         : s
     ));
 
@@ -108,34 +122,12 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
         ));
       }, 500);
 
-      const businessContext = `
-Company: ${businessInfo.company}
-Industry: ${businessInfo.industry}
-Product/Service: ${businessInfo.productService}
-Primary Objectives: ${businessInfo.primaryObjectives}
-Target Audience: ${businessInfo.targetAudience}
-Target Markets: ${businessInfo.targetMarkets}
-Budget: ${businessInfo.budget}
-Unique Selling Points: ${businessInfo.uniqueSellingPoints}
-Competitors: ${businessInfo.competitors}
-Brand Personality: ${businessInfo.brandPersonality}
-Key Metrics: ${businessInfo.keyMetrics}
-Additional Context: ${businessInfo.additionalContext}
-      `;
-
       const response = await supabase.functions.invoke('generate-content', {
         body: {
           contentType: 'strategy-section',
           strategy: step.title,
           platforms: [selectedPlatform],
-          customPrompt: `
-Create a comprehensive marketing strategy section for: ${step.title}
-Section Description: ${step.description}
-Business Context: ${businessContext}
-Additional Instructions: ${customPrompt || step.userPrompt || ''}
-
-Please provide detailed, actionable recommendations specific to this business.
-          `,
+          customPrompt: aiPrompt,
           aiTool: 'gpt-4o-mini'
         }
       });
@@ -216,6 +208,13 @@ Please provide detailed, actionable recommendations specific to this business.
 
   const retryStep = (stepIndex: number) => {
     generateStepContent(stepIndex, steps[stepIndex].userPrompt);
+  };
+
+  const togglePromptVisibility = (stepId: string) => {
+    setShowPrompts(prev => ({
+      ...prev,
+      [stepId]: !prev[stepId]
+    }));
   };
 
   const startAIConsultation = () => {
@@ -315,10 +314,42 @@ Please provide detailed, actionable recommendations specific to this business.
 
                 {step.status === 'review' && (
                   <div className="space-y-4 p-4 border rounded-lg bg-background/50">
+                    {/* AI Prompt Visibility Toggle */}
+                    {step.aiPrompt && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => togglePromptVisibility(step.id)}
+                            className="text-xs"
+                          >
+                            {showPrompts[step.id] ? (
+                              <>
+                                <EyeOff className="h-3 w-3 mr-1" />
+                                Hide AI Prompt
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="h-3 w-3 mr-1" />
+                                Show AI Prompt
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        {showPrompts[step.id] && (
+                          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border text-xs">
+                            <label className="text-xs font-medium text-blue-800 dark:text-blue-200">AI Prompt Used:</label>
+                            <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 mt-1">{step.aiPrompt}</pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">AI Generated Content:</label>
                       <div className="p-3 bg-muted rounded border">
-                        <pre className="whitespace-pre-wrap text-sm">{step.aiGenerated}</pre>
+                        <div className="whitespace-pre-wrap text-sm">{step.aiGenerated}</div>
                       </div>
                     </div>
                     
