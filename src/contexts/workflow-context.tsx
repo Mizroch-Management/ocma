@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { useWorkflowPersistence } from '@/hooks/use-workflow-persistence';
 
 interface WorkflowStrategy {
   id: string;
@@ -146,37 +147,52 @@ const WorkflowContext = createContext<{
 
 export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(workflowReducer, initialState);
+  const { loadWorkflow, autoSaveWorkflow } = useWorkflowPersistence();
   
-  // Remove debug logs for production
-
-  // Load from localStorage on mount
+  // Load workflow data on mount (from database first, then localStorage fallback)
   useEffect(() => {
-    const saved = localStorage.getItem('aiWorkflowState');
-    if (saved) {
+    const loadWorkflowData = async () => {
       try {
-        const parsedState = JSON.parse(saved);
-        // Convert date strings back to Date objects
-        if (parsedState.approvedStrategy) {
-          parsedState.approvedStrategy.createdAt = new Date(parsedState.approvedStrategy.createdAt);
+        // Try to load from database first
+        const dbState = await loadWorkflow();
+        if (dbState) {
+          dispatch({ type: 'LOAD_WORKFLOW', payload: dbState });
+          return;
         }
-        parsedState.approvedPlans?.forEach((plan: any) => {
-          plan.createdAt = new Date(plan.createdAt);
-        });
-        parsedState.approvedContent?.forEach((content: any) => {
-          content.createdAt = new Date(content.createdAt);
-          content.scheduledDate = new Date(content.scheduledDate);
-        });
-        dispatch({ type: 'LOAD_WORKFLOW', payload: parsedState });
+        
+        // Fallback to localStorage
+        const saved = localStorage.getItem('aiWorkflowState');
+        if (saved) {
+          const parsedState = JSON.parse(saved);
+          // Convert date strings back to Date objects
+          if (parsedState.approvedStrategy) {
+            parsedState.approvedStrategy.createdAt = new Date(parsedState.approvedStrategy.createdAt);
+          }
+          parsedState.approvedPlans?.forEach((plan: any) => {
+            plan.createdAt = new Date(plan.createdAt);
+          });
+          parsedState.approvedContent?.forEach((content: any) => {
+            content.createdAt = new Date(content.createdAt);
+            content.scheduledDate = new Date(content.scheduledDate);
+          });
+          dispatch({ type: 'LOAD_WORKFLOW', payload: parsedState });
+        }
       } catch (error) {
         // Silent error handling for production
       }
-    }
-  }, []);
+    };
+    
+    loadWorkflowData();
+  }, [loadWorkflow]);
 
-  // Save to localStorage whenever state changes
+  // Save to both localStorage and database whenever state changes
   useEffect(() => {
+    // Save to localStorage immediately for offline access
     localStorage.setItem('aiWorkflowState', JSON.stringify(state));
-  }, [state]);
+    
+    // Auto-save to database with debouncing
+    autoSaveWorkflow(state);
+  }, [state, autoSaveWorkflow]);
 
   const contextValue = { state, dispatch };
   // Remove debug logs for production
@@ -197,4 +213,4 @@ export const useWorkflow = () => {
   return context;
 };
 
-export type { WorkflowStrategy, ContentPlan, GeneratedContent, WorkflowProgress };
+export type { WorkflowStrategy, ContentPlan, GeneratedContent, WorkflowProgress, WorkflowState };
