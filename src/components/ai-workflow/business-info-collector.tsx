@@ -85,9 +85,9 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
       case 1:
         return businessInfo.company && businessInfo.productService;
       case 2:
-        return businessInfo.primaryObjectives && businessInfo.targetAudience;
+        return businessInfo.primaryObjectives;
       case 3:
-        return businessInfo.targetMarkets;
+        return businessInfo.targetAudience && businessInfo.targetMarkets;
       case 4:
         return true; // Optional step
       default:
