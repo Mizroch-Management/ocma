@@ -42,7 +42,14 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
   // Load saved business info on mount
   useEffect(() => {
     if (state.businessInfo) {
-      setBusinessInfo(state.businessInfo);
+      setBusinessInfo({
+        ...state.businessInfo,
+        teamMembers: state.businessInfo.teamMembers || [
+          "The best Marketing strategy firm in the world",
+          "The best content creative director and brand manager", 
+          "The best social media marketer"
+        ]
+      });
     }
   }, [state.businessInfo]);
 
@@ -54,10 +61,10 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
   };
 
   const addTeamMember = (member: string) => {
-    if (member.trim() && businessInfo.teamMembers.length < 8) {
+    if (member.trim() && (businessInfo.teamMembers || []).length < 8) {
       const updatedInfo = { 
         ...businessInfo, 
-        teamMembers: [...businessInfo.teamMembers, member.trim()] 
+        teamMembers: [...(businessInfo.teamMembers || []), member.trim()] 
       };
       setBusinessInfo(updatedInfo);
       dispatch({ type: 'SET_BUSINESS_INFO', payload: updatedInfo });
@@ -68,7 +75,7 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
     if (index >= 3) { // Can't remove default team members
       const updatedInfo = { 
         ...businessInfo, 
-        teamMembers: businessInfo.teamMembers.filter((_, i) => i !== index) 
+        teamMembers: (businessInfo.teamMembers || []).filter((_, i) => i !== index) 
       };
       setBusinessInfo(updatedInfo);
       dispatch({ type: 'SET_BUSINESS_INFO', payload: updatedInfo });
@@ -299,36 +306,36 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
             </div>
 
             <div className="space-y-4">
-              <div>
-                <Label>Default Team Members (Always Included)</Label>
-                <div className="space-y-2 mt-2">
-                  {businessInfo.teamMembers.slice(0, 3).map((member, index) => (
-                    <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded border">
-                      <CheckCircle className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm">{member}</span>
-                    </div>
-                  ))}
+                <div>
+                  <Label>Default Team Members (Always Included)</Label>
+                  <div className="space-y-2 mt-2">
+                    {(businessInfo.teamMembers || []).slice(0, 3).map((member, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded border">
+                        <CheckCircle className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm">{member}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <Label>Additional Team Members (Optional - Add up to 5 more)</Label>
-                <div className="space-y-2 mt-2">
-                  {businessInfo.teamMembers.slice(3).map((member, index) => (
-                    <div key={index + 3} className="flex items-center gap-2 p-2 bg-muted rounded border">
-                      <span className="text-sm flex-1">{member}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeTeamMember(index + 3)}
-                        className="h-6 w-6 p-0"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  
-                  {businessInfo.teamMembers.length < 8 && (
+                <div>
+                  <Label>Additional Team Members (Optional - Add up to 5 more)</Label>
+                  <div className="space-y-2 mt-2">
+                    {(businessInfo.teamMembers || []).slice(3).map((member, index) => (
+                      <div key={index + 3} className="flex items-center gap-2 p-2 bg-muted rounded border">
+                        <span className="text-sm flex-1">{member}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeTeamMember(index + 3)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    
+                    {(businessInfo.teamMembers || []).length < 8 && (
                     <div className="flex gap-2">
                       <Input
                         placeholder="Add team member role or expertise..."
