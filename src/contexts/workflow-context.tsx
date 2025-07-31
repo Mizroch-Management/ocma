@@ -59,7 +59,23 @@ interface WorkflowProgress {
   schedulingComplete: boolean;
 }
 
+interface BusinessInfo {
+  company: string;
+  industry: string;
+  productService: string;
+  primaryObjectives: string;
+  targetAudience: string;
+  targetMarkets: string;
+  budget: string;
+  uniqueSellingPoints: string;
+  competitors: string;
+  brandPersonality: string;
+  keyMetrics: string;
+  additionalContext: string;
+}
+
 interface WorkflowState {
+  businessInfo: BusinessInfo | null;
   approvedStrategy: WorkflowStrategy | null;
   approvedPlans: ContentPlan[];
   approvedContent: GeneratedContent[];
@@ -68,6 +84,7 @@ interface WorkflowState {
 }
 
 type WorkflowAction = 
+  | { type: 'SET_BUSINESS_INFO'; payload: BusinessInfo }
   | { type: 'SET_APPROVED_STRATEGY'; payload: WorkflowStrategy }
   | { type: 'SET_APPROVED_PLANS'; payload: ContentPlan[] }
   | { type: 'SET_APPROVED_CONTENT'; payload: GeneratedContent[] }
@@ -76,6 +93,7 @@ type WorkflowAction =
   | { type: 'LOAD_WORKFLOW'; payload: WorkflowState };
 
 const initialState: WorkflowState = {
+  businessInfo: null,
   approvedStrategy: null,
   approvedPlans: [],
   approvedContent: [],
@@ -92,6 +110,11 @@ const initialState: WorkflowState = {
 
 const workflowReducer = (state: WorkflowState, action: WorkflowAction): WorkflowState => {
   switch (action.type) {
+    case 'SET_BUSINESS_INFO':
+      return {
+        ...state,
+        businessInfo: action.payload,
+      };
     case 'SET_APPROVED_STRATEGY':
       return {
         ...state,
@@ -213,4 +236,4 @@ export const useWorkflow = () => {
   return context;
 };
 
-export type { WorkflowStrategy, ContentPlan, GeneratedContent, WorkflowProgress, WorkflowState };
+export type { BusinessInfo, WorkflowStrategy, ContentPlan, GeneratedContent, WorkflowProgress, WorkflowState };

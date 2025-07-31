@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,21 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Target, Users, DollarSign, Globe, CheckCircle } from "lucide-react";
+import { useWorkflow, type BusinessInfo } from "@/contexts/workflow-context";
 
-interface BusinessInfo {
-  company: string;
-  industry: string;
-  productService: string;
-  primaryObjectives: string;
-  targetAudience: string;
-  targetMarkets: string;
-  budget: string;
-  uniqueSellingPoints: string;
-  competitors: string;
-  brandPersonality: string;
-  keyMetrics: string;
-  additionalContext: string;
-}
 
 interface BusinessInfoCollectorProps {
   onInfoSubmitted: (businessInfo: BusinessInfo) => void;
@@ -30,6 +17,7 @@ interface BusinessInfoCollectorProps {
 
 export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollectorProps) {
   const { toast } = useToast();
+  const { state, dispatch } = useWorkflow();
   const [step, setStep] = useState(1);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
     company: "",
@@ -46,8 +34,18 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
     additionalContext: ""
   });
 
+  // Load saved business info on mount
+  useEffect(() => {
+    if (state.businessInfo) {
+      setBusinessInfo(state.businessInfo);
+    }
+  }, [state.businessInfo]);
+
   const updateField = (field: keyof BusinessInfo, value: string) => {
-    setBusinessInfo(prev => ({ ...prev, [field]: value }));
+    const updatedInfo = { ...businessInfo, [field]: value };
+    setBusinessInfo(updatedInfo);
+    // Save to workflow context immediately for persistence
+    dispatch({ type: 'SET_BUSINESS_INFO', payload: updatedInfo });
   };
 
   const nextStep = () => {
