@@ -289,6 +289,57 @@ export type Database = {
         }
         Relationships: []
       }
+      workflows: {
+        Row: {
+          content_data: Json | null
+          created_at: string
+          current_step: number
+          id: string
+          last_saved_at: string
+          metadata: Json | null
+          plans_data: Json | null
+          progress_data: Json
+          status: string
+          strategy_data: Json | null
+          title: string | null
+          updated_at: string
+          user_id: string
+          workflow_type: string
+        }
+        Insert: {
+          content_data?: Json | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          last_saved_at?: string
+          metadata?: Json | null
+          plans_data?: Json | null
+          progress_data?: Json
+          status?: string
+          strategy_data?: Json | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          workflow_type?: string
+        }
+        Update: {
+          content_data?: Json | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          last_saved_at?: string
+          metadata?: Json | null
+          plans_data?: Json | null
+          progress_data?: Json
+          status?: string
+          strategy_data?: Json | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          workflow_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
