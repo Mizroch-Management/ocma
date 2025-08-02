@@ -160,7 +160,7 @@ export default function ContentGenerator() {
 
   const saveContentToDatabase = async (content: any) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('generated_content')
         .insert({
           user_id: (await supabase.auth.getUser()).data.user?.id,
@@ -176,7 +176,9 @@ export default function ContentGenerator() {
           platform_optimizations: content.platformOptimizations,
           metadata: content.metadata,
           scheduling_suggestions: content.schedulingSuggestions
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Error saving content:', error);
@@ -185,9 +187,9 @@ export default function ContentGenerator() {
           description: "Failed to save content to database.",
           variant: "destructive"
         });
-        return false;
+        return null;
       }
-      return true;
+      return data;
     } catch (error) {
       console.error('Error saving content:', error);
       return false;
@@ -227,7 +229,6 @@ export default function ContentGenerator() {
       }
 
       const newContent = {
-        id: crypto.randomUUID(),
         title: data.title,
         content: data.content,
         type: selectedContentType,
@@ -244,9 +245,9 @@ export default function ContentGenerator() {
       };
       
       // Save to database and add to top of list
-      const saved = await saveContentToDatabase(newContent);
-      if (saved) {
-        setGeneratedContent(prev => [newContent, ...prev]);
+      const savedContent = await saveContentToDatabase(newContent);
+      if (savedContent) {
+        setGeneratedContent(prev => [savedContent, ...prev]);
         
         toast({
           title: "Content Generated & Saved!",
