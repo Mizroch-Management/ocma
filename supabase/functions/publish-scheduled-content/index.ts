@@ -173,15 +173,27 @@ async function publishToPlatform(platform: string, content: any, supabase: any) 
   
   try {
     // Get platform credentials from system settings
+    console.log(`Looking for ${platform}_integration in system_settings...`);
+    
     const { data: settingsData, error: settingsError } = await supabase
       .from('system_settings')
       .select('setting_value')
       .eq('setting_key', `${platform}_integration`)
       .single();
 
-    if (settingsError || !settingsData?.setting_value?.connected) {
+    console.log('Settings query result:', { settingsData, settingsError });
+
+    if (settingsError) {
+      console.error(`Settings error for ${platform}:`, settingsError);
+      throw new Error(`${platform} integration not found in settings: ${settingsError.message}`);
+    }
+
+    if (!settingsData?.setting_value?.connected) {
+      console.error(`${platform} integration not connected:`, settingsData);
       throw new Error(`${platform} integration not configured or not connected`);
     }
+
+    console.log(`${platform} credentials found and connected`);
 
     const credentials = settingsData.setting_value.credentials;
     const optimizedContent = content.platform_optimizations?.[platform] || {};
@@ -541,6 +553,44 @@ async function publishToTwitter(credentials: any, content: string, postData: any
 // LinkedIn Publishing
 async function publishToLinkedIn(credentials: any, content: string, postData: any) {
   try {
+    console.log('Publishing to LinkedIn...');
+    console.log('LinkedIn credentials check:', {
+      access_token: credentials.access_token ? 'present' : 'missing',
+      person_id: credentials.person_id ? 'present' : 'missing',
+      organization_id: credentials.organization_id ? 'present' : 'missing'
+    });
+    
+    if (!credentials.access_token) {
+      throw new Error('LinkedIn access token is missing');
+    }
+
+    // Use person_id if available, otherwise organization_id
+    const authorUrn = credentials.person_id 
+      ? `urn:li:person:${credentials.person_id}`
+      : `urn:li:organization:${credentials.organization_id}`;
+
+    if (!credentials.person_id && !credentials.organization_id) {
+      throw new Error('LinkedIn person ID or organization ID is required');
+    }
+
+    const postPayload = {
+      author: authorUrn,
+      lifecycleState: 'PUBLISHED',
+      specificContent: {
+        'com.linkedin.ugc.ShareContent': {
+          shareCommentary: {
+            text: content
+          },
+          shareMediaCategory: 'NONE'
+        }
+      },
+      visibility: {
+        'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
+      }
+    };
+
+    console.log('LinkedIn post payload:', JSON.stringify(postPayload, null, 2));
+
     const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
       method: 'POST',
       headers: {
@@ -548,29 +598,28 @@ async function publishToLinkedIn(credentials: any, content: string, postData: an
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0'
       },
-      body: JSON.stringify({
-        author: `urn:li:organization:${credentials.organization_id}`,
-        lifecycleState: 'PUBLISHED',
-        specificContent: {
-          'com.linkedin.ugc.ShareContent': {
-            shareCommentary: {
-              text: content
-            },
-            shareMediaCategory: 'NONE'
-          }
-        },
-        visibility: {
-          'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
-        }
-      })
+      body: JSON.stringify(postPayload)
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to publish to LinkedIn');
+    const responseText = await response.text();
+    console.log('LinkedIn API response status:', response.status);
+    console.log('LinkedIn API response text:', responseText);
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse LinkedIn response:', parseError);
+      throw new Error(`Invalid LinkedIn API response: ${responseText}`);
     }
 
-    const result = await response.json();
+    if (!response.ok) {
+      console.error('LinkedIn API error:', result);
+      throw new Error(result.message || result.error_description || `LinkedIn API error: ${response.status} - ${responseText}`);
+    }
+
+    console.log('LinkedIn post successful:', result);
+
     return {
       success: true,
       postId: result.id,
@@ -580,6 +629,7 @@ async function publishToLinkedIn(credentials: any, content: string, postData: an
       }
     };
   } catch (error) {
+    console.error('LinkedIn publishing error:', error);
     return {
       success: false,
       error: error.message
@@ -590,49 +640,100 @@ async function publishToLinkedIn(credentials: any, content: string, postData: an
 // YouTube Publishing (Community Post)
 async function publishToYouTube(credentials: any, content: string, postData: any) {
   try {
-    // First, get a fresh access token using refresh token
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: credentials.client_id,
-        client_secret: credentials.client_secret,
-        refresh_token: credentials.refresh_token,
-        grant_type: 'refresh_token'
-      })
+    console.log('Publishing to YouTube community post...');
+    console.log('YouTube credentials check:', {
+      access_token: credentials.access_token ? 'present' : 'missing',
+      refresh_token: credentials.refresh_token ? 'present' : 'missing',
+      client_id: credentials.client_id ? 'present' : 'missing',
+      channel_id: credentials.channel_id ? 'present' : 'missing'
     });
-
-    if (!tokenResponse.ok) {
-      throw new Error('Failed to refresh YouTube access token');
+    
+    if (!credentials.refresh_token) {
+      throw new Error('YouTube refresh token is missing');
     }
 
-    const tokenData = await tokenResponse.json();
+    let accessToken = credentials.access_token;
 
-    // Create community post
-    const response = await fetch('https://youtube.googleapis.com/youtube/v3/activities', {
+    // Refresh the access token
+    try {
+      console.log('Refreshing YouTube access token...');
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: credentials.client_id,
+          client_secret: credentials.client_secret,
+          refresh_token: credentials.refresh_token,
+          grant_type: 'refresh_token'
+        })
+      });
+
+      const tokenResponseText = await tokenResponse.text();
+      console.log('Token refresh response status:', tokenResponse.status);
+      console.log('Token refresh response:', tokenResponseText);
+
+      if (tokenResponse.ok) {
+        const tokenData = JSON.parse(tokenResponseText);
+        if (tokenData.access_token) {
+          accessToken = tokenData.access_token;
+          console.log('Access token refreshed successfully');
+        }
+      } else {
+        console.warn('Token refresh failed, using existing token');
+      }
+    } catch (refreshError) {
+      console.warn('Token refresh error, using existing token:', refreshError);
+    }
+
+    // Note: YouTube Community Posts API is limited and may not be available for all channels
+    // Using a simplified approach that might work for some channels
+    const postPayload = {
+      snippet: {
+        channelId: credentials.channel_id,
+        description: content,
+        title: postData.title || 'Community Post'
+      }
+    };
+
+    console.log('YouTube post payload:', JSON.stringify(postPayload, null, 2));
+
+    // Try the community post endpoint (may not work for all channels)
+    const response = await fetch(`https://youtube.googleapis.com/youtube/v3/activities?part=snippet`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        part: 'snippet',
-        snippet: {
-          type: 'upload',
-          description: content,
-          channelId: credentials.channel_id
-        }
-      })
+      body: JSON.stringify(postPayload)
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Failed to publish to YouTube');
+    const responseText = await response.text();
+    console.log('YouTube API response status:', response.status);
+    console.log('YouTube API response text:', responseText);
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse YouTube response:', parseError);
+      throw new Error(`Invalid YouTube API response: ${responseText}`);
     }
 
-    const result = await response.json();
+    if (!response.ok) {
+      console.error('YouTube API error:', result);
+      
+      // Check for specific YouTube errors
+      if (result.error?.code === 403) {
+        throw new Error('YouTube community posts not available for this channel. Community posts require channel eligibility and may not be supported via API for all channels.');
+      }
+      
+      throw new Error(result.error?.message || `YouTube API error: ${response.status} - ${responseText}`);
+    }
+
+    console.log('YouTube post successful:', result);
+
     return {
       success: true,
       postId: result.id,
@@ -642,6 +743,7 @@ async function publishToYouTube(credentials: any, content: string, postData: any
       }
     };
   } catch (error) {
+    console.error('YouTube publishing error:', error);
     return {
       success: false,
       error: error.message

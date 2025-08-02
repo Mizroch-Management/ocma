@@ -123,13 +123,23 @@ export function ContentSchedulerDialog({ isOpen, onOpenChange, content, onSchedu
   const handleFinalApproval = async () => {
     setIsLoading(true);
     try {
+      console.log('Starting content approval process...', { 
+        contentId: content?.id, 
+        selectedPlatforms,
+        scheduledDate: scheduledDate.toISOString()
+      });
+
       // Ensure we have a valid content ID
       if (!content?.id) {
         throw new Error('Content ID is missing');
       }
 
+      if (selectedPlatforms.length === 0) {
+        throw new Error('No platforms selected for publishing');
+      }
+
       // Update content in database with edited version and scheduling
-      const { error } = await supabase
+      const { data: updatedContent, error } = await supabase
         .from('generated_content')
         .update({
           title: editedContent.title,
@@ -141,9 +151,16 @@ export function ContentSchedulerDialog({ isOpen, onOpenChange, content, onSchedu
           scheduled_platforms: selectedPlatforms,
           publication_status: 'scheduled'
         })
-        .eq('id', content.id);
+        .eq('id', content.id)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database update error:', error);
+        throw new Error(`Failed to update content: ${error.message}`);
+      }
+
+      console.log('Content updated successfully:', updatedContent);
 
       const scheduledContent = {
         ...content,
