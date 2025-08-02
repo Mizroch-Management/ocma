@@ -5,9 +5,9 @@ import type { WorkflowState } from '@/contexts/workflow-context';
 import { useToast } from './use-toast';
 
 interface WorkflowPersistenceHook {
-  saveWorkflow: (state: WorkflowState) => Promise<void>;
-  loadWorkflow: () => Promise<WorkflowState | null>;
-  autoSaveWorkflow: (state: WorkflowState) => void;
+  saveWorkflow: (state: WorkflowState, workflowId?: string) => Promise<void>;
+  loadWorkflow: (workflowId?: string) => Promise<WorkflowState | null>;
+  autoSaveWorkflow: (state: WorkflowState, workflowId?: string) => void;
 }
 
 const AUTOSAVE_DELAY = 2000; // 2 seconds delay for autosave
@@ -18,7 +18,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedStateRef = useRef<string>('');
 
-  const saveWorkflow = useCallback(async (state: WorkflowState): Promise<void> => {
+  const saveWorkflow = useCallback(async (state: WorkflowState, workflowId?: string): Promise<void> => {
     if (!user?.id) return;
 
     try {
@@ -32,7 +32,6 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
       const workflowData = {
         user_id: user.id,
         workflow_type: 'ai_workflow',
-        title: state.approvedStrategy?.title || 'AI Marketing Workflow',
         status: state.isWorkflowActive ? 'active' : 'draft',
         current_step: state.progress.currentStep,
         business_info_data: state.businessInfo ? JSON.parse(JSON.stringify(state.businessInfo)) : null,
@@ -42,33 +41,45 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         content_data: JSON.parse(JSON.stringify(state.approvedContent)),
         progress_data: JSON.parse(JSON.stringify(state.progress)),
         metadata: {
+          title: state.businessInfo?.company ? `${state.businessInfo.company} Marketing Workflow` : 'AI Marketing Workflow',
           completedSteps: state.progress.completedSteps,
           isWorkflowActive: state.isWorkflowActive,
           lastAutoSave: new Date().toISOString(),
         }
       };
 
-      // Try to update existing workflow first
-      const { data: existingWorkflow } = await supabase
-        .from('workflows')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('workflow_type', 'ai_workflow')
-        .single();
-
-      if (existingWorkflow) {
+      if (workflowId) {
+        // Update specific workflow
         const { error } = await supabase
           .from('workflows')
           .update(workflowData)
-          .eq('id', existingWorkflow.id);
+          .eq('id', workflowId)
+          .eq('user_id', user.id);
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        // Try to update existing workflow first, or create new one
+        const { data: existingWorkflow } = await supabase
           .from('workflows')
-          .insert([workflowData]);
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('workflow_type', 'ai_workflow')
+          .single();
 
-        if (error) throw error;
+        if (existingWorkflow) {
+          const { error } = await supabase
+            .from('workflows')
+            .update(workflowData)
+            .eq('id', existingWorkflow.id);
+
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from('workflows')
+            .insert([workflowData]);
+
+          if (error) throw error;
+        }
       }
 
       // Update the last saved state reference
@@ -83,18 +94,23 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
     }
   }, [user?.id, toast]);
 
-  const loadWorkflow = useCallback(async (): Promise<WorkflowState | null> => {
+  const loadWorkflow = useCallback(async (workflowId?: string): Promise<WorkflowState | null> => {
     if (!user?.id) return null;
 
     try {
-      const { data: workflow, error } = await supabase
+      let query = supabase
         .from('workflows')
         .select('*')
         .eq('user_id', user.id)
-        .eq('workflow_type', 'ai_workflow')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
+        .eq('workflow_type', 'ai_workflow');
+
+      if (workflowId) {
+        query = query.eq('id', workflowId);
+      } else {
+        query = query.order('updated_at', { ascending: false }).limit(1);
+      }
+
+      const { data: workflow, error } = await query.maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
@@ -125,6 +141,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
           schedulingComplete: false,
         },
         isWorkflowActive: (workflow.metadata as any)?.isWorkflowActive || false,
+        currentWorkflowId: workflow.id,
       };
 
       // Convert date strings back to Date objects
@@ -151,7 +168,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
     }
   }, [user?.id]);
 
-  const autoSaveWorkflow = useCallback((state: WorkflowState) => {
+  const autoSaveWorkflow = useCallback((state: WorkflowState, workflowId?: string) => {
     if (!user?.id) return;
 
     // Check if state has actually changed
@@ -167,7 +184,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
 
     // Set new timeout for autosave
     autoSaveTimeoutRef.current = setTimeout(() => {
-      saveWorkflow(state);
+      saveWorkflow(state, workflowId);
     }, AUTOSAVE_DELAY);
   }, [user?.id, saveWorkflow]);
 

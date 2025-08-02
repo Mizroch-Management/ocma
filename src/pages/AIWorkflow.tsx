@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { SmartContentPlanner } from "@/components/ai-workflow/smart-content-plan
 import { IntelligentContentCreator } from "@/components/ai-workflow/intelligent-content-creator";
 import { WorkflowIntegrationDashboard } from "@/components/workflow/workflow-integration-dashboard";
 import { WorkflowDataViewer } from "@/components/ai-workflow/workflow-data-viewer";
+import { WorkflowManager } from "@/components/ai-workflow/workflow-manager";
 import { useWorkflow, type BusinessInfo } from "@/contexts/workflow-context";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { 
@@ -38,8 +39,10 @@ interface WorkflowStep {
 export default function AIWorkflow() {
   const { toast } = useToast();
   const { state, dispatch } = useWorkflow();
-  const { saveWorkflow } = useWorkflowPersistence();
+  const { saveWorkflow, loadWorkflow } = useWorkflowPersistence();
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
+  const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(state.currentWorkflowId || null);
+  const [showWorkflowManager, setShowWorkflowManager] = useState(!state.businessInfo);
   
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([
     {
@@ -83,8 +86,46 @@ export default function AIWorkflow() {
     }
   ]);
 
+  useEffect(() => {
+    if (state.businessInfo) {
+      setBusinessInfo(state.businessInfo);
+      setShowWorkflowManager(false);
+    }
+  }, [state.businessInfo]);
+
+  const handleSelectWorkflow = async (workflowId: string | null) => {
+    if (workflowId) {
+      try {
+        const workflowState = await loadWorkflow(workflowId);
+        if (workflowState) {
+          dispatch({ type: 'LOAD_WORKFLOW', payload: workflowState });
+          setCurrentWorkflowId(workflowId);
+          setShowWorkflowManager(false);
+          if (workflowState.businessInfo) {
+            setBusinessInfo(workflowState.businessInfo);
+          }
+          toast({
+            title: "Workflow Loaded",
+            description: "Your workflow has been restored successfully!"
+          });
+        }
+      } catch (error) {
+        console.error('Error loading workflow:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load workflow",
+          variant: "destructive"
+        });
+      }
+    } else {
+      setCurrentWorkflowId(null);
+      setShowWorkflowManager(true);
+    }
+  };
+
   const handleBusinessInfoSubmitted = (info: BusinessInfo) => {
     setBusinessInfo(info);
+    dispatch({ type: 'SET_BUSINESS_INFO', payload: info });
     
     setWorkflowSteps(prev => prev.map((step, index) => 
       index === 0 
@@ -229,6 +270,27 @@ export default function AIWorkflow() {
   const overallProgress = workflowSteps.reduce((acc, step) => acc + step.progress, 0) / workflowSteps.length;
   const currentStep = state.progress.currentStep || 0;
 
+  // Show workflow manager if no workflow is selected or no business info
+  if (showWorkflowManager) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">AI Marketing Workflows</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your AI-driven marketing automation projects
+            </p>
+          </div>
+        </div>
+        
+        <WorkflowManager 
+          onSelectWorkflow={handleSelectWorkflow}
+          currentWorkflowId={currentWorkflowId}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -241,11 +303,18 @@ export default function AIWorkflow() {
         
         <div className="flex items-center gap-4">
           <Button 
-            onClick={() => saveWorkflow(state)}
+            onClick={() => setShowWorkflowManager(true)}
             variant="outline"
             size="sm"
           >
-            Debug Save
+            All Workflows
+          </Button>
+          <Button 
+            onClick={() => saveWorkflow(state, currentWorkflowId || undefined)}
+            variant="outline"
+            size="sm"
+          >
+            Save Progress
           </Button>
           <div className="text-right">
             <div className="text-2xl font-bold text-primary">{Math.round(overallProgress)}%</div>

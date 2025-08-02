@@ -153,6 +153,7 @@ interface WorkflowState {
   approvedContent: GeneratedContent[];
   progress: WorkflowProgress;
   isWorkflowActive: boolean;
+  currentWorkflowId?: string;
 }
 
 type WorkflowAction = 
