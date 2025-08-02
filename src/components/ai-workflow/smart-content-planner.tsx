@@ -102,19 +102,29 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
     if (state.draftData?.weeklyPlans) {
       setWeeklyPlans(state.draftData.weeklyPlans);
     }
-  }, [state.draftData]);
+  }, [state.draftData?.monthlyOverview, state.draftData?.planningPhase, state.draftData?.weeklyPlans]);
 
-  // Auto-save when data changes
+  // Auto-save when data changes (but not on initial load)
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   useEffect(() => {
-    dispatch({
-      type: 'SET_DRAFT_DATA',
-      payload: {
-        monthlyOverview,
-        planningPhase,
-        weeklyPlans,
-      }
-    });
-  }, [monthlyOverview, planningPhase, weeklyPlans, dispatch]);
+    if (isInitialized) {
+      dispatch({
+        type: 'SET_DRAFT_DATA',
+        payload: {
+          monthlyOverview,
+          planningPhase,
+          weeklyPlans,
+        }
+      });
+    }
+  }, [monthlyOverview, planningPhase, weeklyPlans, dispatch, isInitialized]);
+
+  // Mark as initialized after first load
+  useEffect(() => {
+    const timer = setTimeout(() => setIsInitialized(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const generateMonthlyOverview = async (customPrompt?: string) => {
     // Get business info and approved strategy steps from context
