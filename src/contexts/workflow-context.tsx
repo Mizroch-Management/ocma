@@ -256,9 +256,11 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const loadWorkflowData = async () => {
       try {
+        console.log('Loading workflow data from database...');
         // Try to load from database first
         const dbState = await loadWorkflow();
         if (dbState) {
+          console.log('Loaded workflow from database:', dbState);
           dispatch({ type: 'LOAD_WORKFLOW', payload: dbState });
           return;
         }
@@ -266,6 +268,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // Fallback to localStorage
         const saved = localStorage.getItem('aiWorkflowState');
         if (saved) {
+          console.log('Loading from localStorage fallback');
           const parsedState = JSON.parse(saved);
           // Convert date strings back to Date objects
           if (parsedState.approvedStrategy) {
@@ -279,9 +282,11 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             content.scheduledDate = new Date(content.scheduledDate);
           });
           dispatch({ type: 'LOAD_WORKFLOW', payload: parsedState });
+        } else {
+          console.log('No workflow data found');
         }
       } catch (error) {
-        // Silent error handling for production
+        console.error('Error loading workflow data:', error);
       }
     };
     
