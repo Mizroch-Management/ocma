@@ -260,7 +260,13 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // Try to load from database first
         const dbState = await loadWorkflow();
         if (dbState) {
-          console.log('Loaded workflow from database:', dbState);
+          console.log('Successfully loaded workflow from database:', {
+            hasBusinessInfo: !!dbState.businessInfo,
+            hasStrategy: !!dbState.approvedStrategy,
+            plansCount: dbState.approvedPlans?.length || 0,
+            contentCount: dbState.approvedContent?.length || 0,
+            currentStep: dbState.progress?.currentStep
+          });
           dispatch({ type: 'LOAD_WORKFLOW', payload: dbState });
           return;
         }

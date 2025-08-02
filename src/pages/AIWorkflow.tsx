@@ -112,19 +112,23 @@ export default function AIWorkflow() {
             setBusinessInfo(workflowState.businessInfo);
           }
           
-          // Update workflow steps based on loaded state
+          // Update workflow steps based on loaded state with data verification
           setWorkflowSteps(prev => prev.map((step, index) => {
             switch (index) {
               case 0:
-                return { ...step, status: workflowState.businessInfo ? 'completed' : 'active', progress: workflowState.businessInfo ? 100 : 0 };
+                const hasBusinessInfo = !!workflowState.businessInfo;
+                return { ...step, status: hasBusinessInfo ? 'completed' : 'active', progress: hasBusinessInfo ? 100 : 0 };
               case 1:
-                return { ...step, status: workflowState.progress.strategyApproved ? 'completed' : workflowState.businessInfo ? 'active' : 'pending', progress: workflowState.progress.strategyApproved ? 100 : 0 };
+                const hasStrategy = !!workflowState.approvedStrategy || workflowState.progress.strategyApproved;
+                return { ...step, status: hasStrategy ? 'completed' : hasBusinessInfo ? 'active' : 'pending', progress: hasStrategy ? 100 : 0 };
               case 2:
-                return { ...step, status: workflowState.progress.plansApproved ? 'completed' : workflowState.progress.strategyApproved ? 'active' : 'pending', progress: workflowState.progress.plansApproved ? 100 : 0 };
+                const hasPlans = (workflowState.approvedPlans && workflowState.approvedPlans.length > 0) || workflowState.progress.plansApproved;
+                return { ...step, status: hasPlans ? 'completed' : hasStrategy ? 'active' : 'pending', progress: hasPlans ? 100 : 0 };
               case 3:
-                return { ...step, status: workflowState.progress.contentApproved ? 'completed' : workflowState.progress.plansApproved ? 'active' : 'pending', progress: workflowState.progress.contentApproved ? 100 : 0 };
+                const hasContent = (workflowState.approvedContent && workflowState.approvedContent.length > 0) || workflowState.progress.contentApproved;
+                return { ...step, status: hasContent ? 'completed' : hasPlans ? 'active' : 'pending', progress: hasContent ? 100 : 0 };
               case 4:
-                return { ...step, status: workflowState.progress.schedulingComplete ? 'completed' : workflowState.progress.contentApproved ? 'active' : 'pending', progress: workflowState.progress.schedulingComplete ? 100 : 0 };
+                return { ...step, status: workflowState.progress.schedulingComplete ? 'completed' : hasContent ? 'active' : 'pending', progress: workflowState.progress.schedulingComplete ? 100 : 0 };
               default:
                 return step;
             }
