@@ -96,17 +96,48 @@ export default function AIWorkflow() {
   const handleSelectWorkflow = async (workflowId: string | null) => {
     if (workflowId) {
       try {
+        console.log('Loading workflow:', workflowId);
         const workflowState = await loadWorkflow(workflowId);
+        console.log('Loaded workflow state:', workflowState);
+        
         if (workflowState) {
           dispatch({ type: 'LOAD_WORKFLOW', payload: workflowState });
           setCurrentWorkflowId(workflowId);
           setShowWorkflowManager(false);
+          
+          // Update the local businessInfo state
           if (workflowState.businessInfo) {
+            console.log('Setting business info:', workflowState.businessInfo);
             setBusinessInfo(workflowState.businessInfo);
           }
+          
+          // Update workflow steps based on loaded state
+          setWorkflowSteps(prev => prev.map((step, index) => {
+            switch (index) {
+              case 0:
+                return { ...step, status: workflowState.businessInfo ? 'completed' : 'active', progress: workflowState.businessInfo ? 100 : 0 };
+              case 1:
+                return { ...step, status: workflowState.progress.strategyApproved ? 'completed' : workflowState.businessInfo ? 'active' : 'pending', progress: workflowState.progress.strategyApproved ? 100 : 0 };
+              case 2:
+                return { ...step, status: workflowState.progress.plansApproved ? 'completed' : workflowState.progress.strategyApproved ? 'active' : 'pending', progress: workflowState.progress.plansApproved ? 100 : 0 };
+              case 3:
+                return { ...step, status: workflowState.progress.contentApproved ? 'completed' : workflowState.progress.plansApproved ? 'active' : 'pending', progress: workflowState.progress.contentApproved ? 100 : 0 };
+              case 4:
+                return { ...step, status: workflowState.progress.schedulingComplete ? 'completed' : workflowState.progress.contentApproved ? 'active' : 'pending', progress: workflowState.progress.schedulingComplete ? 100 : 0 };
+              default:
+                return step;
+            }
+          }));
+          
           toast({
             title: "Workflow Loaded",
             description: "Your workflow has been restored successfully!"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Workflow not found or could not be loaded",
+            variant: "destructive"
           });
         }
       } catch (error) {
