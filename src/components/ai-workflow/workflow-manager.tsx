@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkflow } from "@/contexts/workflow-context";
 import { useAuth } from "@/hooks/use-auth";
-import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { 
   Plus, 
   Play, 
@@ -49,7 +48,6 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
   const { dispatch } = useWorkflow();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { restoreScamDunkData } = useWorkflowPersistence();
 
   useEffect(() => {
     loadWorkflows();
@@ -212,16 +210,7 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
           </p>
         </div>
         
-        <div className="flex gap-2">
-          <Button 
-            onClick={() => restoreScamDunkData()}
-            variant="outline"
-            size="sm"
-          >
-            Restore Scam Dunk Data
-          </Button>
-          
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
@@ -266,7 +255,6 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
             </div>
           </DialogContent>
         </Dialog>
-        </div>
       </div>
 
       {workflows.length === 0 ? (
