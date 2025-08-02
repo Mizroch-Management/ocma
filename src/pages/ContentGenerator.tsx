@@ -227,7 +227,7 @@ export default function ContentGenerator() {
       }
 
       const newContent = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         title: data.title,
         content: data.content,
         type: selectedContentType,
