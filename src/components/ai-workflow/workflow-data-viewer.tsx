@@ -486,7 +486,7 @@ export function WorkflowDataViewer() {
                             {plan.contentTypes.map((type, idx) => (
                               <div key={idx} className="bg-muted p-2 rounded text-sm">
                                 <div><strong>{type.type}</strong> ({type.count} pieces)</div>
-                                <div>Platforms: {type.platforms.join(', ')}</div>
+                                <div>Platforms: {type.platforms && Array.isArray(type.platforms) ? type.platforms.join(', ') : 'No platforms specified'}</div>
                                 <div>{type.description}</div>
                               </div>
                             ))}
@@ -501,7 +501,7 @@ export function WorkflowDataViewer() {
                             {plan.platforms.map((platform, idx) => (
                               <div key={idx} className="bg-blue-50 p-2 rounded text-sm">
                                 <div><strong>{platform.name}</strong></div>
-                                <div>Schedule: {platform.postingSchedule.join(', ')}</div>
+                                <div>Schedule: {platform.postingSchedule && Array.isArray(platform.postingSchedule) ? platform.postingSchedule.join(', ') : 'No schedule specified'}</div>
                                 <div>Focus: {platform.contentFocus}</div>
                               </div>
                             ))}
@@ -535,7 +535,7 @@ export function WorkflowDataViewer() {
                       </div>
                       {plan.platforms && plan.platforms.length > 0 && (
                         <div>
-                          <strong>Platforms:</strong> {plan.platforms.join(', ')}
+                          <strong>Platforms:</strong> {Array.isArray(plan.platforms) ? plan.platforms.join(', ') : plan.platforms}
                         </div>
                       )}
                       {plan.keyMessages && plan.keyMessages.length > 0 && (
@@ -592,7 +592,7 @@ export function WorkflowDataViewer() {
                               <p className="mt-1 whitespace-pre-wrap">{content.content}</p>
                             </div>
                             
-                            {content.hashtags && content.hashtags.length > 0 && (
+                            {content.hashtags && Array.isArray(content.hashtags) && content.hashtags.length > 0 && (
                               <div className="flex flex-wrap gap-1">
                                 <strong className="text-sm">Hashtags:</strong>
                                 {content.hashtags.map((tag, idx) => (
@@ -615,7 +615,7 @@ export function WorkflowDataViewer() {
                               </div>
                             )}
                             
-                            {content.variations && content.variations.length > 0 && (
+                            {content.variations && Array.isArray(content.variations) && content.variations.length > 0 && (
                               <div>
                                 <strong className="text-sm">Variations:</strong>
                                 <div className="mt-1 space-y-1">
@@ -644,7 +644,7 @@ export function WorkflowDataViewer() {
                         {content.title}
                       </CardTitle>
                       <CardDescription>
-                        {content.platforms.join(', ')} • {content.status}
+                        {content.platforms && Array.isArray(content.platforms) ? content.platforms.join(', ') : 'No platforms'} • {content.status}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
