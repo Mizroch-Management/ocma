@@ -11,6 +11,7 @@ import { AIStrategyConsultant } from "@/components/ai-workflow/ai-strategy-consu
 import { SmartContentPlanner } from "@/components/ai-workflow/smart-content-planner";
 import { IntelligentContentCreator } from "@/components/ai-workflow/intelligent-content-creator";
 import { WorkflowIntegrationDashboard } from "@/components/workflow/workflow-integration-dashboard";
+import { WorkflowDataViewer } from "@/components/ai-workflow/workflow-data-viewer";
 import { useWorkflow, type BusinessInfo } from "@/contexts/workflow-context";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { 
@@ -255,6 +256,9 @@ export default function AIWorkflow() {
 
       {/* Integration Dashboard */}
       <WorkflowIntegrationDashboard />
+      
+      {/* Workflow Data Viewer */}
+      <WorkflowDataViewer />
 
       {/* Progress Overview */}
       <Card>
