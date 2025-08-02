@@ -43,6 +43,7 @@ export default function AIWorkflow() {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(state.currentWorkflowId || null);
   const [showWorkflowManager, setShowWorkflowManager] = useState(!state.businessInfo);
+  const [currentStep, setCurrentStep] = useState(0);
   
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([
     {
@@ -166,9 +167,50 @@ export default function AIWorkflow() {
         : step
     ));
     
+    setCurrentStep(1);
+    
     toast({
       title: "Business Information Saved",
       description: "Information collected. Ready to create your AI strategy!"
+    });
+  };
+
+  const goToStep = (stepIndex: number) => {
+    setCurrentStep(stepIndex);
+    setWorkflowSteps(prev => prev.map((step, index) => ({
+      ...step,
+      status: index < stepIndex 
+        ? 'completed' 
+        : index === stepIndex 
+        ? 'active' 
+        : 'pending'
+    })));
+  };
+
+  const invalidateSubsequentSteps = (fromStep: number) => {
+    // Clear subsequent step data and reset their status
+    if (fromStep <= 1) {
+      dispatch({ type: 'SET_APPROVED_STRATEGY', payload: null });
+      dispatch({ type: 'SET_APPROVED_PLANS', payload: [] });
+      dispatch({ type: 'SET_APPROVED_CONTENT', payload: [] });
+      dispatch({ type: 'SET_DRAFT_DATA', payload: null });
+    } else if (fromStep <= 2) {
+      dispatch({ type: 'SET_APPROVED_PLANS', payload: [] });
+      dispatch({ type: 'SET_APPROVED_CONTENT', payload: [] });
+    } else if (fromStep <= 3) {
+      dispatch({ type: 'SET_APPROVED_CONTENT', payload: [] });
+    }
+    
+    setWorkflowSteps(prev => prev.map((step, index) => {
+      if (index > fromStep) {
+        return { ...step, status: 'pending', progress: 0 };
+      }
+      return step;
+    }));
+    
+    toast({
+      title: "Workflow Updated",
+      description: "Subsequent steps will be regenerated based on your changes",
     });
   };
 
@@ -200,6 +242,8 @@ export default function AIWorkflow() {
         : step
     ));
     
+    setCurrentStep(2);
+    
     toast({
       title: "Strategy Phase Complete",
       description: "Strategy saved and integrated across the app. Moving to content planning phase..."
@@ -228,6 +272,8 @@ export default function AIWorkflow() {
         ? { ...step, status: 'active' }
         : step
     ));
+    
+    setCurrentStep(3);
     
     toast({
       title: "Planning Phase Complete",
@@ -258,6 +304,8 @@ export default function AIWorkflow() {
         ? { ...step, status: 'active' }
         : step
     ));
+    
+    setCurrentStep(4);
     
     toast({
       title: "Content Creation Complete",
@@ -299,7 +347,6 @@ export default function AIWorkflow() {
   };
 
   const overallProgress = workflowSteps.reduce((acc, step) => acc + step.progress, 0) / workflowSteps.length;
-  const currentStep = state.progress.currentStep || 0;
 
   // Show workflow manager if no workflow is selected or no business info
   if (showWorkflowManager) {
@@ -377,26 +424,56 @@ export default function AIWorkflow() {
             
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {workflowSteps.map((step, index) => (
-                <div key={step.id} className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                    step.status === 'completed' ? 'bg-green-100 text-green-600' :
-                    step.status === 'active' ? 'bg-primary/10 text-primary' :
-                    'bg-gray-100 text-gray-400'
-                  }`}>
-                    {getStepIcon(step.id, step.status)}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm">{step.title}</h3>
-                    <Badge variant={
-                      step.status === 'completed' ? 'default' :
-                      step.status === 'active' ? 'secondary' :
-                      'outline'
-                    } className="text-xs">
-                      {step.status}
-                    </Badge>
-                  </div>
+                <div key={step.id} className="flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      if (step.status === 'completed' || step.status === 'active') {
+                        setCurrentStep(index);
+                        if (index > 0 && step.status === 'completed') {
+                          invalidateSubsequentSteps(index);
+                        }
+                      }
+                    }}
+                    disabled={step.status === 'pending'}
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
+                      step.status === 'pending' 
+                        ? 'cursor-not-allowed opacity-50' 
+                        : 'cursor-pointer hover:bg-muted'
+                    } ${currentStep === index ? 'ring-2 ring-primary' : ''}`}
+                  >
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                      step.status === 'completed' ? 'bg-green-100 text-green-600' :
+                      step.status === 'active' ? 'bg-primary/10 text-primary' :
+                      'bg-gray-100 text-gray-400'
+                    }`}>
+                      {getStepIcon(step.id, step.status)}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h3 className="font-semibold text-sm">{step.title}</h3>
+                      <Badge variant={
+                        step.status === 'completed' ? 'default' :
+                        step.status === 'active' ? 'secondary' :
+                        'outline'
+                      } className="text-xs">
+                        {step.status}
+                      </Badge>
+                    </div>
+                  </button>
+                  {step.status === 'completed' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setCurrentStep(index);
+                        invalidateSubsequentSteps(index);
+                      }}
+                      className="text-xs"
+                    >
+                      Edit & Regenerate
+                    </Button>
+                  )}
                   {index < workflowSteps.length - 1 && (
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
                   )}
                 </div>
               ))}
@@ -408,12 +485,12 @@ export default function AIWorkflow() {
       {/* Step Components */}
       <div className="space-y-8">
         {/* Step 1: Business Info Collector */}
-        {!businessInfo && (
+        {(currentStep === 0 || !businessInfo) && (
           <BusinessInfoCollector onInfoSubmitted={handleBusinessInfoSubmitted} />
         )}
 
         {/* Step 2: AI Strategy Consultant */}
-        {businessInfo && !state.progress.strategyApproved && (
+        {currentStep === 1 && businessInfo && (
           <AIStrategyConsultant 
             onStrategyApproved={handleStrategyApproved}
             businessInfo={businessInfo}
@@ -421,7 +498,7 @@ export default function AIWorkflow() {
         )}
 
         {/* Step 3: Smart Content Planner */}
-        {state.progress.strategyApproved && !state.progress.plansApproved && (
+        {currentStep === 2 && state.progress.strategyApproved && (
           <>
             <Separator />
             <SmartContentPlanner 
@@ -432,7 +509,7 @@ export default function AIWorkflow() {
         )}
 
         {/* Step 4: Intelligent Content Creator */}
-        {state.progress.plansApproved && !state.progress.contentApproved && (
+        {currentStep === 3 && state.progress.plansApproved && (
           <>
             <Separator />
             <IntelligentContentCreator 
