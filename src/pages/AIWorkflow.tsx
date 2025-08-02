@@ -39,7 +39,7 @@ interface WorkflowStep {
 export default function AIWorkflow() {
   const { toast } = useToast();
   const { state, dispatch } = useWorkflow();
-  const { saveWorkflow, loadWorkflow } = useWorkflowPersistence();
+  const { saveWorkflow, loadWorkflow, restoreScamDunkData } = useWorkflowPersistence();
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(state.currentWorkflowId || null);
   const [showWorkflowManager, setShowWorkflowManager] = useState(!state.businessInfo);
@@ -339,6 +339,13 @@ export default function AIWorkflow() {
             size="sm"
           >
             All Workflows
+          </Button>
+          <Button 
+            onClick={() => restoreScamDunkData()}
+            variant="outline"
+            size="sm"
+          >
+            Restore Scam Dunk Data
           </Button>
           <Button 
             onClick={() => saveWorkflow(state, currentWorkflowId || undefined)}

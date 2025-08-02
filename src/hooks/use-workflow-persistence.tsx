@@ -8,6 +8,7 @@ interface WorkflowPersistenceHook {
   saveWorkflow: (state: WorkflowState, workflowId?: string) => Promise<void>;
   loadWorkflow: (workflowId?: string) => Promise<WorkflowState | null>;
   autoSaveWorkflow: (state: WorkflowState, workflowId?: string) => void;
+  restoreScamDunkData: () => Promise<void>;
 }
 
 const AUTOSAVE_DELAY = 2000; // 2 seconds delay for autosave
@@ -90,6 +91,75 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         title: "Save Error",
         description: "Failed to save workflow progress. Your work is saved locally.",
         variant: "destructive",
+      });
+    }
+  }, [user?.id, toast]);
+
+  // Helper function to restore lost business data
+  const restoreScamDunkData = useCallback(async (): Promise<void> => {
+    if (!user?.id) return;
+
+    const scamDunkBusinessInfo = {
+      company: "Scam Dunk",
+      industry: "Cybersecurity/Consumer Protection",
+      productService: "Platform to help people identify and avoid scams",
+      primaryObjectives: "Educate users about common scam tactics and provide tools to verify suspicious communications",
+      targetAudience: "General consumers, elderly populations, small business owners vulnerable to scams",
+      targetMarkets: "North America, Europe, Australia",
+      budget: "Mid-range marketing budget",
+      uniqueSellingPoints: "Real-time scam detection, community-driven reporting, educational resources",
+      competitors: "ScamAdviser, Better Business Bureau, Federal Trade Commission resources",
+      brandPersonality: "Trustworthy, educational, protective, empowering",
+      keyMetrics: "User engagement, scam reports prevented, educational content reach",
+      additionalContext: "Focus on building trust and credibility in cybersecurity space",
+      teamMembers: []
+    };
+
+    const workflowData = {
+      user_id: user.id,
+      workflow_type: 'ai_workflow',
+      status: 'draft',
+      current_step: 0,
+      business_info_data: scamDunkBusinessInfo,
+      draft_data: null,
+      strategy_data: null,
+      plans_data: [],
+      content_data: [],
+      progress_data: {
+        currentStep: 0,
+        completedSteps: [],
+        strategyApproved: false,
+        plansApproved: false,
+        contentApproved: false,
+        schedulingComplete: false,
+      },
+      metadata: {
+        title: "Scam Dunk Marketing Workflow",
+        completedSteps: [],
+        isWorkflowActive: false,
+        lastAutoSave: new Date().toISOString(),
+      }
+    };
+
+    try {
+      const { error } = await supabase
+        .from('workflows')
+        .update(workflowData)
+        .eq('id', 'dbe6f82f-f6d9-436e-a5f1-ce01f596ab4d')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Data Restored",
+        description: "Your Scam Dunk business information has been restored!"
+      });
+    } catch (error) {
+      console.error('Failed to restore data:', error);
+      toast({
+        title: "Restore Error",
+        description: "Failed to restore your business data",
+        variant: "destructive"
       });
     }
   }, [user?.id, toast]);
@@ -201,5 +271,6 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
     saveWorkflow,
     loadWorkflow,
     autoSaveWorkflow,
+    restoreScamDunkData,
   };
 };
