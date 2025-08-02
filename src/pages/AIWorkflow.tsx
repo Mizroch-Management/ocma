@@ -113,19 +113,20 @@ export default function AIWorkflow() {
           }
           
           // Update workflow steps based on loaded state with data verification
+          const hasBusinessInfo = !!workflowState.businessInfo;
+          const hasStrategy = !!workflowState.approvedStrategy || workflowState.progress.strategyApproved;
+          const hasPlans = (workflowState.approvedPlans && workflowState.approvedPlans.length > 0) || workflowState.progress.plansApproved;
+          const hasContent = (workflowState.approvedContent && workflowState.approvedContent.length > 0) || workflowState.progress.contentApproved;
+          
           setWorkflowSteps(prev => prev.map((step, index) => {
             switch (index) {
               case 0:
-                const hasBusinessInfo = !!workflowState.businessInfo;
                 return { ...step, status: hasBusinessInfo ? 'completed' : 'active', progress: hasBusinessInfo ? 100 : 0 };
               case 1:
-                const hasStrategy = !!workflowState.approvedStrategy || workflowState.progress.strategyApproved;
                 return { ...step, status: hasStrategy ? 'completed' : hasBusinessInfo ? 'active' : 'pending', progress: hasStrategy ? 100 : 0 };
               case 2:
-                const hasPlans = (workflowState.approvedPlans && workflowState.approvedPlans.length > 0) || workflowState.progress.plansApproved;
                 return { ...step, status: hasPlans ? 'completed' : hasStrategy ? 'active' : 'pending', progress: hasPlans ? 100 : 0 };
               case 3:
-                const hasContent = (workflowState.approvedContent && workflowState.approvedContent.length > 0) || workflowState.progress.contentApproved;
                 return { ...step, status: hasContent ? 'completed' : hasPlans ? 'active' : 'pending', progress: hasContent ? 100 : 0 };
               case 4:
                 return { ...step, status: workflowState.progress.schedulingComplete ? 'completed' : hasContent ? 'active' : 'pending', progress: workflowState.progress.schedulingComplete ? 100 : 0 };
