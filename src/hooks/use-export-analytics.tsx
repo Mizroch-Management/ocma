@@ -1,24 +1,32 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useOrganization } from './use-organization';
 
 export function useExportAnalytics() {
   const { toast } = useToast();
+  const { currentOrganization } = useOrganization();
 
   const exportToCsv = useCallback(async (timeRange: string) => {
+    if (!currentOrganization) return;
     try {
       const dateFilter = getDateFilter(timeRange);
       
-      // Fetch detailed data for export
+      // Fetch detailed data for export from current organization
       const { data: contentData, error: contentError } = await supabase
         .from('generated_content')
         .select('*')
+        .eq('organization_id', currentOrganization.id)
         .gte('created_at', dateFilter)
         .order('created_at', { ascending: false });
 
       const { data: publicationData, error: publicationError } = await supabase
         .from('publication_logs')
-        .select('*')
+        .select(`
+          *,
+          generated_content!inner(organization_id)
+        `)
+        .eq('generated_content.organization_id', currentOrganization.id)
         .gte('created_at', dateFilter)
         .order('created_at', { ascending: false });
 
@@ -45,7 +53,7 @@ export function useExportAnalytics() {
         variant: "destructive",
       });
     }
-  }, [toast]);
+  }, [currentOrganization, toast]);
 
   const exportToJson = useCallback(async (timeRange: string) => {
     try {
@@ -57,6 +65,7 @@ export function useExportAnalytics() {
           *,
           publication_logs(*)
         `)
+        .eq('organization_id', currentOrganization.id)
         .gte('created_at', dateFilter);
 
       if (error) throw error;
@@ -77,7 +86,7 @@ export function useExportAnalytics() {
         variant: "destructive",
       });
     }
-  }, [toast]);
+  }, [currentOrganization, toast]);
 
   return { exportToCsv, exportToJson };
 }

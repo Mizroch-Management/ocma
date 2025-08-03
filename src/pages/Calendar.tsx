@@ -258,17 +258,21 @@ export default function Calendar() {
   };
 
   const loadPublicationLogs = async () => {
+    if (!currentOrganization) return;
+    
     setIsLoadingPublicationLogs(true);
     try {
       const { data, error } = await supabase
         .from('publication_logs')
         .select(`
           *,
-          generated_content (
+          generated_content!inner (
             title,
-            content
+            content,
+            organization_id
           )
         `)
+        .eq('generated_content.organization_id', currentOrganization.id)
         .order('created_at', { ascending: false })
         .limit(50);
 

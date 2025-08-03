@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useOrganization } from './use-organization';
 
 export interface AudienceAnalyticsData {
   audienceGrowth: Array<{
@@ -26,6 +27,7 @@ export function useAudienceAnalytics(timeRange: string = '30days') {
   const [data, setData] = useState<AudienceAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { currentOrganization } = useOrganization();
 
   const getDateFilter = () => {
     const now = new Date();
@@ -46,6 +48,8 @@ export function useAudienceAnalytics(timeRange: string = '30days') {
   };
 
   const fetchAudienceAnalytics = async () => {
+    if (!currentOrganization) return;
+    
     try {
       setLoading(true);
       setError(null);
@@ -55,7 +59,11 @@ export function useAudienceAnalytics(timeRange: string = '30days') {
       // Fetch publication logs to analyze audience growth based on engagement
       const { data: publicationLogs, error: logsError } = await supabase
         .from('publication_logs')
-        .select('platform, metrics, created_at')
+        .select(`
+          platform, metrics, created_at,
+          generated_content!inner(organization_id)
+        `)
+        .eq('generated_content.organization_id', currentOrganization.id)
         .gte('created_at', dateFilter)
         .eq('status', 'success')
         .order('created_at', { ascending: true });
@@ -160,8 +168,10 @@ export function useAudienceAnalytics(timeRange: string = '30days') {
   };
 
   useEffect(() => {
-    fetchAudienceAnalytics();
-  }, [timeRange]);
+    if (currentOrganization) {
+      fetchAudienceAnalytics();
+    }
+  }, [timeRange, currentOrganization]);
 
   return { data, loading, error, refetch: fetchAudienceAnalytics };
 }

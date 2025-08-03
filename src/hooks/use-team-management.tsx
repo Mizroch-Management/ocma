@@ -93,6 +93,7 @@ export const useTeamManagement = () => {
         .from('team_invitations')
         .insert({
           team_owner_id: user.id,
+          organization_id: currentOrganization.id,
           invitee_email: email,
           invitee_name: name,
           role: role,

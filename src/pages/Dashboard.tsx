@@ -47,10 +47,14 @@ export default function Dashboard() {
         return;
       }
 
-      // Load publication logs for performance metrics
+      // Load publication logs for performance metrics from current organization
       const { data: publicationLogs, error: logsError } = await supabase
         .from('publication_logs')
-        .select('*');
+        .select(`
+          *,
+          generated_content!inner(organization_id)
+        `)
+        .eq('generated_content.organization_id', currentOrganization.id);
 
       if (logsError) {
         console.error('Error loading publication logs:', logsError);

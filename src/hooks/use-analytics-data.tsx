@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useOrganization } from './use-organization';
 
 export interface AnalyticsData {
   totalContent: number;
@@ -30,6 +31,7 @@ export function useAnalyticsData(timeRange: string = '30days') {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { currentOrganization } = useOrganization();
 
   const getDateFilter = () => {
     const now = new Date();
@@ -50,24 +52,31 @@ export function useAnalyticsData(timeRange: string = '30days') {
   };
 
   const fetchAnalyticsData = async () => {
+    if (!currentOrganization) return;
+    
     try {
       setLoading(true);
       setError(null);
 
       const dateFilter = getDateFilter();
 
-      // Fetch content stats
+      // Fetch content stats for current organization
       const { data: contentStats, error: contentError } = await supabase
         .from('generated_content')
         .select('publication_status')
+        .eq('organization_id', currentOrganization.id)
         .gte('created_at', dateFilter);
 
       if (contentError) throw contentError;
 
-      // Fetch publication logs
+      // Fetch publication logs for content from current organization
       const { data: publicationLogs, error: logsError } = await supabase
         .from('publication_logs')
-        .select('platform, status, created_at, metrics')
+        .select(`
+          platform, status, created_at, metrics,
+          generated_content!inner(organization_id)
+        `)
+        .eq('generated_content.organization_id', currentOrganization.id)
         .gte('created_at', dateFilter)
         .order('created_at', { ascending: false });
 
@@ -175,8 +184,10 @@ export function useAnalyticsData(timeRange: string = '30days') {
   };
 
   useEffect(() => {
-    fetchAnalyticsData();
-  }, [timeRange]);
+    if (currentOrganization) {
+      fetchAnalyticsData();
+    }
+  }, [timeRange, currentOrganization]);
 
   return { data, loading, error, refetch: fetchAnalyticsData };
 }
