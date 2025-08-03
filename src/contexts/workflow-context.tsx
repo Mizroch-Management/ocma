@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { useWorkflowPersistence } from '@/hooks/use-workflow-persistence';
 import { useAuth } from '@/hooks/use-auth';
+import { useOrganization } from '@/hooks/use-organization';
 
 interface WorkflowStrategy {
   id: string;
@@ -263,18 +264,23 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [state, dispatch] = useReducer(workflowReducer, initialState);
   const { loadWorkflow, autoSaveWorkflow } = useWorkflowPersistence();
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   
-  // Load workflow data on mount when user is available
+  // Load workflow data when user or organization changes
   useEffect(() => {
-    if (!user) return; // Wait for user to be loaded
+    if (!user || !currentOrganization) return; // Wait for both user and organization
     
     const loadWorkflowData = async () => {
       try {
-        console.log('Loading workflow data from database...');
-        // Try to load from database first
+        console.log('Loading workflow data for organization:', currentOrganization.id);
+        // Reset workflow state when switching organizations
+        dispatch({ type: 'RESET_WORKFLOW' });
+        
+        // Try to load from database for current organization
         const dbState = await loadWorkflow();
         if (dbState) {
           console.log('Successfully loaded workflow from database:', {
+            organizationId: currentOrganization.id,
             hasBusinessInfo: !!dbState.businessInfo,
             hasStrategy: !!dbState.approvedStrategy,
             plansCount: dbState.approvedPlans?.length || 0,
@@ -285,16 +291,14 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           return;
         }
         
-        // No database workflow found, clear localStorage if any
-        localStorage.removeItem('aiWorkflowState');
-        console.log('No workflow data found in database');
+        console.log('No workflow data found for organization:', currentOrganization.id);
       } catch (error) {
         console.error('Error loading workflow data:', error);
       }
     };
     
     loadWorkflowData();
-  }, [loadWorkflow, user]);
+  }, [loadWorkflow, user, currentOrganization]);
 
   // Save to database whenever state changes (only if user is logged in)
   useEffect(() => {
