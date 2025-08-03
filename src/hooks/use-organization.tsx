@@ -74,6 +74,8 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       
+      let organizations: Organization[] = [];
+      
       if (isAppOwner) {
         // App owner can see all organizations
         const { data: allOrgs, error } = await supabase
@@ -82,7 +84,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
           .order('created_at', { ascending: false });
           
         if (error) throw error;
-        setUserOrganizations(allOrgs || []);
+        organizations = allOrgs || [];
       } else {
         // Regular users see only their organizations
         const { data: memberData, error: memberError } = await supabase
@@ -95,13 +97,14 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
           
         if (memberError) throw memberError;
         
-        const orgs = memberData?.map(m => m.organizations).filter(Boolean) || [];
-        setUserOrganizations(orgs as Organization[]);
+        organizations = memberData?.map(m => m.organizations).filter(Boolean) || [];
       }
       
+      setUserOrganizations(organizations as Organization[]);
+      
       // Set current organization if not set
-      if (!currentOrganization && userOrganizations.length > 0) {
-        setCurrentOrganization(userOrganizations[0]);
+      if (!currentOrganization && organizations.length > 0) {
+        setCurrentOrganization(organizations[0]);
       }
     } catch (error: any) {
       console.error('Error fetching organizations:', error);
