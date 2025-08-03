@@ -87,6 +87,26 @@ export default function AIWorkflow() {
     }
   ]);
 
+  // Update current step based on loaded workflow state
+  useEffect(() => {
+    if (state.businessInfo || state.progress.completedSteps.includes("1")) {
+      const hasBusinessInfo = !!state.businessInfo;
+      const hasStrategy = !!state.approvedStrategy || state.progress.strategyApproved;
+      const hasPlans = (state.approvedPlans && state.approvedPlans.length > 0) || state.progress.plansApproved;
+      const hasContent = (state.approvedContent && state.approvedContent.length > 0) || state.progress.contentApproved;
+      
+      if (hasContent) {
+        setCurrentStep(4);
+      } else if (hasPlans) {
+        setCurrentStep(3);
+      } else if (hasStrategy) {
+        setCurrentStep(2);
+      } else if (hasBusinessInfo) {
+        setCurrentStep(1);
+      }
+    }
+  }, [state]);
+
   useEffect(() => {
     if (state.businessInfo) {
       setBusinessInfo(state.businessInfo);
@@ -490,20 +510,22 @@ export default function AIWorkflow() {
       {/* Step Components */}
       <div className="space-y-8">
         {/* Step 1: Business Info Collector */}
-        {(currentStep === 0 || !businessInfo) && (
-          <BusinessInfoCollector onInfoSubmitted={handleBusinessInfoSubmitted} />
+        {(currentStep === 0 || (!businessInfo && !state.businessInfo)) && (
+          <BusinessInfoCollector 
+            onInfoSubmitted={handleBusinessInfoSubmitted}
+          />
         )}
 
         {/* Step 2: AI Strategy Consultant */}
-        {currentStep === 1 && businessInfo && (
+        {currentStep === 1 && (businessInfo || state.businessInfo) && (
           <AIStrategyConsultant 
             onStrategyApproved={handleStrategyApproved}
-            businessInfo={businessInfo}
+            businessInfo={businessInfo || state.businessInfo}
           />
         )}
 
         {/* Step 3: Smart Content Planner */}
-        {currentStep === 2 && state.progress.strategyApproved && (
+        {currentStep === 2 && (state.progress.strategyApproved || state.approvedStrategy) && (
           <>
             <Separator />
             <SmartContentPlanner 
@@ -514,7 +536,7 @@ export default function AIWorkflow() {
         )}
 
         {/* Step 4: Intelligent Content Creator */}
-        {currentStep === 3 && state.progress.plansApproved && (
+        {currentStep === 3 && (state.progress.plansApproved || (state.approvedPlans && state.approvedPlans.length > 0)) && (
           <>
             <Separator />
             <IntelligentContentCreator 
