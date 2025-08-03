@@ -108,6 +108,11 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         .eq('user_id', user.id)
         .eq('workflow_type', 'ai_workflow');
 
+      // Filter by current organization if available
+      if (currentOrganization?.id) {
+        query = query.eq('organization_id', currentOrganization.id);
+      }
+
       if (workflowId) {
         query = query.eq('id', workflowId);
       } else {
@@ -170,7 +175,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
       console.error('Failed to load workflow:', error);
       return null;
     }
-  }, [user?.id]);
+  }, [user?.id, currentOrganization?.id]);
 
   const autoSaveWorkflow = useCallback((state: WorkflowState, workflowId?: string) => {
     if (!user?.id) return;

@@ -30,7 +30,7 @@ interface OrganizationContextType {
   currentOrganization: Organization | null;
   userOrganizations: Organization[];
   organizationMembers: OrganizationMember[];
-  isAppOwner: boolean;
+  isAppOwner: boolean | null;
   loading: boolean;
   setCurrentOrganization: (org: Organization | null) => void;
   createOrganization: (name: string, description?: string) => Promise<{ error: any }>;
@@ -47,7 +47,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [userOrganizations, setUserOrganizations] = useState<Organization[]>([]);
   const [organizationMembers, setOrganizationMembers] = useState<OrganizationMember[]>([]);
-  const [isAppOwner, setIsAppOwner] = useState(false);
+  const [isAppOwner, setIsAppOwner] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Check if user is app owner
@@ -223,7 +223,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && isAppOwner !== null) {
       fetchUserOrganizations();
     }
   }, [user, isAppOwner]);
