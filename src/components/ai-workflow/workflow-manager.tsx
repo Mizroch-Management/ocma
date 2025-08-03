@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkflow } from "@/contexts/workflow-context";
 import { useAuth } from "@/hooks/use-auth";
+import { useOrganization } from "@/hooks/use-organization";
 import { 
   Plus, 
   Play, 
@@ -47,18 +48,24 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
   const [newWorkflowDescription, setNewWorkflowDescription] = useState("");
   const { dispatch } = useWorkflow();
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const { toast } = useToast();
 
   useEffect(() => {
-    loadWorkflows();
-  }, []);
+    if (currentOrganization) {
+      loadWorkflows();
+    }
+  }, [currentOrganization]);
 
   const loadWorkflows = async () => {
+    if (!currentOrganization) return;
+    
     try {
       const { data, error } = await supabase
         .from('workflows')
         .select('*')
         .eq('workflow_type', 'ai_workflow')
+        .eq('organization_id', currentOrganization.id)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -76,13 +83,14 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
   };
 
   const createNewWorkflow = async () => {
-    if (!newWorkflowTitle.trim() || !user) return;
+    if (!newWorkflowTitle.trim() || !user || !currentOrganization) return;
 
     try {
       const { data, error } = await supabase
         .from('workflows')
         .insert({
           user_id: user.id,
+          organization_id: currentOrganization.id,
           workflow_type: 'ai_workflow',
           status: 'draft',
           current_step: 0,

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { useOrganization } from "@/hooks/use-organization";
 
 interface ActivityItem {
   id: string;
@@ -101,23 +102,29 @@ function ActivityItem({ item }: { item: ActivityItem }) {
 export function RecentActivity() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { currentOrganization } = useOrganization();
 
   useEffect(() => {
-    loadRecentActivity();
-  }, []);
+    if (currentOrganization) {
+      loadRecentActivity();
+    }
+  }, [currentOrganization]);
 
   const loadRecentActivity = async () => {
+    if (!currentOrganization) return;
+    
     setIsLoading(true);
     try {
-      // Load recent content activity
+      // Load recent content activity for current organization
       const { data: contentData, error: contentError } = await supabase
         .from('generated_content')
         .select(`
           *,
-          profiles (
+          profiles!inner(
             full_name
           )
         `)
+        .eq('organization_id', currentOrganization.id)
         .order('created_at', { ascending: false })
         .limit(10);
 

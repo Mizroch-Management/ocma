@@ -6,6 +6,7 @@ import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, addDays, isAfter, isBefore } from "date-fns";
+import { useOrganization } from "@/hooks/use-organization";
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState({
@@ -22,18 +23,24 @@ export default function Dashboard() {
     }
   });
   const [isLoading, setIsLoading] = useState(true);
+  const { currentOrganization } = useOrganization();
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (currentOrganization) {
+      loadDashboardData();
+    }
+  }, [currentOrganization]);
 
   const loadDashboardData = async () => {
+    if (!currentOrganization) return;
+    
     setIsLoading(true);
     try {
-      // Load content statistics
+      // Load content statistics for current organization
       const { data: contentData, error: contentError } = await supabase
         .from('generated_content')
-        .select('*');
+        .select('*')
+        .eq('organization_id', currentOrganization.id);
 
       if (contentError) {
         console.error('Error loading content data:', contentError);
