@@ -41,23 +41,25 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
 
   // Load saved business info on mount
   useEffect(() => {
-    if (state.businessInfo) {
+    // Load from completed business info first, then fallback to draft
+    const savedInfo = state.businessInfo || state.draftData?.businessInfoDraft;
+    if (savedInfo) {
       setBusinessInfo({
-        ...state.businessInfo,
-        teamMembers: state.businessInfo.teamMembers || [
+        ...savedInfo,
+        teamMembers: savedInfo.teamMembers || [
           "The best Marketing strategy firm in the world",
           "The best content creative director and brand manager", 
           "The best social media marketer"
         ]
       });
     }
-  }, [state.businessInfo]);
+  }, [state.businessInfo, state.draftData?.businessInfoDraft]);
 
   const updateField = (field: keyof BusinessInfo, value: string) => {
     const updatedInfo = { ...businessInfo, [field]: value };
     setBusinessInfo(updatedInfo);
-    // Save to workflow context immediately for persistence
-    dispatch({ type: 'SET_BUSINESS_INFO', payload: updatedInfo });
+    // Only save to context for auto-save, don't mark as complete yet
+    dispatch({ type: 'UPDATE_BUSINESS_INFO_DRAFT', payload: updatedInfo });
   };
 
   const addTeamMember = (member: string) => {
@@ -67,7 +69,7 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
         teamMembers: [...(businessInfo.teamMembers || []), member.trim()] 
       };
       setBusinessInfo(updatedInfo);
-      dispatch({ type: 'SET_BUSINESS_INFO', payload: updatedInfo });
+      dispatch({ type: 'UPDATE_BUSINESS_INFO_DRAFT', payload: updatedInfo });
     }
   };
 
@@ -78,7 +80,7 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
         teamMembers: (businessInfo.teamMembers || []).filter((_, i) => i !== index) 
       };
       setBusinessInfo(updatedInfo);
-      dispatch({ type: 'SET_BUSINESS_INFO', payload: updatedInfo });
+      dispatch({ type: 'UPDATE_BUSINESS_INFO_DRAFT', payload: updatedInfo });
     }
   };
 
@@ -104,6 +106,8 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
       return;
     }
 
+    // Now mark as officially submitted
+    dispatch({ type: 'SET_BUSINESS_INFO', payload: businessInfo });
     onInfoSubmitted(businessInfo);
     
     toast({

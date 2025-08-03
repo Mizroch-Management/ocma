@@ -113,6 +113,7 @@ interface ContentPiece {
 }
 
 interface WorkflowDraftData {
+  businessInfoDraft?: BusinessInfo;
   strategySteps: AIStrategyStep[];
   currentStrategyStep: number;
   selectedAIPlatform: string;
@@ -159,6 +160,7 @@ interface WorkflowState {
 
 type WorkflowAction = 
   | { type: 'SET_BUSINESS_INFO'; payload: BusinessInfo }
+  | { type: 'UPDATE_BUSINESS_INFO_DRAFT'; payload: BusinessInfo }
   | { type: 'SET_DRAFT_DATA'; payload: Partial<WorkflowDraftData> }
   | { type: 'SET_APPROVED_STRATEGY'; payload: WorkflowStrategy }
   | { type: 'SET_APPROVED_PLANS'; payload: ContentPlan[] }
@@ -190,6 +192,14 @@ const workflowReducer = (state: WorkflowState, action: WorkflowAction): Workflow
       return {
         ...state,
         businessInfo: action.payload,
+      };
+    case 'UPDATE_BUSINESS_INFO_DRAFT':
+      return {
+        ...state,
+        draftData: {
+          ...state.draftData,
+          businessInfoDraft: action.payload,
+        } as WorkflowDraftData,
       };
     case 'SET_DRAFT_DATA':
       return {
