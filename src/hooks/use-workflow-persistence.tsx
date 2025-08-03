@@ -40,6 +40,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         plans_data: JSON.parse(JSON.stringify(state.approvedPlans)),
         content_data: JSON.parse(JSON.stringify(state.approvedContent)),
         progress_data: JSON.parse(JSON.stringify(state.progress)),
+        title: state.businessInfo?.company ? `${state.businessInfo.company} Marketing Workflow` : 'AI Marketing Workflow',
         metadata: {
           title: state.businessInfo?.company ? `${state.businessInfo.company} Marketing Workflow` : 'AI Marketing Workflow',
           completedSteps: state.progress.completedSteps,
