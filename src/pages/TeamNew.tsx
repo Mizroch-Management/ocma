@@ -65,7 +65,7 @@ export default function Team() {
     setIsInviting(false);
   };
 
-  const handleRoleChange = async (memberId: string, newRole: string) => {
+  const handleRoleChange = async (memberId: string, newRole: 'member' | 'owner' | 'admin') => {
     const result = await updateMemberRole(memberId, newRole);
     if (result.success) {
       toast({

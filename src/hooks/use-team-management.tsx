@@ -7,7 +7,7 @@ export interface TeamMember {
   id: string;
   member_email: string;
   member_name: string | null;
-  role: string;
+  role: 'member' | 'owner' | 'admin';
   status: 'pending' | 'active' | 'inactive';
   permissions: Record<string, boolean>;
   invited_at: string;
@@ -39,12 +39,15 @@ export const useTeamManagement = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch team members for current organization
+      // Fetch organization members for current organization
       const { data: membersData, error: membersError } = await supabase
-        .from('team_members')
-        .select('*')
+        .from('organization_members')
+        .select(`
+          *,
+          profiles!inner(email, full_name)
+        `)
         .eq('organization_id', currentOrganization.id)
-        .order('invited_at', { ascending: false });
+        .order('joined_at', { ascending: false });
 
       if (membersError) throw membersError;
 
@@ -61,10 +64,13 @@ export const useTeamManagement = () => {
 
       setMembers((membersData || []).map(member => ({
         ...member,
+        member_email: (member.profiles as any)?.email || 'Unknown',
+        member_name: (member.profiles as any)?.full_name || 'Unknown User',
+        role: member.role as 'member' | 'owner' | 'admin',
         status: member.status as 'pending' | 'active' | 'inactive',
-        permissions: typeof member.permissions === 'object' && member.permissions !== null 
-          ? member.permissions as Record<string, boolean>
-          : {}
+        permissions: {}, // Organization members don't have detailed permissions
+        invited_at: member.joined_at, // Use joined_at as invited_at for compatibility
+        joined_at: member.joined_at
       })));
       setInvitations((invitationsData || []).map(invitation => ({
         ...invitation,
@@ -129,10 +135,10 @@ export const useTeamManagement = () => {
     }
   };
 
-  const updateMemberRole = async (memberId: string, newRole: string) => {
+  const updateMemberRole = async (memberId: string, newRole: 'member' | 'owner' | 'admin') => {
     try {
       const { error } = await supabase
-        .from('team_members')
+        .from('organization_members')
         .update({ role: newRole })
         .eq('id', memberId);
 
@@ -174,7 +180,7 @@ export const useTeamManagement = () => {
   const removeMember = async (memberId: string) => {
     try {
       const { error } = await supabase
-        .from('team_members')
+        .from('organization_members')
         .delete()
         .eq('id', memberId);
 
