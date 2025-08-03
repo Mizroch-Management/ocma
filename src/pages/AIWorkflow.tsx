@@ -89,7 +89,7 @@ export default function AIWorkflow() {
 
   // Update current step based on loaded workflow state
   useEffect(() => {
-    if (state.businessInfo || state.progress.completedSteps.includes("1")) {
+    if (state.businessInfo || (state.progress.completedSteps && state.progress.completedSteps.includes("1"))) {
       const hasBusinessInfo = !!state.businessInfo;
       const hasStrategy = !!state.approvedStrategy || state.progress.strategyApproved;
       const hasPlans = (state.approvedPlans && state.approvedPlans.length > 0) || state.progress.plansApproved;
