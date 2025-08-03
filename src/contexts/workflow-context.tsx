@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { useWorkflowPersistence } from '@/hooks/use-workflow-persistence';
+import { useAuth } from '@/hooks/use-auth';
 
 interface WorkflowStrategy {
   id: string;
@@ -251,9 +252,12 @@ const WorkflowContext = createContext<{
 export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(workflowReducer, initialState);
   const { loadWorkflow, autoSaveWorkflow } = useWorkflowPersistence();
+  const { user } = useAuth();
   
-  // Load workflow data on mount (from database first, then localStorage fallback)
+  // Load workflow data on mount when user is available
   useEffect(() => {
+    if (!user) return; // Wait for user to be loaded
+    
     const loadWorkflowData = async () => {
       try {
         console.log('Loading workflow data from database...');
@@ -271,42 +275,26 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           return;
         }
         
-        // Fallback to localStorage
-        const saved = localStorage.getItem('aiWorkflowState');
-        if (saved) {
-          console.log('Loading from localStorage fallback');
-          const parsedState = JSON.parse(saved);
-          // Convert date strings back to Date objects
-          if (parsedState.approvedStrategy) {
-            parsedState.approvedStrategy.createdAt = new Date(parsedState.approvedStrategy.createdAt);
-          }
-          parsedState.approvedPlans?.forEach((plan: any) => {
-            plan.createdAt = new Date(plan.createdAt);
-          });
-          parsedState.approvedContent?.forEach((content: any) => {
-            content.createdAt = new Date(content.createdAt);
-            content.scheduledDate = new Date(content.scheduledDate);
-          });
-          dispatch({ type: 'LOAD_WORKFLOW', payload: parsedState });
-        } else {
-          console.log('No workflow data found');
-        }
+        // No database workflow found, clear localStorage if any
+        localStorage.removeItem('aiWorkflowState');
+        console.log('No workflow data found in database');
       } catch (error) {
         console.error('Error loading workflow data:', error);
       }
     };
     
     loadWorkflowData();
-  }, [loadWorkflow]);
+  }, [loadWorkflow, user]);
 
-  // Save to both localStorage and database whenever state changes
+  // Save to database whenever state changes (only if user is logged in)
   useEffect(() => {
-    // Save to localStorage immediately for offline access
-    localStorage.setItem('aiWorkflowState', JSON.stringify(state));
+    if (!user) return; // Don't save if user is not logged in
     
-    // Auto-save to database with debouncing
-    autoSaveWorkflow(state);
-  }, [state, autoSaveWorkflow]);
+    // Only auto-save to database when there's actual workflow data
+    if (state.businessInfo || state.approvedStrategy || state.approvedPlans.length > 0 || state.approvedContent.length > 0) {
+      autoSaveWorkflow(state, state.currentWorkflowId);
+    }
+  }, [state, autoSaveWorkflow, user]);
 
   const contextValue = { state, dispatch };
   // Remove debug logs for production
