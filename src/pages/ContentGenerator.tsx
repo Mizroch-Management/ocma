@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from '@/hooks/use-auth';
+import { useOrganization } from '@/hooks/use-organization';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +46,8 @@ import {
 } from "lucide-react";
 
 export default function ContentGenerator() {
+  const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const { toast } = useToast();
   
   const [selectedStrategy, setSelectedStrategy] = useState("");
@@ -114,10 +118,16 @@ export default function ContentGenerator() {
   const loadSavedContent = async () => {
     setIsLoadingContent(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('generated_content')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
+      
+      // Filter by current organization if available
+      if (currentOrganization?.id) {
+        query = query.eq('organization_id', currentOrganization.id);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading content:', error);
@@ -164,6 +174,7 @@ export default function ContentGenerator() {
         .from('generated_content')
         .insert({
           user_id: (await supabase.auth.getUser()).data.user?.id,
+          organization_id: currentOrganization?.id || null,
           title: content.title,
           content: content.content,
           content_type: content.type,

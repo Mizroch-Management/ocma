@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from '@/hooks/use-auth';
+import { useOrganization } from '@/hooks/use-organization';
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -101,6 +103,8 @@ const visualTypes = [
 ];
 
 export default function Calendar() {
+  const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
   const [selectedContent, setSelectedContent] = useState<ContentPiece | null>(null);
@@ -149,9 +153,11 @@ export default function Calendar() {
 
   // Load generated content and scheduled content from database
   useEffect(() => {
-    loadGeneratedContent();
-    loadScheduledContent();
-    loadPublicationLogs();
+    if (user) {
+      loadGeneratedContent();
+      loadScheduledContent();
+      loadPublicationLogs();
+    }
     
     // Set up real-time subscription for publication logs
     const publicationChannel = supabase
@@ -192,16 +198,22 @@ export default function Calendar() {
       supabase.removeChannel(publicationChannel);
       supabase.removeChannel(contentChannel);
     };
-  }, []);
+  }, [user, currentOrganization]);
 
   const loadGeneratedContent = async () => {
     setIsLoadingGeneratedContent(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('generated_content')
         .select('*')
-        .eq('is_scheduled', false) // Only show unscheduled content
-        .order('created_at', { ascending: false });
+        .eq('is_scheduled', false); // Only show unscheduled content
+      
+      // Filter by current organization if available
+      if (currentOrganization?.id) {
+        query = query.eq('organization_id', currentOrganization.id);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading generated content:', error);
@@ -220,11 +232,17 @@ export default function Calendar() {
 
   const loadScheduledContent = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('generated_content')
         .select('*')
-        .eq('is_scheduled', true)
-        .order('scheduled_date', { ascending: true });
+        .eq('is_scheduled', true);
+      
+      // Filter by current organization if available
+      if (currentOrganization?.id) {
+        query = query.eq('organization_id', currentOrganization.id);
+      }
+      
+      const { data, error } = await query.order('scheduled_date', { ascending: true });
 
       if (error) {
         console.error('Error loading scheduled content:', error);

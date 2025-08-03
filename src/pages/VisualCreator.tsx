@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useWorkflow } from "@/contexts/workflow-context";
+import { useOrganization } from '@/hooks/use-organization';
 import { useAIPlatforms } from "@/hooks/use-ai-platforms";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,6 +93,7 @@ export default function VisualCreator() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPlatform, setFilterPlatform] = useState("");
   const { state: workflowState } = useWorkflow();
+  const { currentOrganization } = useOrganization();
   const { platforms: aiPlatforms, getConfiguredPlatforms } = useAIPlatforms();
   const { toast } = useToast();
 
@@ -206,17 +208,23 @@ export default function VisualCreator() {
     } finally {
       setIsLoadingSuggestions(false);
     }
-  }, [selectedMediaType, workflowState]);
+  }, [selectedMediaType, workflowState, currentOrganization]);
 
   // Load saved visual content
   const loadSavedContent = useCallback(async () => {
     setIsLoadingSaved(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('generated_content')
         .select('*')
-        .eq('content_type', selectedMediaType)
-        .order('created_at', { ascending: false });
+        .eq('content_type', selectedMediaType);
+      
+      // Filter by current organization if available
+      if (currentOrganization?.id) {
+        query = query.eq('organization_id', currentOrganization.id);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setSavedVisuals(data || []);
@@ -225,7 +233,7 @@ export default function VisualCreator() {
     } finally {
       setIsLoadingSaved(false);
     }
-  }, [selectedMediaType]);
+  }, [selectedMediaType, currentOrganization]);
 
   // Save visual content to database
   const saveVisualContent = async (visual: GeneratedVisual) => {
@@ -234,6 +242,7 @@ export default function VisualCreator() {
         .from('generated_content')
         .insert({
           user_id: (await supabase.auth.getUser()).data.user?.id,
+          organization_id: currentOrganization?.id || null,
           title: visual.prompt.slice(0, 100),
           content: visual.url,
           content_type: visual.type,

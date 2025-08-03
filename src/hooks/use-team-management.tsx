@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './use-auth';
+import { useOrganization } from './use-organization';
 
 export interface TeamMember {
   id: string;
@@ -22,29 +24,35 @@ export interface TeamInvitation {
   created_at: string;
 }
 
-export function useTeamManagement() {
+export const useTeamManagement = () => {
+  const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTeamData = async () => {
+    if (!currentOrganization?.id) return;
+    
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch team members
+      // Fetch team members for current organization
       const { data: membersData, error: membersError } = await supabase
         .from('team_members')
         .select('*')
+        .eq('organization_id', currentOrganization.id)
         .order('invited_at', { ascending: false });
 
       if (membersError) throw membersError;
 
-      // Fetch pending invitations
+      // Fetch pending invitations for current organization
       const { data: invitationsData, error: invitationsError } = await supabase
         .from('team_invitations')
         .select('*')
+        .eq('organization_id', currentOrganization.id)
         .eq('status', 'pending')
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
@@ -205,8 +213,10 @@ export function useTeamManagement() {
   };
 
   useEffect(() => {
-    fetchTeamData();
-  }, []);
+    if (user && currentOrganization) {
+      fetchTeamData();
+    }
+  }, [user, currentOrganization]);
 
   return {
     members,
