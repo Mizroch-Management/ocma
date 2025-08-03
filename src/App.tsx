@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/app-layout";
 import { WorkflowProvider } from "./contexts/workflow-context";
 import { AuthProvider } from "./hooks/use-auth";
+import { OrganizationProvider } from "./hooks/use-organization";
 import { ErrorBoundary } from "./components/error-boundary";
 import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
@@ -19,6 +20,7 @@ import Analytics from "./pages/Analytics";
 import SocialMediaEngagement from "./pages/SocialMediaEngagement";
 import Team from "./pages/Team";
 import Settings from "./pages/Settings";
+import Organizations from "./pages/Organizations";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 
@@ -28,7 +30,8 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <WorkflowProvider>
+        <OrganizationProvider>
+          <WorkflowProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -46,14 +49,16 @@ const App = () => (
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="social-engagement" element={<SocialMediaEngagement />} />
                 <Route path="team" element={<Team />} />
+                <Route path="organizations" element={<Organizations />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
-      </WorkflowProvider>
-    </AuthProvider>
+          </WorkflowProvider>
+        </OrganizationProvider>
+      </AuthProvider>
   </QueryClientProvider>
   </ErrorBoundary>
 );

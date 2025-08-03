@@ -1,5 +1,6 @@
-import { Bell, HelpCircle, Search, Plus, LogOut } from "lucide-react";
+import { Bell, HelpCircle, Search, Plus, LogOut, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -11,10 +12,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
+import { useOrganization } from "@/hooks/use-organization";
 import { useState } from "react";
 
 export function Header() {
   const { user, signOut } = useAuth();
+  const { currentOrganization } = useOrganization();
   const [notifications, setNotifications] = useState([
     {
       id: 1,
@@ -68,6 +71,14 @@ export function Header() {
             />
           </div>
         </div>
+
+        {/* Organization Badge */}
+        {currentOrganization && (
+          <div className="flex items-center space-x-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <Badge variant="outline">{currentOrganization.name}</Badge>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center space-x-4">

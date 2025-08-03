@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Brain,
+  Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ const navigation = [
   { name: "Social Engagement", href: "/social-engagement", icon: MessageSquare },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Team", href: "/team", icon: Users },
+  { name: "Organizations", href: "/organizations", icon: Building },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

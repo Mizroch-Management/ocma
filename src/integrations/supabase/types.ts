@@ -24,6 +24,7 @@ export type Database = {
           id: string
           is_scheduled: boolean | null
           metadata: Json | null
+          organization_id: string | null
           platform_optimizations: Json | null
           platforms: string[] | null
           publication_status: string | null
@@ -46,6 +47,7 @@ export type Database = {
           id?: string
           is_scheduled?: boolean | null
           metadata?: Json | null
+          organization_id?: string | null
           platform_optimizations?: Json | null
           platforms?: string[] | null
           publication_status?: string | null
@@ -68,6 +70,7 @@ export type Database = {
           id?: string
           is_scheduled?: boolean | null
           metadata?: Json | null
+          organization_id?: string | null
           platform_optimizations?: Json | null
           platforms?: string[] | null
           publication_status?: string | null
@@ -80,6 +83,91 @@ export type Database = {
           updated_at?: string
           user_id?: string
           variations?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_content_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          joined_at: string
+          organization_id: string
+          role: Database["public"]["Enums"]["organization_role"]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          joined_at?: string
+          organization_id: string
+          role?: Database["public"]["Enums"]["organization_role"]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          joined_at?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["organization_role"]
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          settings: Json | null
+          slug: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          settings?: Json | null
+          slug?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          settings?: Json | null
+          slug?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -195,6 +283,7 @@ export type Database = {
           invitation_token: string
           invitee_email: string
           invitee_name: string | null
+          organization_id: string | null
           role: string
           status: string
           team_owner_id: string
@@ -207,6 +296,7 @@ export type Database = {
           invitation_token: string
           invitee_email: string
           invitee_name?: string | null
+          organization_id?: string | null
           role?: string
           status?: string
           team_owner_id: string
@@ -219,12 +309,21 @@ export type Database = {
           invitation_token?: string
           invitee_email?: string
           invitee_name?: string | null
+          organization_id?: string | null
           role?: string
           status?: string
           team_owner_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members: {
         Row: {
@@ -234,6 +333,7 @@ export type Database = {
           joined_at: string | null
           member_email: string
           member_name: string | null
+          organization_id: string | null
           permissions: Json
           role: string
           status: string
@@ -247,6 +347,7 @@ export type Database = {
           joined_at?: string | null
           member_email: string
           member_name?: string | null
+          organization_id?: string | null
           permissions?: Json
           role?: string
           status?: string
@@ -260,13 +361,22 @@ export type Database = {
           joined_at?: string | null
           member_email?: string
           member_name?: string | null
+          organization_id?: string | null
           permissions?: Json
           role?: string
           status?: string
           team_owner_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -299,6 +409,7 @@ export type Database = {
           id: string
           last_saved_at: string
           metadata: Json | null
+          organization_id: string | null
           plans_data: Json | null
           progress_data: Json
           status: string
@@ -317,6 +428,7 @@ export type Database = {
           id?: string
           last_saved_at?: string
           metadata?: Json | null
+          organization_id?: string | null
           plans_data?: Json | null
           progress_data?: Json
           status?: string
@@ -335,6 +447,7 @@ export type Database = {
           id?: string
           last_saved_at?: string
           metadata?: Json | null
+          organization_id?: string | null
           plans_data?: Json | null
           progress_data?: Json
           status?: string
@@ -344,13 +457,33 @@ export type Database = {
           user_id?: string
           workflow_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workflows_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_user_organization: {
+        Args: { _user_id: string }
+        Returns: string
+      }
+      has_organization_role: {
+        Args: {
+          _user_id: string
+          _organization_id: string
+          _role: Database["public"]["Enums"]["organization_role"]
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -358,9 +491,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_app_owner: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "member"
+      organization_role: "owner" | "admin" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -489,6 +627,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "member"],
+      organization_role: ["owner", "admin", "member"],
     },
   },
 } as const

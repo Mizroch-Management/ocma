@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './use-auth';
+import { useOrganization } from './use-organization';
 import type { WorkflowState } from '@/contexts/workflow-context';
 import { useToast } from './use-toast';
 
@@ -14,6 +15,7 @@ const AUTOSAVE_DELAY = 2000; // 2 seconds delay for autosave
 
 export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const { toast } = useToast();
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedStateRef = useRef<string>('');
@@ -31,6 +33,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
 
       const workflowData = {
         user_id: user.id,
+        organization_id: currentOrganization?.id || null,
         workflow_type: 'ai_workflow',
         status: state.isWorkflowActive ? 'active' : 'draft',
         current_step: state.progress.currentStep,
