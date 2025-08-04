@@ -13,6 +13,7 @@ import { IntelligentContentCreator } from "@/components/ai-workflow/intelligent-
 import { WorkflowIntegrationDashboard } from "@/components/workflow/workflow-integration-dashboard";
 import { WorkflowDataViewer } from "@/components/ai-workflow/workflow-data-viewer";
 import { WorkflowManager } from "@/components/ai-workflow/workflow-manager";
+import { WorkflowDataRestore } from "@/components/ai-workflow/workflow-data-restore";
 import { useWorkflow, type BusinessInfo } from "@/contexts/workflow-context";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { 
@@ -426,6 +427,9 @@ export default function AIWorkflow() {
         </div>
       </div>
 
+      {/* Data Restore Component */}
+      <WorkflowDataRestore />
+      
       {/* Integration Dashboard */}
       <WorkflowIntegrationDashboard />
       

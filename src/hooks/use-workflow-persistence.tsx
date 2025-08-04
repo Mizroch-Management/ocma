@@ -28,27 +28,37 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         businessInfo: state.businessInfo,
         hasBusinessInfo: !!state.businessInfo,
         approvedStrategy: state.approvedStrategy,
-        progress: state.progress
+        progress: state.progress,
+        workflowId: workflowId
       });
 
+      // Ensure we have valid data structures and serialize for JSON storage
       const workflowData = {
         user_id: user.id,
         organization_id: currentOrganization?.id || null,
         workflow_type: 'ai_workflow',
         status: state.isWorkflowActive ? 'active' : 'draft',
-        current_step: state.progress.currentStep,
+        current_step: state.progress.currentStep || 0,
         business_info_data: state.businessInfo ? JSON.parse(JSON.stringify(state.businessInfo)) : null,
         draft_data: state.draftData ? JSON.parse(JSON.stringify(state.draftData)) : null,
         strategy_data: state.approvedStrategy ? JSON.parse(JSON.stringify(state.approvedStrategy)) : null,
-        plans_data: JSON.parse(JSON.stringify(state.approvedPlans)),
-        content_data: JSON.parse(JSON.stringify(state.approvedContent)),
-        progress_data: JSON.parse(JSON.stringify(state.progress)),
+        plans_data: JSON.parse(JSON.stringify(state.approvedPlans || [])),
+        content_data: JSON.parse(JSON.stringify(state.approvedContent || [])),
+        progress_data: JSON.parse(JSON.stringify(state.progress || {
+          currentStep: 0,
+          completedSteps: [],
+          strategyApproved: false,
+          plansApproved: false,
+          contentApproved: false,
+          schedulingComplete: false,
+        })),
         title: state.businessInfo?.company ? `${state.businessInfo.company} Marketing Workflow` : 'AI Marketing Workflow',
         metadata: {
           title: state.businessInfo?.company ? `${state.businessInfo.company} Marketing Workflow` : 'AI Marketing Workflow',
-          completedSteps: state.progress.completedSteps,
-          isWorkflowActive: state.isWorkflowActive,
+          completedSteps: state.progress.completedSteps || [],
+          isWorkflowActive: state.isWorkflowActive || false,
           lastAutoSave: new Date().toISOString(),
+          description: `Marketing strategy and automation for ${state.businessInfo?.company || 'organization'}`
         }
       };
 
@@ -134,11 +144,11 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         updated_at: workflow.updated_at
       });
 
-      // Reconstruct the WorkflowState from database
+      // Reconstruct the WorkflowState from database with proper type casting
       const state: WorkflowState = {
         businessInfo: (workflow.business_info_data as any) || null,
         draftData: (workflow.draft_data as any) || null,
-        approvedStrategy: workflow.strategy_data as any || null,
+        approvedStrategy: (workflow.strategy_data as any) || null,
         approvedPlans: (workflow.plans_data as any) || [],
         approvedContent: (workflow.content_data as any) || [],
         progress: (workflow.progress_data as any) || {
