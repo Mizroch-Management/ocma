@@ -44,23 +44,35 @@ export default function Team() {
     try {
       setLoading(true);
       
-      // Get organization members with their profiles
+      // Get organization members
       const { data: membersData, error: membersError } = await supabase
         .from('organization_members')
-        .select(`
-          *,
-          profiles (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .eq('organization_id', currentOrganization.id)
         .eq('status', 'active')
         .order('created_at', { ascending: true });
 
       if (membersError) throw membersError;
 
-      setMembers(membersData || []);
+      // Get profiles for all members
+      const userIds = membersData?.map(member => member.user_id) || [];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .in('user_id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const membersWithProfiles = membersData?.map(member => {
+        const profile = profilesData?.find(p => p.user_id === member.user_id);
+        return {
+          ...member,
+          profiles: profile || { full_name: '', email: '' }
+        };
+      }) || [];
+
+      setMembers(membersWithProfiles);
       
       // Get current user's role in this organization
       const currentUserMember = membersData?.find(member => member.user_id === user?.id);

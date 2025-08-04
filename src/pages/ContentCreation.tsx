@@ -1,5 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/use-organization";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +16,68 @@ export default function ContentCreation() {
   const [selectedWeek, setSelectedWeek] = useState("");
   const [generatedContent, setGeneratedContent] = useState<any[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [platforms, setPlatforms] = useState<any[]>([]);
+  const [loadingPlatforms, setLoadingPlatforms] = useState(true);
   const { state: workflowState } = useWorkflow();
+  const { currentOrganization } = useOrganization();
+
+  // Fetch platform integrations status
+  useEffect(() => {
+    fetchPlatformStatus();
+  }, [currentOrganization]);
+
+  const fetchPlatformStatus = async () => {
+    if (!currentOrganization) return;
+    
+    try {
+      setLoadingPlatforms(true);
+      
+      const { data: settings, error } = await supabase
+        .from('system_settings')
+        .select('*')
+        .eq('organization_id', currentOrganization.id)
+        .eq('category', 'social_media');
+
+      if (error) throw error;
+
+      const platformMappings = [
+        { key: 'instagram_integration', name: 'Instagram', color: 'bg-pink-500' },
+        { key: 'facebook_integration', name: 'Facebook', color: 'bg-blue-600' },
+        { key: 'twitter_integration', name: 'Twitter', color: 'bg-sky-500' },
+        { key: 'linkedin_integration', name: 'LinkedIn', color: 'bg-blue-700' },
+        { key: 'tiktok_integration', name: 'TikTok', color: 'bg-black' },
+        { key: 'youtube_integration', name: 'YouTube', color: 'bg-red-600' },
+        { key: 'pinterest_integration', name: 'Pinterest', color: 'bg-red-500' },
+        { key: 'snapchat_integration', name: 'Snapchat', color: 'bg-yellow-400' }
+      ];
+
+      const platformsStatus = platformMappings.map(platform => {
+        const setting = settings?.find(s => s.setting_key === platform.key);
+        const settingValue = setting?.setting_value as { connected?: boolean } | null;
+        const isConnected = settingValue?.connected === true;
+        
+        return {
+          name: platform.name,
+          color: platform.color,
+          enabled: isConnected
+        };
+      });
+
+      setPlatforms(platformsStatus);
+    } catch (error) {
+      console.error('Error fetching platform status:', error);
+      // Fallback to default platforms if there's an error
+      setPlatforms([
+        { name: "Instagram", color: "bg-pink-500", enabled: false },
+        { name: "Facebook", color: "bg-blue-600", enabled: false },
+        { name: "Twitter", color: "bg-sky-500", enabled: false },
+        { name: "LinkedIn", color: "bg-blue-700", enabled: false },
+        { name: "TikTok", color: "bg-black", enabled: false }
+      ]);
+    } finally {
+      setLoadingPlatforms(false);
+    }
+  };
 
   // Combine manual strategies with AI strategy
   const strategies = [
@@ -43,14 +106,6 @@ export default function ContentCreation() {
         { id: "week3", name: "Week 3: User Generated Content", theme: "Feature customer stories and reviews", isAIGenerated: false },
         { id: "week4", name: "Week 4: Product Focus", theme: "Highlight products and services", isAIGenerated: false }
       ];
-
-  const platforms = [
-    { name: "Instagram", color: "bg-pink-500", enabled: true },
-    { name: "Facebook", color: "bg-blue-600", enabled: true },
-    { name: "Twitter", color: "bg-sky-500", enabled: false },
-    { name: "LinkedIn", color: "bg-blue-700", enabled: true },
-    { name: "TikTok", color: "bg-black", enabled: false }
-  ];
 
   const handleGenerateContent = async () => {
     if (!selectedStrategy || !selectedWeek) return;
@@ -171,14 +226,20 @@ export default function ContentCreation() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {platforms.map((platform) => (
-                <div key={platform.name} className="flex items-center justify-between">
-                  <span className="text-sm">{platform.name}</span>
-                  <Badge variant={platform.enabled ? "default" : "secondary"}>
-                    {platform.enabled ? "Connected" : "Not Connected"}
-                  </Badge>
+              {loadingPlatforms ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                 </div>
-              ))}
+              ) : (
+                platforms.map((platform) => (
+                  <div key={platform.name} className="flex items-center justify-between">
+                    <span className="text-sm">{platform.name}</span>
+                    <Badge variant={platform.enabled ? "default" : "secondary"}>
+                      {platform.enabled ? "Connected" : "Not Connected"}
+                    </Badge>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
