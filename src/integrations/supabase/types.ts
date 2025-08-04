@@ -251,6 +251,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          organization_id: string | null
           setting_key: string
           setting_value: Json
           updated_at: string
@@ -260,6 +261,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          organization_id?: string | null
           setting_key: string
           setting_value: Json
           updated_at?: string
@@ -269,11 +271,20 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          organization_id?: string | null
           setting_key?: string
           setting_value?: Json
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "system_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_invitations: {
         Row: {

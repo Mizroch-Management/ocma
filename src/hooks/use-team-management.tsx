@@ -86,6 +86,8 @@ export const useTeamManagement = () => {
   };
 
   const inviteMember = async (email: string, name: string, role: string = 'member') => {
+    if (!currentOrganization?.id) return { success: false, error: 'No organization selected' };
+    
     try {
       // Get current user for team_owner_id
       const { data: { user } } = await supabase.auth.getUser();

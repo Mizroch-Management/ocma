@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAIPlatforms } from "@/hooks/use-ai-platforms";
+import { useOrganization } from "@/hooks/use-organization";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Settings2, 
@@ -60,6 +61,7 @@ interface PlatformConfig {
 export default function Settings() {
   const { toast } = useToast();
   const { platforms: aiPlatformsList } = useAIPlatforms();
+  const { currentOrganization } = useOrganization();
   const [settings, setSettings] = useState<SystemSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -163,14 +165,19 @@ export default function Settings() {
   }, {} as Record<string, any>);
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (currentOrganization) {
+      fetchSettings();
+    }
+  }, [currentOrganization]);
 
   const fetchSettings = async () => {
+    if (!currentOrganization) return;
+    
     try {
       const { data, error } = await supabase
         .from('system_settings')
-        .select('*');
+        .select('*')
+        .eq('organization_id', currentOrganization.id);
       
       if (error) throw error;
       setSettings(data || []);
@@ -186,22 +193,57 @@ export default function Settings() {
   };
 
   const updateSetting = async (settingKey: string, newValue: any) => {
+    if (!currentOrganization) return;
+    
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('system_settings')
-        .update({ setting_value: newValue })
-        .eq('setting_key', settingKey);
+      // Check if setting exists for this organization
+      const existingSetting = settings.find(s => s.setting_key === settingKey);
       
-      if (error) throw error;
+      if (existingSetting) {
+        // Update existing setting
+        const { error } = await supabase
+          .from('system_settings')
+          .update({ setting_value: newValue })
+          .eq('setting_key', settingKey)
+          .eq('organization_id', currentOrganization.id);
+        
+        if (error) throw error;
+      } else {
+        // Create new setting for this organization
+        const { error } = await supabase
+          .from('system_settings')
+          .insert({
+            setting_key: settingKey,
+            setting_value: newValue,
+            organization_id: currentOrganization.id,
+            category: 'integration',
+            description: `Setting for ${settingKey}`
+          });
+        
+        if (error) throw error;
+      }
       
-      setSettings(prev => 
-        prev.map(setting => 
+      setSettings(prev => {
+        const updatedSettings = prev.map(setting => 
           setting.setting_key === settingKey 
             ? { ...setting, setting_value: newValue }
             : setting
-        )
-      );
+        );
+        
+        // If setting didn't exist, add it
+        if (!existingSetting) {
+          updatedSettings.push({
+            id: crypto.randomUUID(),
+            setting_key: settingKey,
+            setting_value: newValue,
+            category: 'integration',
+            description: `Setting for ${settingKey}`
+          });
+        }
+        
+        return updatedSettings;
+      });
       
       toast({
         title: "Settings Updated",

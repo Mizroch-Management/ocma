@@ -11,6 +11,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { UserPlus, Users, Mail, Clock, MoreHorizontal, Shield, Trash2, Edit } from "lucide-react";
 import { useTeamManagement } from "@/hooks/use-team-management";
+import { useOrganization } from "@/hooks/use-organization";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Team() {
@@ -31,7 +33,15 @@ export default function Team() {
     cancelInvitation 
   } = useTeamManagement();
 
+  const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
   const { toast } = useToast();
+
+  // Check if current user can manage members (is owner or admin)
+  const canManageMembers = members.find(m => 
+    m.member_email === user?.email && 
+    (m.role === 'owner' || m.role === 'admin')
+  );
 
   const handleInviteMember = async () => {
     if (!inviteEmail || !inviteName) {
@@ -165,13 +175,14 @@ export default function Team() {
           </p>
         </div>
         
-        <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Invite Member
-            </Button>
-          </DialogTrigger>
+        {canManageMembers && (
+          <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Invite Member
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Invite Team Member</DialogTitle>
@@ -223,6 +234,7 @@ export default function Team() {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* Team Overview Cards */}
@@ -310,33 +322,42 @@ export default function Team() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleRoleChange(member.id, member.role === 'admin' ? 'member' : 'admin')}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Change Role
-                      </DropdownMenuItem>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Remove Member
+                      {canManageMembers && member.member_email !== user?.email && (
+                        <>
+                          <DropdownMenuItem onClick={() => handleRoleChange(member.id, member.role === 'admin' ? 'member' : 'admin')}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Change Role
                           </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to remove {member.member_email} from the team? 
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleRemoveMember(member.id, member.member_email)}>
-                              Remove
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Remove Member
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove {member.member_email} from the team? 
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleRemoveMember(member.id, member.member_email)}>
+                                  Remove
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
+                      )}
+                      {!canManageMembers && (
+                        <DropdownMenuItem disabled>
+                          View Details
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
