@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus, Shield, Users, UserMinus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 
 interface OrganizationMemberWithProfile {
   id: string;
@@ -173,10 +174,7 @@ export default function Team() {
           </p>
         </div>
         {canManageUsers && (
-          <Button className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
-            Invite Member
-          </Button>
+          <InviteMemberDialog onInviteSent={fetchOrganizationMembers} />
         )}
       </div>
 
