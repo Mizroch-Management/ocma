@@ -81,71 +81,9 @@ export default function SocialMediaEngagement() {
   const [hashtagInput, setHashtagInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const strategicTrendingHashtags = [
-    {
-      hashtag: '#ContentMarketing',
-      posts: 45220,
-      engagement: 'Very High',
-      growth: '+25%',
-      relevanceScore: 95,
-      reason: 'Aligns with content creation strategy',
-      suggestedAction: 'Create tutorial content series'
-    },
-    {
-      hashtag: '#AIMarketing',
-      posts: 18930,
-      engagement: 'High',
-      growth: '+42%',
-      relevanceScore: 88,
-      reason: 'Emerging trend in our industry',
-      suggestedAction: 'Share AI-powered campaign results'
-    },
-    {
-      hashtag: '#SocialMediaROI',
-      posts: 12150,
-      engagement: 'Medium',
-      growth: '+15%',
-      relevanceScore: 92,
-      reason: 'Direct match to our expertise',
-      suggestedAction: 'Post case studies and metrics'
-    }
-  ];
+  const strategicTrendingHashtags: any[] = []; // Remove fake hashtag data
 
-  const trackedHashtags = [
-    {
-      hashtag: '#BrandStrategy',
-      engagementType: 'Content Creation',
-      platforms: {
-        twitter: { posts: 12, engagement_rate: '4.2%', reach: 15420, status: 'active' },
-        linkedin: { posts: 8, engagement_rate: '6.8%', reach: 8930, status: 'active' },
-        instagram: { posts: 15, engagement_rate: '3.9%', reach: 12150, status: 'active' }
-      },
-      totalProgress: 35,
-      targetPosts: 50
-    },
-    {
-      hashtag: '#DigitalTransformation',
-      engagementType: 'Thought Leadership',
-      platforms: {
-        twitter: { posts: 6, engagement_rate: '5.1%', reach: 8240, status: 'active' },
-        linkedin: { posts: 18, engagement_rate: '8.2%', reach: 22400, status: 'active' },
-        instagram: { posts: 4, engagement_rate: '2.8%', reach: 3200, status: 'paused' }
-      },
-      totalProgress: 28,
-      targetPosts: 40
-    },
-    {
-      hashtag: '#MarketingAutomation',
-      engagementType: 'Product Showcase',
-      platforms: {
-        twitter: { posts: 9, engagement_rate: '3.8%', reach: 11200, status: 'active' },
-        linkedin: { posts: 12, engagement_rate: '7.4%', reach: 18600, status: 'active' },
-        instagram: { posts: 8, engagement_rate: '4.5%', reach: 9800, status: 'active' }
-      },
-      totalProgress: 29,
-      targetPosts: 35
-    }
-  ];
+  const trackedHashtags: any[] = []; // Remove fake tracked hashtags data
 
   const platforms = [
     { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
@@ -182,21 +120,7 @@ export default function SocialMediaEngagement() {
 
     try {
       await discoverInfluencers(selectedPlatform, criteria);
-      
-      // Set search results to display findings
-      setSearchResults(influencers.length > 0 ? influencers : [
-        {
-          id: "search_result_1",
-          name: "Sarah Marketing Pro",
-          handle: "@sarahmarketingpro",
-          followers: "45.2K",
-          engagement: "4.8%",
-          niche: industryNiche || "Marketing",
-          aiScore: 94,
-          reason: "High engagement in marketing content and frequently discusses social media strategies.",
-          suggestedApproach: "Engage with recent posts about content marketing trends and offer collaboration."
-        }
-      ]);
+      setSearchResults(influencers);
     } catch (error) {
       console.error('Error searching influencers:', error);
     } finally {
@@ -262,15 +186,9 @@ export default function SocialMediaEngagement() {
     });
   };
 
-  // Load sample data when component mounts to demonstrate workflow
+  // Remove auto-loading of fake data
   useEffect(() => {
-    const loadSampleData = async () => {
-      // Auto-load mentions for demonstration
-      await monitorMentions('twitter');
-      await monitorMentions('instagram');
-    };
-
-    loadSampleData();
+    // Component initialization without fake data loading
   }, []);
 
   return (
@@ -311,8 +229,10 @@ export default function SocialMediaEngagement() {
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">No engagements yet</p>
+                <div className="text-2xl font-bold">{mentions.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  {mentions.length === 0 ? "Connect social platforms to start tracking" : "Active engagements"}
+                </p>
               </CardContent>
             </Card>
 
@@ -322,8 +242,10 @@ export default function SocialMediaEngagement() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">No pending replies</p>
+                <div className="text-2xl font-bold">{mentions.filter(m => m.requires_response).length}</div>
+                <p className="text-xs text-muted-foreground">
+                  {mentions.length === 0 ? "Connect social platforms to start monitoring" : "Replies needed"}
+                </p>
               </CardContent>
             </Card>
 
@@ -333,8 +255,10 @@ export default function SocialMediaEngagement() {
                 <Star className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">No influencer connections</p>
+                <div className="text-2xl font-bold">{influencers.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  {influencers.length === 0 ? "Search to discover influencers" : "Discovered influencers"}
+                </p>
               </CardContent>
             </Card>
 
@@ -344,8 +268,15 @@ export default function SocialMediaEngagement() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0%</div>
-                <p className="text-xs text-muted-foreground">No engagement data</p>
+                <div className="text-2xl font-bold">
+                  {mentions.length > 0 ? 
+                    `${Math.round((mentions.filter(m => m.sentiment === 'positive').length / mentions.length) * 100)}%` : 
+                    '-'
+                  }
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {mentions.length === 0 ? "No engagement data yet" : "Positive engagement rate"}
+                </p>
               </CardContent>
             </Card>
           </div>

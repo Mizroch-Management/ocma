@@ -66,45 +66,18 @@ serve(async (req) => {
 })
 
 async function monitorMentions(platform: string, data: any, supabase: any) {
-  // This would integrate with social media APIs to monitor mentions
-  // For now, returning mock data structure that represents real monitoring
+  // TODO: Integrate with social media APIs to monitor mentions
+  // This requires platform-specific API keys and authentication
   
-  const mockMentions = [
-    {
-      id: "mention_1",
-      platform,
-      user: "@sarah_marketer",
-      content: "Thanks for the amazing marketing tips! Really helped with our campaign.",
-      sentiment: "positive",
-      engagement_potential: "high",
-      timestamp: new Date().toISOString(),
-      post_url: "https://twitter.com/sarah_marketer/status/123",
-      user_followers: 15000,
-      user_engagement_rate: 4.2,
-      requires_response: true,
-      ai_confidence: 94
-    },
-    {
-      id: "mention_2", 
-      platform,
-      user: "@bizowner_joe",
-      content: "Looking for advice on digital marketing strategies. Any recommendations?",
-      sentiment: "neutral",
-      engagement_potential: "medium",
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      post_url: "https://linkedin.com/posts/bizowner_joe_123",
-      user_followers: 8500,
-      user_engagement_rate: 3.1,
-      requires_response: true,
-      ai_confidence: 87
-    }
-  ];
-
+  console.log(`Monitoring mentions for platform: ${platform}`);
+  
+  // Return empty data until real API integration is implemented
   return {
-    mentions: mockMentions,
-    total_count: mockMentions.length,
-    high_priority_count: mockMentions.filter(m => m.engagement_potential === 'high').length,
-    pending_responses: mockMentions.filter(m => m.requires_response).length
+    mentions: [],
+    total_count: 0,
+    high_priority_count: 0,
+    pending_responses: 0,
+    message: "Social media API integration required. Configure platform API keys to start monitoring mentions."
   };
 }
 
@@ -155,133 +128,44 @@ async function analyzeSentiment(data: any, supabase: any) {
 }
 
 async function discoverInfluencers(platform: string, data: any, supabase: any) {
-  // Mock influencer discovery - in real implementation would use social media APIs
-  const mockInfluencers = [
-    {
-      id: "inf_1",
-      name: "Sarah Johnson",
-      handle: "@sarahjohnson_marketing",
-      platform,
-      followers: 150000,
-      engagement_rate: "4.2%",
-      niche: "Digital Marketing",
-      ai_score: 94,
-      reason: "High engagement in marketing content, frequently discusses social media strategies, and has an audience that aligns with your target demographic.",
-      suggested_approach: "Engage with her recent post about content marketing trends. Share your expertise in the comments and offer to collaborate on a strategy guide.",
-      recent_content: "Just posted about the latest social media algorithm changes",
-      collaboration_potential: "high",
-      estimated_reach: 50000,
-      audience_overlap: 78
-    },
-    {
-      id: "inf_2", 
-      name: "Mike Chen",
-      handle: "@mikechen_bizdev",
-      platform,
-      followers: 85000,
-      engagement_rate: "3.8%", 
-      niche: "Business Development",
-      ai_score: 87,
-      reason: "Consistently creates content about business growth and has mentioned challenges with digital marketing multiple times.",
-      suggested_approach: "Comment on his post about scaling businesses with a helpful tip about marketing automation. Offer a free consultation.",
-      recent_content: "Discussing challenges of scaling a startup",
-      collaboration_potential: "medium",
-      estimated_reach: 25000,
-      audience_overlap: 65
-    }
-  ];
-
+  // TODO: Implement real influencer discovery using social media APIs
+  console.log(`Discovering influencers for platform: ${platform}`, data);
+  
+  // Return empty data until real API integration is implemented
   return {
-    influencers: mockInfluencers,
-    total_found: mockInfluencers.length,
-    high_priority: mockInfluencers.filter(i => i.ai_score >= 90).length,
+    influencers: [],
+    total_found: 0,
+    high_priority: 0,
     search_criteria: data,
-    ai_recommendations: [
-      "Focus on influencers with 50K+ followers for maximum reach",
-      "Prioritize those who recently posted about marketing challenges",
-      "Engage authentically by providing value before pitching collaboration"
-    ]
+    message: "Influencer discovery requires social media API integration. Configure platform API keys to discover influencers."
   };
 }
 
 async function getEngagementOpportunities(platform: string, data: any, supabase: any) {
-  // Get opportunities based on current content and audience behavior
-  const opportunities = [
-    {
-      id: "opp_1",
-      type: "thread_reply",
-      priority: "high", 
-      title: "Reply to High-Engagement Thread",
-      description: "@sarah_marketer's post about marketing tips has 50+ comments",
-      suggested_action: "Join the conversation with your expertise on automation tools",
-      potential_reach: 15000,
-      engagement_score: 94,
-      time_sensitive: true,
-      expires_at: new Date(Date.now() + 2 * 3600000).toISOString() // 2 hours
-    },
-    {
-      id: "opp_2",
-      type: "influencer_outreach",
-      priority: "medium",
-      title: "Collaborate with Business Influencer", 
-      description: "@mikechen_bizdev mentioned marketing challenges",
-      suggested_action: "Offer a free marketing audit or consultation",
-      potential_reach: 8500,
-      engagement_score: 87,
-      time_sensitive: false,
-      expires_at: null
-    },
-    {
-      id: "opp_3",
-      type: "hashtag_trend",
-      priority: "medium",
-      title: "Join Trending Marketing Discussion",
-      description: "#DigitalMarketing2024 is trending with 10K+ posts",
-      suggested_action: "Share your unique perspective on upcoming marketing trends",
-      potential_reach: 25000,
-      engagement_score: 76,
-      time_sensitive: true,
-      expires_at: new Date(Date.now() + 6 * 3600000).toISOString() // 6 hours
-    }
-  ];
-
+  // TODO: Implement real engagement opportunity analysis
+  console.log(`Getting engagement opportunities for platform: ${platform}`);
+  
+  // Return empty data until real API integration is implemented
   return {
-    opportunities,
-    total_count: opportunities.length,
-    high_priority_count: opportunities.filter(o => o.priority === 'high').length,
-    time_sensitive_count: opportunities.filter(o => o.time_sensitive).length
+    opportunities: [],
+    total_count: 0,
+    high_priority_count: 0,
+    time_sensitive_count: 0,
+    message: "Engagement opportunities require social media API integration and content analysis."
   };
 }
 
 async function trackHashtags(platform: string, data: any, supabase: any) {
   const { hashtags } = data;
+  console.log(`Tracking hashtags for platform: ${platform}`, hashtags);
   
-  const hashtagData = hashtags.map((hashtag: string) => ({
-    hashtag,
-    platform,
-    post_count: Math.floor(Math.random() * 50000) + 1000,
-    engagement_level: ['high', 'medium', 'low'][Math.floor(Math.random() * 3)],
-    trending: Math.random() > 0.7,
-    growth_rate: (Math.random() * 50 - 25).toFixed(1) + '%',
-    top_posts: [
-      {
-        user: "@example_user1",
-        content: `Great insights on ${hashtag}! This really changed my perspective.`,
-        engagement: Math.floor(Math.random() * 1000) + 50,
-        url: `https://${platform}.com/post/123`
-      }
-    ],
-    suggested_engagement: `Engage with top posts using ${hashtag} by providing valuable insights or asking thoughtful questions.`
-  }));
-
+  // TODO: Implement real hashtag tracking using social media APIs
+  
   return {
-    hashtag_data: hashtagData,
+    hashtag_data: [],
     tracking_since: new Date().toISOString(),
-    recommendations: [
-      "Focus on hashtags with high engagement and recent growth",
-      "Engage with top posts rather than just using the hashtag",
-      "Monitor trending hashtags for timely opportunities"
-    ]
+    message: "Hashtag tracking requires social media API integration. Configure platform API keys to track hashtag performance.",
+    requested_hashtags: hashtags
   };
 }
 
