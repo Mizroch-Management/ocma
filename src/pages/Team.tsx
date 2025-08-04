@@ -1,76 +1,73 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useOrganization } from "@/hooks/use-organization";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, Shield, Users } from "lucide-react";
+import { Loader2, UserPlus, Shield, Users, UserMinus } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-interface Profile {
+interface OrganizationMemberWithProfile {
   id: string;
   user_id: string;
-  email: string;
-  full_name: string;
+  role: 'owner' | 'admin' | 'member';
+  status: string;
+  joined_at: string;
   created_at: string;
-  roles: { role: string }[];
+  profiles: {
+    full_name: string;
+    email: string;
+  };
 }
 
 export default function Team() {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [members, setMembers] = useState<OrganizationMemberWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchProfiles();
-    fetchCurrentUserRole();
-  }, [user]);
-
-  const fetchCurrentUserRole = async () => {
-    if (!user) return;
-    
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (data) {
-      setCurrentUserRole(data.role);
+    if (currentOrganization) {
+      fetchOrganizationMembers();
     }
-  };
+  }, [currentOrganization, user]);
 
-  const fetchProfiles = async () => {
+  const fetchOrganizationMembers = async () => {
+    if (!currentOrganization) return;
+    
     try {
-      // First get all profiles
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
+      setLoading(true);
+      
+      // Get organization members with their profiles
+      const { data: membersData, error: membersError } = await supabase
+        .from('organization_members')
+        .select(`
+          *,
+          profiles (
+            full_name,
+            email
+          )
+        `)
+        .eq('organization_id', currentOrganization.id)
+        .eq('status', 'active')
         .order('created_at', { ascending: true });
 
-      if (profilesError) throw profilesError;
+      if (membersError) throw membersError;
 
-      // Then get all user roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
+      setMembers(membersData || []);
+      
+      // Get current user's role in this organization
+      const currentUserMember = membersData?.find(member => member.user_id === user?.id);
+      setCurrentUserRole(currentUserMember?.role || null);
 
-      if (rolesError) throw rolesError;
-
-      // Combine the data
-      const profilesWithRoles = profilesData?.map(profile => ({
-        ...profile,
-        roles: rolesData?.filter(role => role.user_id === profile.user_id)
-          .map(role => ({ role: role.role })) || []
-      })) || [];
-
-      setProfiles(profilesWithRoles);
     } catch (error: any) {
-      console.error('Error fetching profiles:', error);
+      console.error('Error fetching organization members:', error);
       toast({
         title: "Error loading team members",
         description: error.message,
@@ -81,18 +78,15 @@ export default function Team() {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: string) => {
+  const updateUserRole = async (userId: string, newRole: 'owner' | 'admin' | 'member') => {
+    if (!currentOrganization) return;
+    
     try {
-      // Remove existing roles
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
-
-      // Add new role
       const { error } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role: newRole as "owner" | "admin" | "member" });
+        .from('organization_members')
+        .update({ role: newRole })
+        .eq('user_id', userId)
+        .eq('organization_id', currentOrganization.id);
 
       if (error) throw error;
 
@@ -101,10 +95,37 @@ export default function Team() {
         description: "User role has been updated successfully.",
       });
 
-      fetchProfiles();
+      fetchOrganizationMembers();
     } catch (error: any) {
       toast({
         title: "Error updating role",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeUserFromOrganization = async (userId: string, userName: string) => {
+    if (!currentOrganization) return;
+    
+    try {
+      const { error } = await supabase
+        .from('organization_members')
+        .delete()
+        .eq('user_id', userId)
+        .eq('organization_id', currentOrganization.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "User removed",
+        description: `${userName} has been removed from the organization.`,
+      });
+
+      fetchOrganizationMembers();
+    } catch (error: any) {
+      toast({
+        title: "Error removing user",
         description: error.message,
         variant: "destructive",
       });
@@ -152,10 +173,10 @@ export default function Team() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Team Members ({profiles.length})
+              Team Members ({members.length})
             </CardTitle>
             <CardDescription>
-              View and manage team member roles and permissions
+              View and manage team member roles and permissions for {currentOrganization?.name}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -170,53 +191,77 @@ export default function Team() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {profiles.map((profile) => (
-                  <TableRow key={profile.id}>
+                {members.map((member) => (
+                  <TableRow key={member.id}>
                     <TableCell className="font-medium">
-                      {profile.full_name || 'Unnamed User'}
+                      {member.profiles?.full_name || 'Unnamed User'}
                     </TableCell>
-                    <TableCell>{profile.email}</TableCell>
+                    <TableCell>{member.profiles?.email}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
-                        {profile.roles.map((roleObj, index) => (
-                          <Badge 
-                            key={index} 
-                            variant={getRoleBadgeVariant(roleObj.role)}
-                            className="capitalize"
-                          >
-                            {roleObj.role}
-                          </Badge>
-                        ))}
-                      </div>
+                      <Badge 
+                        variant={getRoleBadgeVariant(member.role)}
+                        className="capitalize"
+                      >
+                        {member.role}
+                      </Badge>
                     </TableCell>
                     <TableCell>
-                      {new Date(profile.created_at).toLocaleDateString()}
+                      {new Date(member.joined_at).toLocaleDateString()}
                     </TableCell>
                     {canManageUsers && (
                       <TableCell>
-                        {profile.user_id !== user?.id && (
-                          <Select
-                            value={profile.roles[0]?.role || 'member'}
-                            onValueChange={(value) => updateUserRole(profile.user_id, value)}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="member">Member</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              {currentUserRole === 'owner' && (
-                                <SelectItem value="owner">Owner</SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        )}
-                        {profile.user_id === user?.id && (
-                          <Badge variant="outline" className="flex items-center gap-1">
-                            <Shield className="h-3 w-3" />
-                            You
-                          </Badge>
-                        )}
+                        <div className="flex gap-2">
+                          {member.user_id !== user?.id && (
+                            <>
+                              <Select
+                                value={member.role}
+                                onValueChange={(value: 'owner' | 'admin' | 'member') => updateUserRole(member.user_id, value)}
+                              >
+                                <SelectTrigger className="w-32">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="member">Member</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                  {currentUserRole === 'owner' && (
+                                    <SelectItem value="owner">Owner</SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                                    <UserMinus className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to remove {member.profiles?.full_name || member.profiles?.email} from {currentOrganization?.name}? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => removeUserFromOrganization(member.user_id, member.profiles?.full_name || member.profiles?.email || 'User')}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Remove
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
+                          {member.user_id === user?.id && (
+                            <Badge variant="outline" className="flex items-center gap-1">
+                              <Shield className="h-3 w-3" />
+                              You
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
