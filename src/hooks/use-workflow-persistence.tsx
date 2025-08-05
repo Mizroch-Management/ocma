@@ -108,6 +108,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
       });
 
       // Ensure we have valid data structures and serialize for JSON storage
+      // Save ALL workflow data including AI prompts, user prompts, and generated content
       const workflowData = {
         user_id: user.id,
         organization_id: currentOrganization?.id || null,
@@ -115,6 +116,7 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         status: state.isWorkflowActive ? 'active' : 'draft',
         current_step: state.progress.currentStep || 0,
         business_info_data: state.businessInfo ? JSON.parse(JSON.stringify(state.businessInfo)) : null,
+        // Save complete draft data including AI prompts, user prompts, and all AI work products
         draft_data: state.draftData ? JSON.parse(JSON.stringify(state.draftData)) : null,
         strategy_data: state.approvedStrategy ? JSON.parse(JSON.stringify(state.approvedStrategy)) : null,
         plans_data: JSON.parse(JSON.stringify(state.approvedPlans || [])),
@@ -133,7 +135,17 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
           completedSteps: state.progress.completedSteps || [],
           isWorkflowActive: state.isWorkflowActive || false,
           lastAutoSave: new Date().toISOString(),
-          description: `Marketing strategy and automation for ${state.businessInfo?.company || 'organization'}`
+          description: `Marketing strategy and automation for ${state.businessInfo?.company || 'organization'}`,
+          // Include additional metadata about saved content for quick reference
+          hasDraftData: !!state.draftData,
+          hasAIPrompts: !!(state.draftData?.strategySteps?.some(s => s.aiPrompt) || 
+                          state.draftData?.monthlyOverview?.aiPrompt || 
+                          state.draftData?.weeklyPlans?.some(p => p.aiPrompt) ||
+                          state.draftData?.contentPieces?.some(c => c.aiPrompt)),
+          hasUserPrompts: !!(state.draftData?.strategySteps?.some(s => s.userPrompt) || 
+                            state.draftData?.monthlyOverview?.userPrompt || 
+                            state.draftData?.weeklyPlans?.some(p => p.userPrompt) ||
+                            state.draftData?.contentPieces?.some(c => c.userPrompt))
         }
       };
 
@@ -297,8 +309,14 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
       clearTimeout(backupTimeoutRef.current);
     }
 
-    // Immediate local backup for critical data changes
-    if (state.businessInfo || state.approvedStrategy || state.approvedPlans.length > 0) {
+    // Immediate local backup for critical data changes including AI work products
+    if (state.businessInfo || 
+        state.approvedStrategy || 
+        state.approvedPlans.length > 0 || 
+        state.draftData?.strategySteps?.some(s => s.aiGenerated || s.aiPrompt || s.userPrompt) ||
+        state.draftData?.monthlyOverview?.aiGenerated ||
+        state.draftData?.weeklyPlans?.some(p => p.aiGenerated || p.aiPrompt || p.userPrompt) ||
+        state.draftData?.contentPieces?.some(c => c.aiGenerated || c.aiPrompt || c.userPrompt)) {
       backupTimeoutRef.current = setTimeout(() => {
         backupToLocalStorage(state);
       }, 500); // Quick backup

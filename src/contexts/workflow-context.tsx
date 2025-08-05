@@ -304,8 +304,15 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     if (!user) return; // Don't save if user is not logged in
     
-    // Only auto-save to database when there's actual workflow data
-    if (state.businessInfo || state.approvedStrategy || state.approvedPlans.length > 0 || state.approvedContent.length > 0) {
+    // Auto-save when there's any workflow data including AI work products, user inputs, and prompts
+    if (state.businessInfo || 
+        state.approvedStrategy || 
+        state.approvedPlans.length > 0 || 
+        state.approvedContent.length > 0 ||
+        state.draftData?.strategySteps?.some(s => s.aiGenerated || s.aiPrompt || s.userPrompt) ||
+        state.draftData?.monthlyOverview?.aiGenerated ||
+        state.draftData?.weeklyPlans?.some(p => p.aiGenerated || p.aiPrompt || p.userPrompt) ||
+        state.draftData?.contentPieces?.some(c => c.aiGenerated || c.aiPrompt || c.userPrompt)) {
       autoSaveWorkflow(state, state.currentWorkflowId);
     }
   }, [state, autoSaveWorkflow, user]);
