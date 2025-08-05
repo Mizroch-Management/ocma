@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus, Shield, Users, UserMinus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
+import { InvitationStatusCard } from "@/components/team/invitation-status-card";
 
 interface OrganizationMemberWithProfile {
   id: string;
@@ -179,6 +180,8 @@ export default function Team() {
       </div>
 
       <div className="grid gap-6">
+        <InvitationStatusCard />
+        
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

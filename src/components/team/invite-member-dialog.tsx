@@ -30,6 +30,7 @@ export function InviteMemberDialog({ onInviteSent }: InviteMemberDialogProps) {
     setLoading(true);
     try {
       // Create invitation record
+      const invitationToken = crypto.randomUUID();
       const { error: inviteError } = await supabase
         .from('team_invitations')
         .insert({
@@ -38,7 +39,7 @@ export function InviteMemberDialog({ onInviteSent }: InviteMemberDialogProps) {
           invitee_email: email.trim(),
           invitee_name: name.trim() || null,
           role: role,
-          invitation_token: crypto.randomUUID(),
+          invitation_token: invitationToken,
         });
 
       if (inviteError) throw inviteError;
@@ -46,10 +47,10 @@ export function InviteMemberDialog({ onInviteSent }: InviteMemberDialogProps) {
       // Call edge function to send invitation email
       const { error: emailError } = await supabase.functions.invoke('send-team-invitation', {
         body: {
-          inviteeEmail: email.trim(),
-          inviteeName: name.trim() || email.trim(),
-          organizationName: currentOrganization.name,
+          email: email.trim(),
+          name: name.trim() || email.trim(),
           role: role,
+          invitationToken: invitationToken,
         }
       });
 
