@@ -18,7 +18,7 @@ import VisualCreator from "./pages/VisualCreator";
 import Strategy from "./pages/Strategy";
 import Analytics from "./pages/Analytics";
 import SocialMediaEngagement from "./pages/SocialMediaEngagement";
-import Team from "./pages/Team";
+import Team from "./pages/TeamNew";
 import Settings from "./pages/Settings";
 import Organizations from "./pages/Organizations";
 import NotFound from "./pages/NotFound";
