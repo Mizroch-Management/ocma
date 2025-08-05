@@ -75,11 +75,11 @@ export function WorkflowDataRestore() {
     }
   };
 
-  // Only show this component for ScamDunk organization workflows that are missing business info
-  // and have an existing workflow ID (not new workflows)
-  if (state.businessInfo || 
-      !state.currentWorkflowId || 
-      currentOrganization?.name !== 'ScamDunk') {
+  // Only show this component if there's missing critical data but we have a workflow ID
+  // This indicates data corruption rather than a new workflow
+  const hasCriticalData = state.businessInfo || state.draftData?.strategySteps?.length > 0;
+  
+  if (hasCriticalData || !state.currentWorkflowId) {
     return null;
   }
 

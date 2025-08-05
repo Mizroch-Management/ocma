@@ -14,6 +14,7 @@ import { WorkflowIntegrationDashboard } from "@/components/workflow/workflow-int
 import { WorkflowDataViewer } from "@/components/ai-workflow/workflow-data-viewer";
 import { WorkflowManager } from "@/components/ai-workflow/workflow-manager";
 import { WorkflowDataRestore } from "@/components/ai-workflow/workflow-data-restore";
+import { ComprehensiveDataRestore } from "@/components/ai-workflow/comprehensive-data-restore";
 import { useWorkflow, type BusinessInfo } from "@/contexts/workflow-context";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { 
@@ -427,7 +428,8 @@ export default function AIWorkflow() {
         </div>
       </div>
 
-      {/* Data Restore Component */}
+      {/* Data Restore Components */}
+      <ComprehensiveDataRestore />
       <WorkflowDataRestore />
       
       {/* Integration Dashboard */}

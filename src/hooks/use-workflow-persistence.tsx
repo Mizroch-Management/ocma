@@ -268,6 +268,16 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         currentWorkflowId: workflow.id,
       };
 
+      console.log('Restored workflow state:', {
+        businessInfo: !!state.businessInfo,
+        draftData: !!state.draftData,
+        draftDataKeys: state.draftData ? Object.keys(state.draftData) : [],
+        strategyStepsCount: state.draftData?.strategySteps?.length || 0,
+        currentStrategyStep: state.draftData?.currentStrategyStep,
+        approvedStrategy: !!state.approvedStrategy,
+        progress: state.progress
+      });
+
       // Convert date strings back to Date objects
       if (state.approvedStrategy?.createdAt) {
         state.approvedStrategy.createdAt = new Date(state.approvedStrategy.createdAt);
