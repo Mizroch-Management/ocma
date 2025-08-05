@@ -40,6 +40,7 @@ interface OrganizationContextType {
   fetchUserOrganizations: () => Promise<void>;
   fetchOrganizationMembers: (organizationId: string) => Promise<void>;
   searchOrganizations: (query: string) => Promise<{ data: Organization[] | null; error: any }>;
+  fetchAllOrganizations: () => Promise<{ data: Organization[] | null; error: any }>;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
@@ -244,6 +245,21 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Fetch all available organizations
+  const fetchAllOrganizations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('status', 'active')
+        .order('name');
+        
+      return { data, error };
+    } catch (error: any) {
+      return { data: null, error };
+    }
+  };
+
   // Approve organization (app owner only)
   const approveOrganization = async (organizationId: string) => {
     try {
@@ -283,6 +299,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     fetchUserOrganizations,
     fetchOrganizationMembers,
     searchOrganizations,
+    fetchAllOrganizations,
   };
 
   return (

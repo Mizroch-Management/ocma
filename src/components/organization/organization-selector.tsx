@@ -21,7 +21,8 @@ export function OrganizationSelector() {
     approveOrganization,
     fetchUserOrganizations,
     searchOrganizations,
-    requestJoinOrganization
+    requestJoinOrganization,
+    fetchAllOrganizations
   } = useOrganization();
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -31,8 +32,9 @@ export function OrganizationSelector() {
   
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [allOrganizations, setAllOrganizations] = useState<any[]>([]);
+  const [filteredOrganizations, setFilteredOrganizations] = useState<any[]>([]);
+  const [loadingOrganizations, setLoadingOrganizations] = useState(false);
   const [joining, setJoining] = useState(false);
 
   const handleCreateOrganization = async () => {
@@ -54,19 +56,31 @@ export function OrganizationSelector() {
     await fetchUserOrganizations();
   };
 
-  const handleSearchOrganizations = async () => {
-    if (!searchQuery.trim()) return;
-    
-    setSearching(true);
-    const { data, error } = await searchOrganizations(searchQuery);
+  const handleLoadAllOrganizations = async () => {
+    setLoadingOrganizations(true);
+    const { data, error } = await fetchAllOrganizations();
     
     if (!error && data) {
       // Filter out organizations the user is already a member of
       const userOrgIds = userOrganizations.map(org => org.id);
-      const filteredResults = data.filter(org => !userOrgIds.includes(org.id));
-      setSearchResults(filteredResults);
+      const availableOrgs = data.filter(org => !userOrgIds.includes(org.id));
+      setAllOrganizations(availableOrgs);
+      setFilteredOrganizations(availableOrgs);
     }
-    setSearching(false);
+    setLoadingOrganizations(false);
+  };
+
+  const handleFilterOrganizations = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setFilteredOrganizations(allOrganizations);
+    } else {
+      const filtered = allOrganizations.filter(org => 
+        org.name.toLowerCase().includes(query.toLowerCase()) ||
+        org.description?.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredOrganizations(filtered);
+    }
   };
 
   const handleJoinRequest = async (orgId: string) => {
@@ -76,7 +90,8 @@ export function OrganizationSelector() {
     if (!error) {
       setShowJoinDialog(false);
       setSearchQuery('');
-      setSearchResults([]);
+      setAllOrganizations([]);
+      setFilteredOrganizations([]);
     }
     setJoining(false);
   };
@@ -167,7 +182,12 @@ export function OrganizationSelector() {
               </DialogContent>
             </Dialog>
             
-            <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
+            <Dialog open={showJoinDialog} onOpenChange={(open) => {
+              setShowJoinDialog(open);
+              if (open) {
+                handleLoadAllOrganizations();
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <UserPlus className="w-4 h-4 mr-2" />
@@ -178,31 +198,29 @@ export function OrganizationSelector() {
                 <DialogHeader>
                   <DialogTitle>Join Existing Organization</DialogTitle>
                   <DialogDescription>
-                    Search for and request to join an existing organization. The organization owner will need to approve your request.
+                    Browse and request to join an existing organization. The organization owner will need to approve your request.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="search-org">Search Organizations</Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        id="search-org"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Enter organization name to search"
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearchOrganizations()}
-                      />
-                      <Button onClick={handleSearchOrganizations} disabled={searching || !searchQuery.trim()}>
-                        <Search className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    <Label htmlFor="search-org">Filter Organizations</Label>
+                    <Input
+                      id="search-org"
+                      value={searchQuery}
+                      onChange={(e) => handleFilterOrganizations(e.target.value)}
+                      placeholder="Type to filter organizations..."
+                    />
                   </div>
                   
-                  {searchResults.length > 0 && (
+                  {loadingOrganizations ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-sm text-muted-foreground">Loading organizations...</div>
+                    </div>
+                  ) : filteredOrganizations.length > 0 ? (
                     <div className="space-y-2">
-                      <Label>Search Results</Label>
-                      <div className="max-h-48 overflow-y-auto space-y-2">
-                        {searchResults.map((org) => (
+                      <Label>Available Organizations</Label>
+                      <div className="max-h-64 overflow-y-auto space-y-2">
+                        {filteredOrganizations.map((org) => (
                           <div key={org.id} className="flex items-center justify-between p-3 border rounded-lg">
                             <div>
                               <div className="font-medium">{org.name}</div>
@@ -221,10 +239,14 @@ export function OrganizationSelector() {
                         ))}
                       </div>
                     </div>
-                  )}
-                  
-                  {searchQuery && searchResults.length === 0 && !searching && (
-                    <p className="text-sm text-muted-foreground">No organizations found matching your search.</p>
+                  ) : allOrganizations.length === 0 && !loadingOrganizations ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No organizations available to join.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No organizations match your filter.
+                    </p>
                   )}
                   
                   <div className="flex justify-end">
