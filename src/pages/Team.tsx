@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, Shield, Users, UserMinus } from "lucide-react";
+import { Loader2, UserPlus, Shield, Users, UserMinus, Clock, CheckCircle, XCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 import { InvitationStatusCard } from "@/components/team/invitation-status-card";
@@ -28,6 +28,7 @@ interface OrganizationMemberWithProfile {
 
 export default function Team() {
   const [members, setMembers] = useState<OrganizationMemberWithProfile[]>([]);
+  const [pendingMembers, setPendingMembers] = useState<OrganizationMemberWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const { user } = useAuth();
@@ -46,7 +47,7 @@ export default function Team() {
     try {
       setLoading(true);
       
-      // Get organization members
+      // Get active organization members
       const { data: membersData, error: membersError } = await supabase
         .from('organization_members')
         .select('*')
@@ -56,16 +57,30 @@ export default function Team() {
 
       if (membersError) throw membersError;
 
-      // Get profiles for all members
-      const userIds = membersData?.map(member => member.user_id) || [];
+      // Get pending organization members
+      const { data: pendingData, error: pendingError } = await supabase
+        .from('organization_members')
+        .select('*')
+        .eq('organization_id', currentOrganization.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+
+      if (pendingError) throw pendingError;
+
+      // Get profiles for all members (active + pending)
+      const allUserIds = [
+        ...(membersData?.map(member => member.user_id) || []),
+        ...(pendingData?.map(member => member.user_id) || [])
+      ];
+      
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, full_name, email')
-        .in('user_id', userIds);
+        .in('user_id', allUserIds);
 
       if (profilesError) throw profilesError;
 
-      // Combine the data
+      // Combine the data for active members
       const membersWithProfiles = membersData?.map(member => {
         const profile = profilesData?.find(p => p.user_id === member.user_id);
         return {
@@ -74,7 +89,17 @@ export default function Team() {
         };
       }) || [];
 
+      // Combine the data for pending members
+      const pendingWithProfiles = pendingData?.map(member => {
+        const profile = profilesData?.find(p => p.user_id === member.user_id);
+        return {
+          ...member,
+          profiles: profile || { full_name: '', email: '' }
+        };
+      }) || [];
+
       setMembers(membersWithProfiles);
+      setPendingMembers(pendingWithProfiles);
       
       // Get current user's role in this organization
       const currentUserMember = membersData?.find(member => member.user_id === user?.id);
@@ -146,6 +171,58 @@ export default function Team() {
     }
   };
 
+  const approveMember = async (memberId: string, userName: string) => {
+    if (!currentOrganization) return;
+    
+    try {
+      const { error } = await supabase
+        .from('organization_members')
+        .update({ status: 'active' })
+        .eq('id', memberId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Member approved",
+        description: `${userName} has been approved and added to the organization.`,
+      });
+
+      fetchOrganizationMembers();
+    } catch (error: any) {
+      toast({
+        title: "Error approving member",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const rejectMember = async (memberId: string, userName: string) => {
+    if (!currentOrganization) return;
+    
+    try {
+      const { error } = await supabase
+        .from('organization_members')
+        .delete()
+        .eq('id', memberId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Member rejected",
+        description: `${userName}'s join request has been rejected.`,
+      });
+
+      fetchOrganizationMembers();
+    } catch (error: any) {
+      toast({
+        title: "Error rejecting member",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const canManageUsers = currentUserRole === 'owner' || currentUserRole === 'admin';
 
   const getRoleBadgeVariant = (role: string) => {
@@ -181,6 +258,89 @@ export default function Team() {
 
       <div className="grid gap-6">
         <InvitationStatusCard />
+        
+        {/* Pending Members Card */}
+        {canManageUsers && pendingMembers.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-600">
+                <Clock className="h-5 w-5" />
+                Pending Join Requests ({pendingMembers.length})
+              </CardTitle>
+              <CardDescription>
+                Members waiting for approval to join {currentOrganization?.name}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Requested Role</TableHead>
+                    <TableHead>Requested</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingMembers.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell className="font-medium">
+                        {member.profiles?.full_name || 'Unnamed User'}
+                      </TableCell>
+                      <TableCell>{member.profiles?.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {member.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(member.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => approveMember(member.id, member.profiles?.full_name || member.profiles?.email || 'User')}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Reject
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Reject Join Request</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to reject {member.profiles?.full_name || member.profiles?.email}'s request to join {currentOrganization?.name}? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => rejectMember(member.id, member.profiles?.full_name || member.profiles?.email || 'User')}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Reject
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
         
         <Card>
           <CardHeader>
