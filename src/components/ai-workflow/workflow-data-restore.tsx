@@ -73,8 +73,9 @@ export function WorkflowDataRestore() {
     }
   };
 
-  // Only show this component if business info is missing
-  if (state.businessInfo) {
+  // Only show this component if business info is missing AND we have a currentWorkflowId
+  // This prevents showing the warning for new workflows
+  if (state.businessInfo || !state.currentWorkflowId) {
     return null;
   }
 
