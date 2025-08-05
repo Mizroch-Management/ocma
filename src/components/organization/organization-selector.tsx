@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOrganization } from '@/hooks/use-organization';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,12 +14,16 @@ export function OrganizationSelector() {
   const {
     currentOrganization,
     userOrganizations,
+    pendingMembers,
     isAppOwner,
     loading,
     setCurrentOrganization,
     createOrganization,
     approveOrganization,
+    approveMember,
+    rejectMember,
     fetchUserOrganizations,
+    fetchPendingMembers,
     searchOrganizations,
     requestJoinOrganization,
     fetchAllOrganizations
@@ -95,6 +99,13 @@ export function OrganizationSelector() {
     }
     setJoining(false);
   };
+
+  // Load pending members when current organization changes
+  useEffect(() => {
+    if (currentOrganization) {
+      fetchPendingMembers(currentOrganization.id);
+    }
+  }, [currentOrganization, fetchPendingMembers]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -306,6 +317,7 @@ export function OrganizationSelector() {
                 </Select>
               </div>
 
+
               {currentOrganization && (
                 <div className="p-4 bg-muted rounded-lg">
                   <div className="flex items-center justify-between mb-2">
@@ -315,6 +327,48 @@ export function OrganizationSelector() {
                   {currentOrganization.description && (
                     <p className="text-sm text-muted-foreground">{currentOrganization.description}</p>
                   )}
+                </div>
+              )}
+
+              {/* Pending Member Requests - Only show to organization owners */}
+              {currentOrganization && pendingMembers.length > 0 && (
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-3 flex items-center">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Pending Member Requests
+                  </h4>
+                  <div className="space-y-2">
+                    {pendingMembers.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <div className="font-medium">{(member as any).profiles?.full_name || 'Unknown User'}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {(member as any).profiles?.email}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Requested on {new Date(member.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            size="sm" 
+                            onClick={() => approveMember(member.id)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <Check className="w-3 h-3 mr-1" />
+                            Approve
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => rejectMember(member.id)}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

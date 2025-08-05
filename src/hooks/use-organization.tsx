@@ -30,6 +30,7 @@ interface OrganizationContextType {
   currentOrganization: Organization | null;
   userOrganizations: Organization[];
   organizationMembers: OrganizationMember[];
+  pendingMembers: OrganizationMember[];
   isAppOwner: boolean | null;
   loading: boolean;
   setCurrentOrganization: (org: Organization | null) => void;
@@ -37,8 +38,11 @@ interface OrganizationContextType {
   joinOrganization: (organizationId: string) => Promise<{ error: any }>;
   requestJoinOrganization: (organizationId: string) => Promise<{ error: any }>;
   approveOrganization: (organizationId: string) => Promise<{ error: any }>;
+  approveMember: (memberId: string) => Promise<{ error: any }>;
+  rejectMember: (memberId: string) => Promise<{ error: any }>;
   fetchUserOrganizations: () => Promise<void>;
   fetchOrganizationMembers: (organizationId: string) => Promise<void>;
+  fetchPendingMembers: (organizationId: string) => Promise<void>;
   searchOrganizations: (query: string) => Promise<{ data: Organization[] | null; error: any }>;
   fetchAllOrganizations: () => Promise<{ data: Organization[] | null; error: any }>;
 }
@@ -50,6 +54,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [userOrganizations, setUserOrganizations] = useState<Organization[]>([]);
   const [organizationMembers, setOrganizationMembers] = useState<OrganizationMember[]>([]);
+  const [pendingMembers, setPendingMembers] = useState<OrganizationMember[]>([]);
   const [isAppOwner, setIsAppOwner] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -136,6 +141,29 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('Error fetching organization members:', error);
       toast.error('Failed to load organization members');
+    }
+  };
+
+  // Fetch pending members for organization owners
+  const fetchPendingMembers = async (organizationId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('organization_members')
+        .select(`
+          *,
+          profiles (
+            full_name,
+            email
+          )
+        `)
+        .eq('organization_id', organizationId)
+        .eq('status', 'pending');
+        
+      if (error) throw error;
+      setPendingMembers(data || []);
+    } catch (error: any) {
+      console.error('Error fetching pending members:', error);
+      toast.error('Failed to load pending members');
     }
   };
 
@@ -245,6 +273,55 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Approve member join request
+  const approveMember = async (memberId: string) => {
+    try {
+      const { error } = await supabase
+        .from('organization_members')
+        .update({ status: 'active' })
+        .eq('id', memberId);
+        
+      if (error) throw error;
+      
+      toast.success('Member approved successfully');
+      
+      // Refresh pending members if current organization is set
+      if (currentOrganization) {
+        await fetchPendingMembers(currentOrganization.id);
+        await fetchOrganizationMembers(currentOrganization.id);
+      }
+      
+      return { error: null };
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to approve member');
+      return { error };
+    }
+  };
+
+  // Reject member join request
+  const rejectMember = async (memberId: string) => {
+    try {
+      const { error } = await supabase
+        .from('organization_members')
+        .delete()
+        .eq('id', memberId);
+        
+      if (error) throw error;
+      
+      toast.success('Member request rejected');
+      
+      // Refresh pending members if current organization is set
+      if (currentOrganization) {
+        await fetchPendingMembers(currentOrganization.id);
+      }
+      
+      return { error: null };
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reject member');
+      return { error };
+    }
+  };
+
   // Fetch all available organizations
   const fetchAllOrganizations = async () => {
     try {
@@ -289,6 +366,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     currentOrganization,
     userOrganizations,
     organizationMembers,
+    pendingMembers,
     isAppOwner,
     loading,
     setCurrentOrganization,
@@ -296,8 +374,11 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     joinOrganization,
     requestJoinOrganization,
     approveOrganization,
+    approveMember,
+    rejectMember,
     fetchUserOrganizations,
     fetchOrganizationMembers,
+    fetchPendingMembers,
     searchOrganizations,
     fetchAllOrganizations,
   };
