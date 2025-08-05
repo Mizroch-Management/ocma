@@ -40,6 +40,7 @@ interface OrganizationContextType {
   approveOrganization: (organizationId: string) => Promise<{ error: any }>;
   approveMember: (memberId: string) => Promise<{ error: any }>;
   rejectMember: (memberId: string) => Promise<{ error: any }>;
+  updateMemberRole: (memberId: string, role: 'owner' | 'admin' | 'member') => Promise<{ error: any }>;
   fetchUserOrganizations: () => Promise<void>;
   fetchOrganizationMembers: (organizationId: string) => Promise<void>;
   fetchPendingMembers: (organizationId: string) => Promise<void>;
@@ -322,6 +323,30 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Update member role (owner only)
+  const updateMemberRole = async (memberId: string, role: 'owner' | 'admin' | 'member') => {
+    try {
+      const { error } = await supabase
+        .from('organization_members')
+        .update({ role })
+        .eq('id', memberId);
+        
+      if (error) throw error;
+      
+      toast.success('Member role updated successfully');
+      
+      // Refresh members if current organization is set
+      if (currentOrganization) {
+        await fetchOrganizationMembers(currentOrganization.id);
+      }
+      
+      return { error: null };
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update member role');
+      return { error };
+    }
+  };
+
   // Fetch all available organizations
   const fetchAllOrganizations = async () => {
     try {
@@ -376,6 +401,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     approveOrganization,
     approveMember,
     rejectMember,
+    updateMemberRole,
     fetchUserOrganizations,
     fetchOrganizationMembers,
     fetchPendingMembers,

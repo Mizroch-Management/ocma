@@ -14,6 +14,7 @@ export function OrganizationSelector() {
   const {
     currentOrganization,
     userOrganizations,
+    organizationMembers,
     pendingMembers,
     isAppOwner,
     loading,
@@ -22,8 +23,10 @@ export function OrganizationSelector() {
     approveOrganization,
     approveMember,
     rejectMember,
+    updateMemberRole,
     fetchUserOrganizations,
     fetchPendingMembers,
+    fetchOrganizationMembers,
     searchOrganizations,
     requestJoinOrganization,
     fetchAllOrganizations
@@ -104,8 +107,9 @@ export function OrganizationSelector() {
   useEffect(() => {
     if (currentOrganization) {
       fetchPendingMembers(currentOrganization.id);
+      fetchOrganizationMembers(currentOrganization.id);
     }
-  }, [currentOrganization, fetchPendingMembers]);
+  }, [currentOrganization, fetchPendingMembers, fetchOrganizationMembers]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -327,6 +331,46 @@ export function OrganizationSelector() {
                   {currentOrganization.description && (
                     <p className="text-sm text-muted-foreground">{currentOrganization.description}</p>
                   )}
+                </div>
+              )}
+
+              {/* Organization Members - Only show to organization owners/admins */}
+              {currentOrganization && organizationMembers.filter(m => m.status === 'active').length > 0 && (
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-3 flex items-center">
+                    <Users className="w-4 h-4 mr-2" />
+                    Organization Members
+                  </h4>
+                  <div className="space-y-2">
+                    {organizationMembers.filter(m => m.status === 'active').map((member) => (
+                      <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <div className="font-medium">{(member as any).profiles?.full_name || 'Unknown User'}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {(member as any).profiles?.email}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Role: {member.role}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Select
+                            value={member.role}
+                            onValueChange={(newRole) => updateMemberRole(member.id, newRole as any)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="owner">Owner</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
