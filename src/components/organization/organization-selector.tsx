@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Plus, Check, Clock, Users } from 'lucide-react';
+import { Building2, Plus, Check, Clock, Users, Search, UserPlus } from 'lucide-react';
 
 export function OrganizationSelector() {
   const {
@@ -19,13 +19,21 @@ export function OrganizationSelector() {
     setCurrentOrganization,
     createOrganization,
     approveOrganization,
-    fetchUserOrganizations
+    fetchUserOrganizations,
+    searchOrganizations,
+    requestJoinOrganization
   } = useOrganization();
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
   const [newOrgDescription, setNewOrgDescription] = useState('');
   const [creating, setCreating] = useState(false);
+  
+  const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   const handleCreateOrganization = async () => {
     if (!newOrgName.trim()) return;
@@ -44,6 +52,33 @@ export function OrganizationSelector() {
   const handleApproveOrganization = async (orgId: string) => {
     await approveOrganization(orgId);
     await fetchUserOrganizations();
+  };
+
+  const handleSearchOrganizations = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setSearching(true);
+    const { data, error } = await searchOrganizations(searchQuery);
+    
+    if (!error && data) {
+      // Filter out organizations the user is already a member of
+      const userOrgIds = userOrganizations.map(org => org.id);
+      const filteredResults = data.filter(org => !userOrgIds.includes(org.id));
+      setSearchResults(filteredResults);
+    }
+    setSearching(false);
+  };
+
+  const handleJoinRequest = async (orgId: string) => {
+    setJoining(true);
+    const { error } = await requestJoinOrganization(orgId);
+    
+    if (!error) {
+      setShowJoinDialog(false);
+      setSearchQuery('');
+      setSearchResults([]);
+    }
+    setJoining(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -84,13 +119,14 @@ export function OrganizationSelector() {
                 Select or create an organization to manage your marketing content and campaigns.
               </CardDescription>
             </div>
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Organization
-                </Button>
-              </DialogTrigger>
+            <div className="flex space-x-2">
+              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Organization
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create New Organization</DialogTitle>
@@ -130,6 +166,76 @@ export function OrganizationSelector() {
                 </div>
               </DialogContent>
             </Dialog>
+            
+            <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Join Organization
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Join Existing Organization</DialogTitle>
+                  <DialogDescription>
+                    Search for and request to join an existing organization. The organization owner will need to approve your request.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="search-org">Search Organizations</Label>
+                    <div className="flex space-x-2">
+                      <Input
+                        id="search-org"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Enter organization name to search"
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearchOrganizations()}
+                      />
+                      <Button onClick={handleSearchOrganizations} disabled={searching || !searchQuery.trim()}>
+                        <Search className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {searchResults.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Search Results</Label>
+                      <div className="max-h-48 overflow-y-auto space-y-2">
+                        {searchResults.map((org) => (
+                          <div key={org.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <div className="font-medium">{org.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {org.description || 'No description'}
+                              </div>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleJoinRequest(org.id)}
+                              disabled={joining}
+                            >
+                              {joining ? 'Requesting...' : 'Request to Join'}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {searchQuery && searchResults.length === 0 && !searching && (
+                    <p className="text-sm text-muted-foreground">No organizations found matching your search.</p>
+                  )}
+                  
+                  <div className="flex justify-end">
+                    <Button variant="outline" onClick={() => setShowJoinDialog(false)}>
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -138,12 +244,18 @@ export function OrganizationSelector() {
               <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">No Organizations</h3>
               <p className="text-muted-foreground mb-4">
-                You're not a member of any organizations yet. Create one to get started.
+                You're not a member of any organizations yet. Create one or join an existing organization to get started.
               </p>
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First Organization
-              </Button>
+              <div className="flex justify-center space-x-2">
+                <Button onClick={() => setShowCreateDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Organization
+                </Button>
+                <Button variant="outline" onClick={() => setShowJoinDialog(true)}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Join Organization
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
