@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Building2, Plus, Check, Clock, Users, Search, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function OrganizationSelector() {
   const {
@@ -64,17 +65,34 @@ export function OrganizationSelector() {
   };
 
   const handleLoadAllOrganizations = async () => {
+    console.log('Loading all organizations...');
     setLoadingOrganizations(true);
-    const { data, error } = await fetchAllOrganizations();
-    
-    if (!error && data) {
-      // Filter out organizations the user is already a member of
-      const userOrgIds = userOrganizations.map(org => org.id);
-      const availableOrgs = data.filter(org => !userOrgIds.includes(org.id));
-      setAllOrganizations(availableOrgs);
-      setFilteredOrganizations(availableOrgs);
+    try {
+      const { data, error } = await fetchAllOrganizations();
+      console.log('Fetch result:', { data, error });
+      
+      if (error) {
+        console.error('Error fetching organizations:', error);
+        toast.error('Failed to load organizations');
+        return;
+      }
+      
+      if (data) {
+        console.log('Raw organizations data:', data);
+        // Filter out organizations the user is already a member of
+        const userOrgIds = userOrganizations.map(org => org.id);
+        console.log('User org IDs:', userOrgIds);
+        const availableOrgs = data.filter(org => !userOrgIds.includes(org.id));
+        console.log('Available organizations after filtering:', availableOrgs);
+        setAllOrganizations(availableOrgs);
+        setFilteredOrganizations(availableOrgs);
+      }
+    } catch (error) {
+      console.error('Error loading organizations:', error);
+      toast.error('Failed to load organizations');
+    } finally {
+      setLoadingOrganizations(false);
     }
-    setLoadingOrganizations(false);
   };
 
   const handleFilterOrganizations = (query: string) => {
@@ -103,13 +121,13 @@ export function OrganizationSelector() {
     setJoining(false);
   };
 
-  // Load pending members when current organization changes
+  // Load pending members when current organization changes  
   useEffect(() => {
     if (currentOrganization) {
       fetchPendingMembers(currentOrganization.id);
       fetchOrganizationMembers(currentOrganization.id);
     }
-  }, [currentOrganization, fetchPendingMembers, fetchOrganizationMembers]);
+  }, [currentOrganization?.id]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -201,6 +219,8 @@ export function OrganizationSelector() {
               setShowJoinDialog(open);
               if (open) {
                 setSearchQuery('');
+                setAllOrganizations([]);
+                setFilteredOrganizations([]);
                 handleLoadAllOrganizations();
               } else {
                 setAllOrganizations([]);
