@@ -66,18 +66,65 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
     }
   ]);
 
-  // Load saved draft data on mount
+  // Load saved draft data on mount and calculate correct current step
   useEffect(() => {
     if (state.draftData?.strategySteps) {
+      console.log('Loading saved strategy steps:', state.draftData.strategySteps);
       setSteps(state.draftData.strategySteps);
-    }
-    if (state.draftData?.currentStrategyStep !== undefined) {
-      setCurrentStep(state.draftData.currentStrategyStep);
+      
+      // Calculate the correct current step based on progress
+      const savedSteps = state.draftData.strategySteps;
+      let calculatedCurrentStep = 0;
+      
+      // Find the first step that isn't approved or completed
+      for (let i = 0; i < savedSteps.length; i++) {
+        if (savedSteps[i].status === 'approved') {
+          calculatedCurrentStep = i + 1; // Move to next step
+        } else if (savedSteps[i].status === 'review' || savedSteps[i].aiGenerated) {
+          calculatedCurrentStep = i; // Stay on this step for review
+          break;
+        } else if (savedSteps[i].status === 'generating') {
+          calculatedCurrentStep = i; // Stay on generating step
+          break;
+        } else {
+          // This is the first pending step
+          calculatedCurrentStep = i;
+          break;
+        }
+      }
+      
+      // If all steps are approved, we should be at the end
+      if (calculatedCurrentStep >= savedSteps.length) {
+        calculatedCurrentStep = savedSteps.length - 1;
+      }
+      
+      console.log('Calculated current step:', calculatedCurrentStep, 'from saved steps');
+      setCurrentStep(calculatedCurrentStep);
+      
+      // Auto-set platform if we have saved progress but no platform selected
+      if (state.draftData.selectedAIPlatform && !selectedPlatform) {
+        setSelectedPlatform(state.draftData.selectedAIPlatform);
+      }
     }
     if (state.draftData?.selectedAIPlatform) {
       setSelectedPlatform(state.draftData.selectedAIPlatform);
     }
   }, [state.draftData]);
+  
+  // Check if we need to auto-start generation for steps that were interrupted
+  useEffect(() => {
+    if (steps.length > 0 && selectedPlatform && currentStep >= 0) {
+      const currentStepData = steps[currentStep];
+      // If current step exists but has no content and isn't generating, auto-start
+      if (currentStepData && 
+          currentStepData.status === 'pending' && 
+          !currentStepData.aiGenerated && 
+          currentStep > 0) { // Don't auto-start the first step
+        console.log('Auto-continuing generation for step:', currentStep, currentStepData.title);
+        setTimeout(() => generateStepContent(currentStep), 1000);
+      }
+    }
+  }, [steps, selectedPlatform, currentStep]);
 
   // Auto-save when steps change
   useEffect(() => {
