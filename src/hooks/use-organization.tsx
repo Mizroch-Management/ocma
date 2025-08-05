@@ -78,7 +78,13 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
   // Fetch user's organizations
   const fetchUserOrganizations = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found, skipping organization fetch');
+      setLoading(false);
+      return;
+    }
+    
+    console.log('Fetching organizations for user:', user.id, 'isAppOwner:', isAppOwner);
     
     try {
       setLoading(true);
@@ -86,6 +92,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       let organizations: Organization[] = [];
       
       if (isAppOwner) {
+        console.log('Fetching all organizations for app owner');
         // App owner can see all organizations
         const { data: allOrgs, error } = await supabase
           .from('organizations')
@@ -94,7 +101,9 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
           
         if (error) throw error;
         organizations = allOrgs || [];
+        console.log('App owner organizations:', organizations);
       } else {
+        console.log('Fetching user organizations for regular user');
         // Regular users see only their organizations
         const { data: memberData, error: memberError } = await supabase
           .from('organization_members')
@@ -107,18 +116,25 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         if (memberError) throw memberError;
         
         organizations = memberData?.map(m => m.organizations).filter(Boolean) || [];
+        console.log('User organizations:', organizations);
       }
       
       setUserOrganizations(organizations as Organization[]);
+      console.log('Setting userOrganizations to:', organizations);
       
       // Set current organization if not set
       if (!currentOrganization && organizations.length > 0) {
         setCurrentOrganization(organizations[0]);
+        console.log('Set current organization to:', organizations[0]);
+      } else if (organizations.length === 0) {
+        console.log('User has no organizations');
+        setCurrentOrganization(null);
       }
     } catch (error: any) {
       console.error('Error fetching organizations:', error);
       toast.error('Failed to load organizations');
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };

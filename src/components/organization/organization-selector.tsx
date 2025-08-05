@@ -140,6 +140,12 @@ export function OrganizationSelector() {
     }
   };
 
+  console.log('OrganizationSelector render:', {
+    loading,
+    userOrganizations: userOrganizations.length,
+    currentOrganization: currentOrganization?.id
+  });
+
   if (loading) {
     return (
       <Card>
