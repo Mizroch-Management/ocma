@@ -235,57 +235,82 @@ export function OrganizationSelector() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Join Existing Organization</DialogTitle>
+                  <DialogTitle>Join Organization</DialogTitle>
                   <DialogDescription>
-                    Browse and request to join an existing organization. The organization owner will need to approve your request.
+                    Select an organization to request to join. The organization owner will need to approve your request.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="search-org">Filter Organizations</Label>
-                    <Input
-                      id="search-org"
-                      value={searchQuery}
-                      onChange={(e) => handleFilterOrganizations(e.target.value)}
-                      placeholder="Type to filter organizations..."
-                    />
-                  </div>
-                  
                   {loadingOrganizations ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="text-sm text-muted-foreground">Loading organizations...</div>
                     </div>
-                  ) : filteredOrganizations.length > 0 ? (
-                    <div className="space-y-2">
-                      <Label>Available Organizations</Label>
-                      <div className="max-h-64 overflow-y-auto space-y-2">
-                        {filteredOrganizations.map((org) => (
-                          <div key={org.id} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div>
-                              <div className="font-medium">{org.name}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {org.description || 'No description'}
-                              </div>
+                  ) : allOrganizations.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">
+                        {userOrganizations.length > 0 
+                          ? "You're already a member of all available organizations."
+                          : "No organizations available to join at the moment."
+                        }
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Select Organization</Label>
+                        <Select onValueChange={(value) => {
+                          const selectedOrg = allOrganizations.find(org => org.id === value);
+                          if (selectedOrg) {
+                            setSearchQuery(selectedOrg.id);
+                          }
+                        }}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose an organization to join" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allOrganizations.map((org) => (
+                              <SelectItem key={org.id} value={org.id}>
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">{org.name}</span>
+                                  {org.description && (
+                                    <span className="text-xs text-muted-foreground truncate max-w-xs">
+                                      {org.description}
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {searchQuery && (
+                        <div className="p-4 border rounded-lg bg-muted/50">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              {(() => {
+                                const selectedOrg = allOrganizations.find(org => org.id === searchQuery);
+                                return selectedOrg ? (
+                                  <div>
+                                    <h4 className="font-medium">{selectedOrg.name}</h4>
+                                    {selectedOrg.description && (
+                                      <p className="text-sm text-muted-foreground">{selectedOrg.description}</p>
+                                    )}
+                                  </div>
+                                ) : null;
+                              })()}
                             </div>
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleJoinRequest(org.id)}
-                              disabled={joining}
+                            <Button
+                              disabled={joining || !searchQuery}
+                              onClick={() => handleJoinRequest(searchQuery)}
                             >
                               {joining ? 'Requesting...' : 'Request to Join'}
                             </Button>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : allOrganizations.length === 0 && !loadingOrganizations ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No organizations available to join.
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No organizations match your filter.
-                    </p>
+                        </div>
+                      )}
+                    </>
                   )}
                   
                   <div className="flex justify-end">
