@@ -200,7 +200,11 @@ export function OrganizationSelector() {
             <Dialog open={showJoinDialog} onOpenChange={(open) => {
               setShowJoinDialog(open);
               if (open) {
+                setSearchQuery('');
                 handleLoadAllOrganizations();
+              } else {
+                setAllOrganizations([]);
+                setFilteredOrganizations([]);
               }
             }}>
               <DialogTrigger asChild>
