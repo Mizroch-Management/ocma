@@ -11,7 +11,7 @@ import { Building2, Users, Plus, Search, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function OrganizationOnboarding() {
-  const { createOrganization, requestJoinOrganization, searchOrganizations, isAppOwner } = useOrganization();
+  const { createOrganization, requestJoinOrganization, searchOrganizations, fetchAllOrganizations, isAppOwner } = useOrganization();
   const [activeTab, setActiveTab] = useState('create');
   const [isLoading, setIsLoading] = useState(false);
   
@@ -21,8 +21,9 @@ export function OrganizationOnboarding() {
   
   // Join organization form
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Organization[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [allOrganizations, setAllOrganizations] = useState<Organization[]>([]);
+  const [filteredOrganizations, setFilteredOrganizations] = useState<Organization[]>([]);
+  const [isLoadingOrgs, setIsLoadingOrgs] = useState(false);
 
   const handleCreateOrganization = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,22 +42,38 @@ export function OrganizationOnboarding() {
     }
   };
 
-  const handleSearchOrganizations = async () => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
+  // Load all organizations when join tab is selected
+  const loadAllOrganizations = async () => {
+    setIsLoadingOrgs(true);
+    try {
+      const { data, error } = await fetchAllOrganizations();
+      if (error) {
+        toast.error('Failed to load organizations');
+        return;
+      }
+      
+      const organizations = data || [];
+      setAllOrganizations(organizations);
+      setFilteredOrganizations(organizations);
+    } catch (error) {
+      console.error('Error loading organizations:', error);
+      toast.error('Failed to load organizations');
+    } finally {
+      setIsLoadingOrgs(false);
     }
-    
-    setIsSearching(true);
-    const { data, error } = await searchOrganizations(searchQuery);
-    setIsSearching(false);
-    
-    if (error) {
-      toast.error('Failed to search organizations');
-      return;
+  };
+
+  // Filter organizations based on search query
+  const filterOrganizations = (query: string) => {
+    if (!query.trim()) {
+      setFilteredOrganizations(allOrganizations);
+    } else {
+      const filtered = allOrganizations.filter(org => 
+        org.name.toLowerCase().includes(query.toLowerCase()) ||
+        org.description?.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredOrganizations(filtered);
     }
-    
-    setSearchResults(data || []);
   };
 
   const handleJoinRequest = async (organizationId: string) => {
@@ -67,22 +84,22 @@ export function OrganizationOnboarding() {
     if (!error) {
       // Reset form
       setSearchQuery('');
-      setSearchResults([]);
+      setAllOrganizations([]);
+      setFilteredOrganizations([]);
     }
   };
 
-  // Search as user types
+  // Load organizations when join tab becomes active
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      if (searchQuery.trim()) {
-        handleSearchOrganizations();
-      } else {
-        setSearchResults([]);
-      }
-    }, 500);
+    if (activeTab === 'join') {
+      loadAllOrganizations();
+    }
+  }, [activeTab]);
 
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
+  // Filter organizations when search query changes
+  useEffect(() => {
+    filterOrganizations(searchQuery);
+  }, [searchQuery, allOrganizations]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-subtle px-4">
@@ -179,69 +196,80 @@ export function OrganizationOnboarding() {
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="searchOrg">Search Organizations</Label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="searchOrg"
-                        type="text"
-                        placeholder="Type to search for organizations..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                  
-                  {isSearching && (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">Searching...</p>
-                    </div>
-                  )}
-                  
-                  {searchResults.length > 0 && (
-                    <div className="space-y-2">
-                      <Label>Organizations Found</Label>
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {searchResults.map((org) => (
-                          <Card key={org.id} className="p-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-medium">{org.name}</h4>
-                                  <Badge variant="outline" className="text-xs">
-                                    Active
-                                  </Badge>
-                                </div>
-                                {org.description && (
-                                  <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {org.description}
-                                  </p>
-                                )}
-                              </div>
-                              <Button
-                                size="sm"
-                                onClick={() => handleJoinRequest(org.id)}
-                                disabled={isLoading}
-                                className="ml-3"
-                              >
-                                {isLoading ? <Clock className="h-4 w-4" /> : 'Request to Join'}
-                              </Button>
-                            </div>
-                          </Card>
-                        ))}
+                  {isLoadingOrgs ? (
+                    <div className="text-center py-8">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-sm text-muted-foreground">Loading organizations...</p>
                       </div>
                     </div>
-                  )}
-                  
-                  {searchQuery && !isSearching && searchResults.length === 0 && (
+                  ) : allOrganizations.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-muted-foreground">No organizations found matching "{searchQuery}"</p>
+                      <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No organizations available to join</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Try a different search term or ask your organization owner for the exact name.
+                        You can create a new organization instead.
                       </p>
                     </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="searchOrg">Search Organizations (Optional)</Label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="searchOrg"
+                            type="text"
+                            placeholder="Type to filter organizations..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Available Organizations</Label>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {filteredOrganizations.map((org) => (
+                            <Card key={org.id} className="p-3 hover:shadow-md transition-shadow">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="font-medium">{org.name}</h4>
+                                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                      Active
+                                    </Badge>
+                                  </div>
+                                  {org.description && (
+                                    <p className="text-sm text-muted-foreground line-clamp-2">
+                                      {org.description}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleJoinRequest(org.id)}
+                                  disabled={isLoading}
+                                  className="ml-3"
+                                >
+                                  {isLoading ? <Clock className="h-4 w-4 animate-spin" /> : 'Request to Join'}
+                                </Button>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                        
+                        {searchQuery && filteredOrganizations.length === 0 && (
+                          <div className="text-center py-4">
+                            <p className="text-muted-foreground">No organizations found matching "{searchQuery}"</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Try a different search term.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                   
                   <div className="bg-muted/50 p-3 rounded-lg">
