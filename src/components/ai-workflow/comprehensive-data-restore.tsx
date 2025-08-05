@@ -42,22 +42,68 @@ export function ComprehensiveDataRestore() {
         draftDataKeys: workflow.draft_data ? Object.keys(workflow.draft_data) : []
       });
 
-      // Construct complete workflow state with proper type casting
+      // Construct complete workflow state with proper type casting and progress detection
+      const draftData = workflow.draft_data as any;
+      const businessInfo = workflow.business_info_data as any;
+      
+      // Detect actual progress from saved data
+      const hasBusinessInfo = !!businessInfo;
+      const hasStrategySteps = !!(draftData?.strategySteps?.length > 0);
+      const hasMonthlyOverview = !!(draftData?.monthlyOverview?.aiGenerated);
+      const hasWeeklyPlans = !!(draftData?.weeklyPlans?.length > 0);
+      const hasContentPieces = !!(draftData?.contentPieces?.length > 0);
+      const hasApprovedStrategy = !!(workflow.strategy_data);
+      const hasApprovedPlans = !!(workflow.plans_data && Array.isArray(workflow.plans_data) && workflow.plans_data.length > 0);
+      const hasApprovedContent = !!(workflow.content_data && Array.isArray(workflow.content_data) && workflow.content_data.length > 0);
+
+      // Calculate the correct current step based on actual progress
+      let correctCurrentStep = 0;
+      let completedSteps: string[] = [];
+      
+      if (hasBusinessInfo) {
+        completedSteps.push('business-info');
+        correctCurrentStep = Math.max(correctCurrentStep, 1);
+      }
+      
+      if (hasStrategySteps || hasApprovedStrategy) {
+        correctCurrentStep = Math.max(correctCurrentStep, 1); // Stay on strategy step if in progress
+        if (hasApprovedStrategy) {
+          completedSteps.push('strategy');
+          correctCurrentStep = Math.max(correctCurrentStep, 2);
+        }
+      }
+      
+      if (hasMonthlyOverview || hasWeeklyPlans || hasApprovedPlans) {
+        correctCurrentStep = Math.max(correctCurrentStep, 2); // Stay on planning step if in progress
+        if (hasApprovedPlans) {
+          completedSteps.push('planning');
+          correctCurrentStep = Math.max(correctCurrentStep, 3);
+        }
+      }
+      
+      if (hasContentPieces || hasApprovedContent) {
+        correctCurrentStep = Math.max(correctCurrentStep, 3); // Stay on content step if in progress
+        if (hasApprovedContent) {
+          completedSteps.push('creation');
+          correctCurrentStep = Math.max(correctCurrentStep, 4);
+        }
+      }
+
       const restoredState = {
-        businessInfo: (workflow.business_info_data as any) || null,
-        draftData: (workflow.draft_data as any) || null,
+        businessInfo: businessInfo || null,
+        draftData: draftData || null,
         approvedStrategy: (workflow.strategy_data as any) || null,
         approvedPlans: (workflow.plans_data as any) || [],
         approvedContent: (workflow.content_data as any) || [],
-        progress: (workflow.progress_data as any) || {
-          currentStep: 0,
-          completedSteps: [],
-          strategyApproved: false,
-          plansApproved: false,
-          contentApproved: false,
+        progress: {
+          currentStep: correctCurrentStep,
+          completedSteps,
+          strategyApproved: hasApprovedStrategy,
+          plansApproved: hasApprovedPlans,
+          contentApproved: hasApprovedContent,
           schedulingComplete: false,
         },
-        isWorkflowActive: (workflow.metadata as any)?.isWorkflowActive || false,
+        isWorkflowActive: true, // Mark as active since we have progress
         currentWorkflowId: workflow.id,
       };
 
@@ -65,28 +111,29 @@ export function ComprehensiveDataRestore() {
       dispatch({ type: 'LOAD_WORKFLOW', payload: restoredState });
 
       // Show detailed restoration info
-      const draftData = restoredState.draftData as any;
-      const businessInfo = restoredState.businessInfo as any;
       const restorationDetails = [
-        restoredState.businessInfo ? '✓ Business Information' : '✗ Business Information',
-        draftData?.strategySteps?.length ? `✓ Strategy Steps (${draftData.strategySteps.length})` : '✗ Strategy Steps',
-        draftData?.monthlyOverview?.aiGenerated ? '✓ Monthly Overview' : '✗ Monthly Overview',
-        draftData?.weeklyPlans?.length ? `✓ Weekly Plans (${draftData.weeklyPlans.length})` : '✗ Weekly Plans',
-        draftData?.contentPieces?.length ? `✓ Content Pieces (${draftData.contentPieces.length})` : '✗ Content Pieces',
-        restoredState.approvedStrategy ? '✓ Approved Strategy' : '✗ Approved Strategy',
-        restoredState.approvedPlans?.length ? `✓ Approved Plans (${restoredState.approvedPlans.length})` : '✗ Approved Plans',
-        restoredState.approvedContent?.length ? `✓ Approved Content (${restoredState.approvedContent.length})` : '✗ Approved Content'
+        hasBusinessInfo ? '✓ Business Information' : '✗ Business Information',
+        hasStrategySteps ? `✓ Strategy Steps (${draftData.strategySteps.length})` : '✗ Strategy Steps',
+        hasMonthlyOverview ? '✓ Monthly Overview' : '✗ Monthly Overview',
+        hasWeeklyPlans ? `✓ Weekly Plans (${draftData.weeklyPlans.length})` : '✗ Weekly Plans',
+        hasContentPieces ? `✓ Content Pieces (${draftData.contentPieces.length})` : '✗ Content Pieces',
+        hasApprovedStrategy ? '✓ Approved Strategy' : '✗ Approved Strategy',
+        hasApprovedPlans ? `✓ Approved Plans (${restoredState.approvedPlans.length})` : '✗ Approved Plans',
+        hasApprovedContent ? `✓ Approved Content (${restoredState.approvedContent.length})` : '✗ Approved Content'
       ];
 
       console.log('Workflow restoration complete:', {
         restoredData: restorationDetails,
         currentStep: restoredState.progress.currentStep,
-        completedSteps: restoredState.progress.completedSteps
+        completedSteps: restoredState.progress.completedSteps,
+        hasStrategySteps,
+        strategyStepsCount: draftData?.strategySteps?.length || 0,
+        workflowIsActive: restoredState.isWorkflowActive
       });
 
       toast({
         title: "Complete Workflow Restored!",
-        description: `Restored your ${businessInfo?.company || 'AI'} workflow with all saved progress and AI-generated content.`,
+        description: `Restored your ${businessInfo?.company || 'AI'} workflow with ${draftData?.strategySteps?.length || 0} strategy steps and progress to step ${correctCurrentStep}.`,
       });
 
     } catch (error) {
