@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useWorkflow } from '@/contexts/workflow-context';
 import { useWorkflowPersistence } from '@/hooks/use-workflow-persistence';
 import { useToast } from '@/hooks/use-toast';
+import { useOrganization } from '@/hooks/use-organization';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
 
 export function WorkflowDataRestore() {
@@ -11,6 +12,7 @@ export function WorkflowDataRestore() {
   const { state, dispatch } = useWorkflow();
   const { saveWorkflow } = useWorkflowPersistence();
   const { toast } = useToast();
+  const { currentOrganization } = useOrganization();
 
   const restoreScamDunkData = async () => {
     setIsRestoring(true);
@@ -73,9 +75,11 @@ export function WorkflowDataRestore() {
     }
   };
 
-  // Only show this component if business info is missing AND we have a currentWorkflowId
-  // This prevents showing the warning for new workflows
-  if (state.businessInfo || !state.currentWorkflowId) {
+  // Only show this component for ScamDunk organization workflows that are missing business info
+  // and have an existing workflow ID (not new workflows)
+  if (state.businessInfo || 
+      !state.currentWorkflowId || 
+      currentOrganization?.name !== 'ScamDunk') {
     return null;
   }
 
