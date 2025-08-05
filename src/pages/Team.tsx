@@ -44,6 +44,12 @@ export default function Team() {
   const fetchOrganizationMembers = async () => {
     if (!currentOrganization) return;
     
+    console.log('DEBUG - fetchOrganizationMembers called with:', {
+      currentOrganization: currentOrganization,
+      userId: user?.id,
+      userEmail: user?.email
+    });
+    
     try {
       setLoading(true);
       
@@ -104,6 +110,15 @@ export default function Team() {
       // Get current user's role in this organization
       const currentUserMember = membersData?.find(member => member.user_id === user?.id);
       setCurrentUserRole(currentUserMember?.role || null);
+      
+      console.log('DEBUG - Data loaded:', {
+        activeMembers: membersWithProfiles.length,
+        pendingMembers: pendingWithProfiles.length,
+        currentUserMember: currentUserMember,
+        currentUserRole: currentUserMember?.role || null,
+        allMembersData: membersData,
+        pendingData: pendingData
+      });
 
     } catch (error: any) {
       console.error('Error fetching organization members:', error);
@@ -224,6 +239,14 @@ export default function Team() {
   };
 
   const canManageUsers = currentUserRole === 'owner' || currentUserRole === 'admin';
+  
+  console.log('DEBUG - Permission check:', {
+    currentUserRole,
+    canManageUsers,
+    pendingMembersCount: pendingMembers.length,
+    user: user?.id,
+    currentOrg: currentOrganization?.id
+  });
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
