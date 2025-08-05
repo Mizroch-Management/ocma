@@ -35,9 +35,11 @@ interface OrganizationContextType {
   setCurrentOrganization: (org: Organization | null) => void;
   createOrganization: (name: string, description?: string) => Promise<{ error: any }>;
   joinOrganization: (organizationId: string) => Promise<{ error: any }>;
+  requestJoinOrganization: (organizationId: string) => Promise<{ error: any }>;
   approveOrganization: (organizationId: string) => Promise<{ error: any }>;
   fetchUserOrganizations: () => Promise<void>;
   fetchOrganizationMembers: (organizationId: string) => Promise<void>;
+  searchOrganizations: (query: string) => Promise<{ data: Organization[] | null; error: any }>;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
@@ -181,7 +183,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Join existing organization
+  // Join existing organization (direct join for approved orgs)
   const joinOrganization = async (organizationId: string) => {
     try {
       const { error } = await supabase
@@ -189,7 +191,8 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         .insert({
           organization_id: organizationId,
           user_id: user?.id,
-          role: 'member'
+          role: 'member',
+          status: 'active'
         });
         
       if (error) throw error;
@@ -200,6 +203,44 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       toast.error(error.message || 'Failed to join organization');
       return { error };
+    }
+  };
+
+  // Request to join organization (requires approval)
+  const requestJoinOrganization = async (organizationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('organization_members')
+        .insert({
+          organization_id: organizationId,
+          user_id: user?.id,
+          role: 'member',
+          status: 'pending'
+        });
+        
+      if (error) throw error;
+      
+      toast.success('Join request sent! Waiting for organization owner approval.');
+      return { error: null };
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send join request');
+      return { error };
+    }
+  };
+
+  // Search public organizations
+  const searchOrganizations = async (query: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('status', 'active')
+        .ilike('name', `%${query}%`)
+        .limit(10);
+        
+      return { data, error };
+    } catch (error: any) {
+      return { data: null, error };
     }
   };
 
@@ -237,9 +278,11 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     setCurrentOrganization,
     createOrganization,
     joinOrganization,
+    requestJoinOrganization,
     approveOrganization,
     fetchUserOrganizations,
     fetchOrganizationMembers,
+    searchOrganizations,
   };
 
   return (

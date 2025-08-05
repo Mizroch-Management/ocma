@@ -23,6 +23,7 @@ import Settings from "./pages/Settings";
 import Organizations from "./pages/Organizations";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +40,7 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<AppLayout />}>
-                <Route index element={<Dashboard />} />
+                <Route index element={<Index />} />
                 <Route path="calendar" element={<Calendar />} />
                 <Route path="content-creation" element={<ContentCreation />} />
                 <Route path="content-generator" element={<ContentGenerator />} />
