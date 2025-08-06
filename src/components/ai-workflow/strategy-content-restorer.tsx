@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useWorkflow } from '@/contexts/workflow-context';
+import { useOrganization } from '@/hooks/use-organization';
 import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, Wand2, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +14,7 @@ export function StrategyContentRestorer() {
   const [progress, setProgress] = useState(0);
   const [currentlyGenerating, setCurrentlyGenerating] = useState<string>('');
   const { state, dispatch } = useWorkflow();
+  const { currentOrganization } = useOrganization();
   const { toast } = useToast();
 
   const restoreAIGeneratedContent = async () => {
@@ -89,7 +91,8 @@ export function StrategyContentRestorer() {
             strategy: step.title,
             platforms: ['comprehensive-strategy'],
             customPrompt: aiPrompt,
-            aiTool: 'gpt-4o-mini'
+            aiTool: 'gpt-4o-mini',
+            organizationId: currentOrganization?.id
           }
         });
 

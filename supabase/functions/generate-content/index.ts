@@ -20,7 +20,8 @@ serve(async (req) => {
       strategy, 
       platforms, 
       customPrompt, 
-      aiTool = 'gpt-4o-mini'
+      aiTool = 'gpt-4o-mini',
+      organizationId 
     } = await req.json();
 
     // Initialize Supabase client with service role for system settings access
@@ -28,12 +29,13 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get OpenAI API key from database
-    console.log('Fetching OpenAI API key from database...');
+    // Get OpenAI API key from database for the specific organization
+    console.log('Fetching OpenAI API key from database for organization:', organizationId);
     const { data: apiKeyData, error: apiKeyError } = await supabase
       .from('system_settings')
       .select('setting_value')
       .eq('setting_key', 'openai_api_key')
+      .eq('organization_id', organizationId)
       .maybeSingle();
 
     console.log('API key query result:', { apiKeyData, apiKeyError });
@@ -44,8 +46,8 @@ serve(async (req) => {
     }
 
     if (!apiKeyData?.setting_value?.api_key) {
-      console.error('No API key found in database');
-      throw new Error('OpenAI API key not configured in system settings');
+      console.error('No API key found in database for organization:', organizationId);
+      throw new Error(`OpenAI API key not configured for this organization. Please configure it in your organization settings.`);
     }
 
     const openAIApiKey = apiKeyData.setting_value.api_key;

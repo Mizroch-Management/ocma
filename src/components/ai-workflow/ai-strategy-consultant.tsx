@@ -10,6 +10,7 @@ import { useAIPlatforms } from "@/hooks/use-ai-platforms";
 import { Brain, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, TrendingUp, Wrench, Zap, Eye, EyeOff } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useOrganization } from "@/hooks/use-organization";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkflow, type BusinessInfo, type AIStrategyStep } from "@/contexts/workflow-context";
 import { buildStrategyPrompt } from "@/lib/ai-prompt-builder";
@@ -24,6 +25,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
   const { toast } = useToast();
   const { platforms, getPlatformsWithTools, getPlatformTools } = useAIPlatforms();
   const { state, dispatch } = useWorkflow();
+  const { currentOrganization } = useOrganization();
   
   const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const [currentStep, setCurrentStep] = useState(0);
@@ -179,7 +181,8 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
           platforms: [selectedPlatform],
           customPrompt: aiPrompt,
           aiTool: 'gpt-4o-mini',
-          enabledTools: platformTools
+          enabledTools: platformTools,
+          organizationId: currentOrganization?.id
         }
       });
 
