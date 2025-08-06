@@ -439,8 +439,71 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
                 )}
 
                 {step.status === 'approved' && (
-                  <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded border border-green-200 dark:border-green-800">
-                    <p className="text-sm text-green-800 dark:text-green-200">✓ Step approved and ready for next phase</p>
+                  <div className="space-y-4 p-4 border rounded-lg bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <p className="text-sm text-green-800 dark:text-green-200 font-medium">Step approved and ready for next phase</p>
+                    </div>
+
+                    {/* AI Prompt Visibility Toggle */}
+                    {step.aiPrompt && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => togglePromptVisibility(step.id)}
+                            className="text-xs"
+                          >
+                            {showPrompts[step.id] ? (
+                              <>
+                                <EyeOff className="h-3 w-3 mr-1" />
+                                Hide AI Prompt
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="h-3 w-3 mr-1" />
+                                Show AI Prompt
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        {showPrompts[step.id] && (
+                          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border text-xs">
+                            <label className="text-xs font-medium text-blue-800 dark:text-blue-200">AI Prompt Used:</label>
+                            <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 mt-1">{step.aiPrompt}</pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Generated Content:</label>
+                      <div className="p-3 bg-background rounded border">
+                        <div className="whitespace-pre-wrap text-sm">{step.aiGenerated}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Edit Instructions (Optional):</label>
+                      <Textarea
+                        value={step.userPrompt}
+                        onChange={(e) => updateUserPrompt(index, e.target.value)}
+                        placeholder="Add specific instructions to refine this section..."
+                        rows={2}
+                      />
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => retryStep(index)} 
+                        variant="outline" 
+                        size="sm"
+                      >
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        Edit and Regenerate
+                      </Button>
+                    </div>
                   </div>
                 )}
 
