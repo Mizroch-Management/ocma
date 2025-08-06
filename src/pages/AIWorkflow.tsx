@@ -218,10 +218,16 @@ export default function AIWorkflow() {
   // Navigation handler for workflow progress cards
   const navigateToWorkflowStep = (stepIndex: number) => {
     console.log('Navigating to workflow step:', stepIndex);
+    console.log('Current step before navigation:', currentStep);
     setCurrentStep(stepIndex);
     
     // Hide workflow manager and data restore components to show the main workflow
     setShowWorkflowManager(false);
+    
+    // Force scroll to top to ensure user sees the workflow step
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    console.log('Navigation complete, new step:', stepIndex);
     
     toast({
       title: "Navigating to Step",
@@ -520,7 +526,8 @@ export default function AIWorkflow() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setCurrentStep(index);
+                        console.log('Edit & Regenerate clicked for step:', index);
+                        navigateToWorkflowStep(index);
                         invalidateSubsequentSteps(index);
                       }}
                       className="text-xs"
