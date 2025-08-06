@@ -47,6 +47,7 @@ export default function AIWorkflow() {
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(state.currentWorkflowId || null);
   const [showWorkflowManager, setShowWorkflowManager] = useState(!state.businessInfo);
   const [currentStep, setCurrentStep] = useState(0);
+  const [isManualNavigation, setIsManualNavigation] = useState(false);
   
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([
     {
@@ -90,9 +91,9 @@ export default function AIWorkflow() {
     }
   ]);
 
-  // Update current step based on loaded workflow state
+  // Update current step based on loaded workflow state - but only if not manually navigated
   useEffect(() => {
-    if (state.businessInfo || (state.progress.completedSteps && state.progress.completedSteps.includes("1"))) {
+    if (!isManualNavigation && (state.businessInfo || (state.progress.completedSteps && state.progress.completedSteps.includes("1")))) {
       const hasBusinessInfo = !!state.businessInfo;
       const hasStrategy = !!state.approvedStrategy || state.progress.strategyApproved;
       const hasPlans = (state.approvedPlans && state.approvedPlans.length > 0) || state.progress.plansApproved;
@@ -108,7 +109,7 @@ export default function AIWorkflow() {
         setCurrentStep(1);
       }
     }
-  }, [state]);
+  }, [state, isManualNavigation]);
 
   useEffect(() => {
     if (state.businessInfo) {
@@ -219,6 +220,7 @@ export default function AIWorkflow() {
   const navigateToWorkflowStep = (stepIndex: number) => {
     console.log('Navigating to workflow step:', stepIndex);
     console.log('Current step before navigation:', currentStep);
+    setIsManualNavigation(true);
     setCurrentStep(stepIndex);
     
     // Hide workflow manager and data restore components to show the main workflow
