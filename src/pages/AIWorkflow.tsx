@@ -569,7 +569,7 @@ export default function AIWorkflow() {
           <>
             <Separator />
             <SmartContentPlanner 
-              strategy={state.approvedStrategy}
+              strategy={state.approvedStrategy || state.draftData?.strategySteps?.[0] || null}
               onPlanApproved={handlePlansApproved}
             />
           </>
