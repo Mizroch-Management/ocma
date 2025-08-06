@@ -469,8 +469,9 @@ export default function AIWorkflow() {
         </>
       )}
 
-      {/* Progress Overview */}
-      <Card>
+      {/* Progress Overview - Only show when not actively working on a specific step */}
+      {currentStep === 4 && (
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
@@ -544,6 +545,7 @@ export default function AIWorkflow() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Step Components */}
       <div className="space-y-8">
