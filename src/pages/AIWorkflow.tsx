@@ -224,8 +224,15 @@ export default function AIWorkflow() {
     // Hide workflow manager and data restore components to show the main workflow
     setShowWorkflowManager(false);
     
-    // Force scroll to top to ensure user sees the workflow step
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Small delay to ensure component renders, then scroll to it
+    setTimeout(() => {
+      const targetElement = document.querySelector('[data-workflow-step]');
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 400, behavior: 'smooth' });
+      }
+    }, 100);
     
     console.log('Navigation complete, new step:', stepIndex);
     
@@ -565,25 +572,25 @@ export default function AIWorkflow() {
         )}
 
         {/* Step 3: Smart Content Planner */}
-        {currentStep === 2 && (state.progress.strategyApproved || state.approvedStrategy || state.draftData?.strategySteps) && (
-          <>
+        {currentStep === 2 && (
+          <div data-workflow-step>
             <Separator />
             <SmartContentPlanner 
-              strategy={state.approvedStrategy || state.draftData?.strategySteps?.[0] || null}
+              strategy={state.approvedStrategy || state.draftData?.strategySteps || null}
               onPlanApproved={handlePlansApproved}
             />
-          </>
+          </div>
         )}
 
         {/* Step 4: Intelligent Content Creator */}
-        {currentStep === 3 && (state.progress.plansApproved || (state.approvedPlans && state.approvedPlans.length > 0)) && (
-          <>
+        {currentStep === 3 && (
+          <div data-workflow-step>
             <Separator />
             <IntelligentContentCreator 
-              contentPlans={state.approvedPlans}
+              contentPlans={state.approvedPlans || state.draftData?.weeklyPlans || []}
               onContentApproved={handleContentApproved}
             />
-          </>
+          </div>
         )}
 
         {/* Step 5: Automated Scheduler */}
