@@ -261,6 +261,21 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
     generateStepContent(stepIndex, steps[stepIndex].userPrompt);
   };
 
+  const editApprovedStep = (stepIndex: number) => {
+    // Set the step back to review mode so user can edit
+    setSteps(prev => prev.map((s, i) => 
+      i === stepIndex ? { ...s, status: 'review' } : s
+    ));
+    
+    // Set current step to this step so it's highlighted and visible
+    setCurrentStep(stepIndex);
+    
+    toast({
+      title: "Step Ready for Edit",
+      description: `${steps[stepIndex].title} is now ready for editing and regeneration.`
+    });
+  };
+
   const togglePromptVisibility = (stepId: string) => {
     setShowPrompts(prev => ({
       ...prev,
@@ -496,7 +511,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
                     
                     <div className="flex gap-2">
                       <Button 
-                        onClick={() => retryStep(index)} 
+                        onClick={() => editApprovedStep(index)} 
                         variant="outline" 
                         size="sm"
                       >
