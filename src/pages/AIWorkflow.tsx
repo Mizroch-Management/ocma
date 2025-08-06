@@ -563,7 +563,7 @@ export default function AIWorkflow() {
         )}
 
         {/* Step 3: Smart Content Planner */}
-        {currentStep === 2 && (state.progress.strategyApproved || state.approvedStrategy) && (
+        {currentStep === 2 && (state.progress.strategyApproved || state.approvedStrategy || state.draftData?.strategySteps) && (
           <>
             <Separator />
             <SmartContentPlanner 
