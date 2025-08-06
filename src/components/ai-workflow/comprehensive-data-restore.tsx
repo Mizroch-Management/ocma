@@ -17,14 +17,19 @@ export function ComprehensiveDataRestore() {
   const { currentOrganization } = useOrganization();
 
   // Only show this component if:
-  // 1. We have a workflow ID (not a new workflow)
+  // 1. We have a workflow ID AND it's not a brand new workflow
   // 2. We have an organization (safety check)
   // 3. We're missing some critical data (data corruption scenario)
   const hasCriticalData = state.businessInfo || state.draftData?.strategySteps?.length > 0;
-  const isNewWorkflow = !state.currentWorkflowId;
   const hasOrganization = !!currentOrganization;
   
-  if (isNewWorkflow || !hasOrganization || hasCriticalData) {
+  // Don't show for:
+  // - New workflows (no ID or ID exists but no data was ever saved)
+  // - Workflows that already have data
+  // - Missing organization
+  const isNewOrEmptyWorkflow = !state.currentWorkflowId || state.progress.currentStep === 0;
+  
+  if (!hasOrganization || hasCriticalData || isNewOrEmptyWorkflow) {
     return null;
   }
 

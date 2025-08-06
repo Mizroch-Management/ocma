@@ -77,14 +77,19 @@ export function WorkflowDataRestore() {
   };
 
   // Only show this component if:
-  // 1. We have a workflow ID (not a new workflow)
+  // 1. We have a workflow ID AND it's not a brand new workflow
   // 2. We're missing critical data (data corruption scenario)
   // 3. We have an organization (safety check)
   const hasCriticalData = state.businessInfo || state.draftData?.strategySteps?.length > 0;
-  const isNewWorkflow = !state.currentWorkflowId;
   const hasOrganization = !!currentOrganization;
   
-  if (hasCriticalData || isNewWorkflow || !hasOrganization) {
+  // Don't show for:
+  // - New workflows (no ID or ID exists but no data was ever saved)
+  // - Workflows that already have data
+  // - Missing organization
+  const isNewOrEmptyWorkflow = !state.currentWorkflowId || state.progress.currentStep === 0;
+  
+  if (!hasOrganization || hasCriticalData || isNewOrEmptyWorkflow) {
     return null;
   }
 
