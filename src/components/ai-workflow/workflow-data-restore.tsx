@@ -18,20 +18,21 @@ export function WorkflowDataRestore() {
     setIsRestoring(true);
     
     try {
-      // Restore business info for Scam Dunk
+      // Restore business info based on organization
+      const orgName = currentOrganization.name;
       const businessInfo = {
-        company: "Scam Dunk",
-        industry: "Anti-Scam and Security Education",  
-        productService: "Scam awareness and prevention services",
-        primaryObjectives: "Educate people about common scams and protect them from fraud",
-        targetAudience: "General public, particularly vulnerable demographics like seniors and young adults",
+        company: orgName,
+        industry: orgName === "Scam Dunk" ? "Anti-Scam and Security Education" : "Technology and Digital Services",  
+        productService: orgName === "Scam Dunk" ? "Scam awareness and prevention services" : "Digital technology solutions",
+        primaryObjectives: orgName === "Scam Dunk" ? "Educate people about common scams and protect them from fraud" : "Provide innovative technology solutions",
+        targetAudience: orgName === "Scam Dunk" ? "General public, particularly vulnerable demographics like seniors and young adults" : "Business professionals and technology users",
         targetMarkets: "Global, with focus on English-speaking markets",
         budget: "Mid-range marketing budget",
-        uniqueSellingPoints: "Comprehensive scam database, real-time alerts, educational content",
-        competitors: "Other cybersecurity education platforms",
-        brandPersonality: "Trustworthy, educational, protective, and empowering",
-        keyMetrics: "User engagement, scam reports prevented, educational content views",
-        additionalContext: "Focus on building trust and credibility while educating users",
+        uniqueSellingPoints: orgName === "Scam Dunk" ? "Comprehensive scam database, real-time alerts, educational content" : "Cutting-edge technology solutions and expertise",
+        competitors: orgName === "Scam Dunk" ? "Other cybersecurity education platforms" : "Technology service providers",
+        brandPersonality: orgName === "Scam Dunk" ? "Trustworthy, educational, protective, and empowering" : "Innovative, reliable, and professional",
+        keyMetrics: orgName === "Scam Dunk" ? "User engagement, scam reports prevented, educational content views" : "Client satisfaction, technology adoption, business growth",
+        additionalContext: orgName === "Scam Dunk" ? "Focus on building trust and credibility while educating users" : "Focus on delivering high-quality technology solutions",
         teamMembers: ["Marketing Specialist", "Content Creator"]
       };
 
@@ -60,7 +61,7 @@ export function WorkflowDataRestore() {
 
       toast({
         title: "Workflow Data Restored",
-        description: "Your Scam Dunk business information has been restored successfully!"
+        description: `Your ${currentOrganization.name} business information has been restored successfully!`
       });
 
     } catch (error) {
@@ -75,11 +76,15 @@ export function WorkflowDataRestore() {
     }
   };
 
-  // Only show this component if there's missing critical data but we have a workflow ID
-  // This indicates data corruption rather than a new workflow
+  // Only show this component if:
+  // 1. We have a workflow ID (not a new workflow)
+  // 2. We're missing critical data (data corruption scenario)
+  // 3. We have an organization (safety check)
   const hasCriticalData = state.businessInfo || state.draftData?.strategySteps?.length > 0;
+  const isNewWorkflow = !state.currentWorkflowId;
+  const hasOrganization = !!currentOrganization;
   
-  if (hasCriticalData || !state.currentWorkflowId) {
+  if (hasCriticalData || isNewWorkflow || !hasOrganization) {
     return null;
   }
 
@@ -92,7 +97,7 @@ export function WorkflowDataRestore() {
         </CardTitle>
         <CardDescription className="text-orange-700">
           It looks like your workflow data is missing. This can happen due to data migration or sync issues.
-          Click below to restore your Scam Dunk business information and continue with your workflow.
+          Click below to restore your {currentOrganization.name} business information and continue with your workflow.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -102,7 +107,7 @@ export function WorkflowDataRestore() {
           className="flex items-center gap-2"
         >
           <RefreshCw className={`h-4 w-4 ${isRestoring ? 'animate-spin' : ''}`} />
-          {isRestoring ? 'Restoring Data...' : 'Restore Scam Dunk Data'}
+          {isRestoring ? 'Restoring Data...' : `Restore ${currentOrganization.name} Data`}
         </Button>
       </CardContent>
     </Card>

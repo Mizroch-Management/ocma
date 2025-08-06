@@ -429,10 +429,14 @@ export default function AIWorkflow() {
         </div>
       </div>
 
-      {/* Data Restore Components */}
-      <ComprehensiveDataRestore />
-      <StrategyContentRestorer />
-      <WorkflowDataRestore />
+      {/* Data Restore Components - Only show for existing workflows with missing data */}
+      {state.currentWorkflowId && (
+        <>
+          <ComprehensiveDataRestore />
+          <StrategyContentRestorer />
+          <WorkflowDataRestore />
+        </>
+      )}
       
       {/* Integration Dashboard */}
       <WorkflowIntegrationDashboard />

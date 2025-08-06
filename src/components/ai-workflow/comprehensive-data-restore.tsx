@@ -11,10 +11,22 @@ import { useOrganization } from '@/hooks/use-organization';
 
 export function ComprehensiveDataRestore() {
   const [isRestoring, setIsRestoring] = useState(false);
-  const { dispatch } = useWorkflow();
+  const { state, dispatch } = useWorkflow();
   const { toast } = useToast();
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
+
+  // Only show this component if:
+  // 1. We have a workflow ID (not a new workflow)
+  // 2. We have an organization (safety check)
+  // 3. We're missing some critical data (data corruption scenario)
+  const hasCriticalData = state.businessInfo || state.draftData?.strategySteps?.length > 0;
+  const isNewWorkflow = !state.currentWorkflowId;
+  const hasOrganization = !!currentOrganization;
+  
+  if (isNewWorkflow || !hasOrganization || hasCriticalData) {
+    return null;
+  }
 
   const restoreFullWorkflowData = async () => {
     setIsRestoring(true);
