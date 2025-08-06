@@ -535,6 +535,7 @@ export default function AIWorkflow() {
                       size="sm"
                       onClick={() => {
                         console.log('Edit & Regenerate clicked for step:', index);
+                        console.log('Setting currentStep to:', index);
                         navigateToWorkflowStep(index);
                         invalidateSubsequentSteps(index);
                       }}
@@ -571,10 +572,17 @@ export default function AIWorkflow() {
           />
         )}
 
-        {/* Step 3: Smart Content Planner */}
-        {currentStep === 2 && (
-          <div data-workflow-step>
-            <Separator />
+        {/* Step 3: Smart Content Planner - Show when currentStep is 2 */}
+        {(() => {
+          console.log('Smart Content Planner render check:');
+          console.log('currentStep:', currentStep);
+          console.log('currentStep === 2:', currentStep === 2);
+          console.log('state.approvedStrategy:', !!state.approvedStrategy);
+          console.log('state.draftData?.strategySteps:', !!state.draftData?.strategySteps);
+          return currentStep === 2;
+        })() && (
+          <div data-workflow-step className="mt-8">
+            <Separator className="mb-6" />
             <SmartContentPlanner 
               strategy={state.approvedStrategy || state.draftData?.strategySteps || null}
               onPlanApproved={handlePlansApproved}
