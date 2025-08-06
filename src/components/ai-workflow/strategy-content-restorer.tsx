@@ -150,9 +150,11 @@ export function StrategyContentRestorer() {
   };
 
   // Only show if we have strategy steps but they're missing AI content
+  // AND it's not a new workflow (must have a workflow ID and have progressed past step 0)
   const hasEmptySteps = state.draftData?.strategySteps?.some(step => !step.aiGenerated && step.status === 'pending');
+  const isNewOrEmptyWorkflow = !state.currentWorkflowId || state.progress.currentStep === 0;
   
-  if (!hasEmptySteps) {
+  if (!hasEmptySteps || isNewOrEmptyWorkflow) {
     return null;
   }
 
