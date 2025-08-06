@@ -15,7 +15,11 @@ import {
   RefreshCw 
 } from "lucide-react";
 
-export function WorkflowIntegrationDashboard() {
+interface WorkflowIntegrationDashboardProps {
+  onNavigateToStep?: (stepIndex: number) => void;
+}
+
+export function WorkflowIntegrationDashboard({ onNavigateToStep }: WorkflowIntegrationDashboardProps) {
   const { state, dispatch } = useWorkflow();
   const navigate = useNavigate();
 
@@ -84,15 +88,27 @@ export function WorkflowIntegrationDashboard() {
                 <p className="text-xs text-muted-foreground mb-3">
                   {state.approvedStrategy ? "AI strategy integrated" : "No strategy applied"}
                 </p>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => handleViewInSection('strategy')}
-                  disabled={!state.progress.strategyApproved}
-                >
-                  View Strategy
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
+                 <div className="flex gap-1">
+                   <Button 
+                     size="sm" 
+                     variant="outline" 
+                     onClick={() => handleViewInSection('strategy')}
+                     disabled={!state.progress.strategyApproved}
+                   >
+                     View Strategy
+                     <ArrowRight className="h-3 w-3 ml-1" />
+                   </Button>
+                   {state.progress.strategyApproved && (
+                     <Button
+                       size="sm"
+                       variant="ghost"
+                       onClick={() => onNavigateToStep?.(1)}
+                       className="text-xs px-2"
+                     >
+                       Edit
+                     </Button>
+                   )}
+                 </div>
               </CardContent>
             </Card>
 
@@ -134,15 +150,27 @@ export function WorkflowIntegrationDashboard() {
                 <p className="text-xs text-muted-foreground mb-3">
                   Templates and themes ready
                 </p>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => handleViewInSection('content-creation')}
-                  disabled={state.approvedPlans.length === 0}
-                >
-                  Create Content
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
+                 <div className="flex gap-1">
+                   <Button 
+                     size="sm" 
+                     variant="outline" 
+                     onClick={() => handleViewInSection('content-creation')}
+                     disabled={state.approvedPlans.length === 0}
+                   >
+                     Create Content
+                     <ArrowRight className="h-3 w-3 ml-1" />
+                   </Button>
+                   {state.approvedPlans.length > 0 && (
+                     <Button
+                       size="sm"
+                       variant="ghost"
+                       onClick={() => onNavigateToStep?.(2)}
+                       className="text-xs px-2"
+                     >
+                       Edit Plans
+                     </Button>
+                   )}
+                 </div>
               </CardContent>
             </Card>
 

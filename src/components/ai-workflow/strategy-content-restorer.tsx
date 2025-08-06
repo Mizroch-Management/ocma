@@ -9,7 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { buildStrategyPrompt } from '@/lib/ai-prompt-builder';
 import { Progress } from '@/components/ui/progress';
 
-export function StrategyContentRestorer() {
+interface StrategyContentRestorerProps {
+  onNavigateToStep?: (stepIndex: number) => void;
+}
+
+export function StrategyContentRestorer({ onNavigateToStep }: StrategyContentRestorerProps) {
   const [isRestoring, setIsRestoring] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentlyGenerating, setCurrentlyGenerating] = useState<string>('');

@@ -215,6 +215,20 @@ export default function AIWorkflow() {
     })));
   };
 
+  // Navigation handler for workflow progress cards
+  const navigateToWorkflowStep = (stepIndex: number) => {
+    console.log('Navigating to workflow step:', stepIndex);
+    setCurrentStep(stepIndex);
+    
+    // Hide workflow manager and data restore components to show the main workflow
+    setShowWorkflowManager(false);
+    
+    toast({
+      title: "Navigating to Step",
+      description: `Moving to ${workflowSteps[stepIndex]?.title}`,
+    });
+  };
+
   const invalidateSubsequentSteps = (fromStep: number) => {
     // Clear subsequent step data and reset their status
     if (fromStep <= 1) {
@@ -429,20 +443,25 @@ export default function AIWorkflow() {
         </div>
       </div>
 
-      {/* Data Restore Components - Only show for existing workflows with missing data */}
-      {state.currentWorkflowId && (
+      {/* Only show these components if not currently in an active workflow step */}
+      {currentStep === 4 && (
         <>
-          <ComprehensiveDataRestore />
-          <StrategyContentRestorer />
-          <WorkflowDataRestore />
+          {/* Data Restore Components - Only show for existing workflows with missing data */}
+          {state.currentWorkflowId && (
+            <>
+              <ComprehensiveDataRestore onNavigateToStep={navigateToWorkflowStep} />
+              <StrategyContentRestorer onNavigateToStep={navigateToWorkflowStep} />
+              <WorkflowDataRestore />
+            </>
+          )}
+          
+          {/* Integration Dashboard */}
+          <WorkflowIntegrationDashboard onNavigateToStep={navigateToWorkflowStep} />
+          
+          {/* Workflow Data Viewer */}
+          <WorkflowDataViewer onNavigateToStep={navigateToWorkflowStep} />
         </>
       )}
-      
-      {/* Integration Dashboard */}
-      <WorkflowIntegrationDashboard />
-      
-      {/* Workflow Data Viewer */}
-      <WorkflowDataViewer />
 
       {/* Progress Overview */}
       <Card>

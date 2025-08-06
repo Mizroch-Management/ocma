@@ -19,7 +19,11 @@ import {
   BarChart3
 } from "lucide-react";
 
-export function WorkflowDataViewer() {
+interface WorkflowDataViewerProps {
+  onNavigateToStep?: (stepIndex: number) => void;
+}
+
+export function WorkflowDataViewer({ onNavigateToStep }: WorkflowDataViewerProps) {
   const { state } = useWorkflow();
   const { toast } = useToast();
   const [isVisible, setIsVisible] = useState(false);
@@ -379,13 +383,22 @@ export function WorkflowDataViewer() {
                                 <strong>AI Generated Content:</strong>
                                 <p className="mt-1 whitespace-pre-wrap">{step.aiGenerated}</p>
                               </div>
-                            )}
-                            {step.userPrompt && (
-                              <div className="bg-blue-50 p-3 rounded text-sm">
-                                <strong>Your Instructions:</strong>
-                                <p className="mt-1">{step.userPrompt}</p>
-                              </div>
-                            )}
+                             )}
+                             {step.userPrompt && (
+                               <div className="bg-blue-50 p-3 rounded text-sm">
+                                 <strong>Your Instructions:</strong>
+                                 <p className="mt-1">{step.userPrompt}</p>
+                               </div>
+                             )}
+                             <div className="flex justify-end pt-2">
+                               <Button
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={() => onNavigateToStep?.(1)} // Strategy is step 1
+                               >
+                                 Edit & Regenerate
+                               </Button>
+                             </div>
                           </CardContent>
                         </Card>
                       ))}
@@ -509,12 +522,21 @@ export function WorkflowDataViewer() {
                         </div>
                       )}
                       
-                      {plan.aiGenerated && (
-                        <div className="bg-muted p-3 rounded text-sm">
-                          <strong>AI Generated Plan:</strong>
-                          <p className="mt-1 whitespace-pre-wrap">{plan.aiGenerated}</p>
-                        </div>
-                      )}
+                       {plan.aiGenerated && (
+                         <div className="bg-muted p-3 rounded text-sm">
+                           <strong>AI Generated Plan:</strong>
+                           <p className="mt-1 whitespace-pre-wrap">{plan.aiGenerated}</p>
+                         </div>
+                       )}
+                       <div className="flex justify-end pt-2">
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => onNavigateToStep?.(2)} // Smart Content Planner is step 2
+                         >
+                           Edit & Regenerate
+                         </Button>
+                       </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -626,13 +648,22 @@ export function WorkflowDataViewer() {
                                   ))}
                                 </div>
                               </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                             )}
+                             <div className="flex justify-end pt-2">
+                               <Button
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={() => onNavigateToStep?.(3)} // Content Creator is step 3
+                               >
+                                 Edit & Regenerate
+                               </Button>
+                             </div>
+                           </CardContent>
+                         </Card>
+                       ))}
+                     </div>
+                   </CardContent>
+                 </Card>
               </div>
             ) : state.approvedContent && state.approvedContent.length > 0 ? (
               <div className="space-y-4">

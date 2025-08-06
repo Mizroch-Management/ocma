@@ -9,7 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
 
-export function ComprehensiveDataRestore() {
+interface ComprehensiveDataRestoreProps {
+  onNavigateToStep?: (stepIndex: number) => void;
+}
+
+export function ComprehensiveDataRestore({ onNavigateToStep }: ComprehensiveDataRestoreProps) {
   const [isRestoring, setIsRestoring] = useState(false);
   const { state, dispatch } = useWorkflow();
   const { toast } = useToast();
