@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkflow, type BusinessInfo, type AIStrategyStep } from "@/contexts/workflow-context";
 import { buildStrategyPrompt } from "@/lib/ai-prompt-builder";
+import { AIPlatformToolsSelector } from "./ai-platform-tools-selector";
 
 interface AIStrategyConsultantProps {
   onStrategyApproved: (strategy: any) => void;
@@ -21,12 +22,13 @@ interface AIStrategyConsultantProps {
 
 export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStrategyConsultantProps) {
   const { toast } = useToast();
-  const { platforms, getPlatformsWithTools } = useAIPlatforms();
+  const { platforms, getPlatformsWithTools, getPlatformTools } = useAIPlatforms();
   const { state, dispatch } = useWorkflow();
   
   const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const [currentStep, setCurrentStep] = useState(0);
   const [showPrompts, setShowPrompts] = useState<{[key: string]: boolean}>({});
+  const [enabledTools, setEnabledTools] = useState<{[platform: string]: string[]}>({});
   const [steps, setSteps] = useState<AIStrategyStep[]>([
     {
       id: 'objectives',
@@ -169,13 +171,15 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
         ));
       }, 500);
 
+      const platformTools = getPlatformTools(selectedPlatform);
       const response = await supabase.functions.invoke('generate-content', {
         body: {
           contentType: 'strategy-section',
           strategy: step.title,
           platforms: [selectedPlatform],
           customPrompt: aiPrompt,
-          aiTool: 'gpt-4o-mini'
+          aiTool: 'gpt-4o-mini',
+          enabledTools: platformTools
         }
       });
 
@@ -325,6 +329,17 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
 
       {steps.some(s => s.status !== 'pending') && (
         <CardContent className="space-y-6">
+          {/* AI Tools Configuration */}
+          {selectedPlatform && (
+            <AIPlatformToolsSelector
+              selectedPlatform={selectedPlatform}
+              onToolsUpdate={(platform, tools) => {
+                setEnabledTools(prev => ({ ...prev, [platform]: tools }));
+              }}
+              className="mb-6"
+            />
+          )}
+          
           <div className="space-y-4">
             {steps.map((step, index) => (
               <div key={step.id} className="space-y-4">

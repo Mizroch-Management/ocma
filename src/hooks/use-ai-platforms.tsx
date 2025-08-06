@@ -8,6 +8,7 @@ export interface AIPlatform {
   supportsTools: boolean;
   isConfigured: boolean;
   apiKey?: string;
+  enabledTools?: string[];
 }
 
 export function useAIPlatforms() {
@@ -65,12 +66,17 @@ export function useAIPlatforms() {
 
   const getConfiguredPlatforms = () => platforms.filter(p => p.isConfigured);
   const getPlatformsWithTools = () => platforms.filter(p => p.supportsTools && p.isConfigured);
+  const getPlatformTools = (platformKey: string) => {
+    const platform = platforms.find(p => p.key === platformKey);
+    return platform?.enabledTools || [];
+  };
 
   return {
     platforms,
     loading,
     getConfiguredPlatforms,
     getPlatformsWithTools,
+    getPlatformTools,
     refetch: fetchPlatforms
   };
 }
