@@ -217,7 +217,7 @@ export default function Settings() {
             setting_key: settingKey,
             setting_value: newValue,
             organization_id: currentOrganization.id,
-            category: 'integration',
+            category: settingKey.includes('_api_key') ? 'ai_platforms' : 'integration',
             description: `Setting for ${settingKey}`
           });
         
@@ -237,7 +237,7 @@ export default function Settings() {
             id: crypto.randomUUID(),
             setting_key: settingKey,
             setting_value: newValue,
-            category: 'integration',
+            category: settingKey.includes('_api_key') ? 'ai_platforms' : 'integration',
             description: `Setting for ${settingKey}`
           });
         }
@@ -279,7 +279,8 @@ export default function Settings() {
   };
 
   const updateAIApiKey = (platform: string, apiKey: string) => {
-    updateSetting(`${platform}_api_key`, { api_key: apiKey });
+    const settingValue = { api_key: apiKey };
+    updateSetting(`${platform}_api_key`, settingValue);
   };
 
   const testPlatformConfiguration = async (platform: string, type: 'social_media' | 'ai_platform') => {
