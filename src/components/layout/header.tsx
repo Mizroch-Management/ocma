@@ -2,6 +2,7 @@ import { Bell, HelpCircle, Search, Plus, LogOut, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -159,6 +160,9 @@ export function Header() {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* Help */}
           <Button variant="ghost" size="sm">

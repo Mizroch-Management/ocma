@@ -4,12 +4,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AppLayout } from "./components/layout/app-layout";
+import { ResponsiveLayout } from "./components/layout/responsive-layout";
 import { WorkflowProvider } from "./contexts/workflow-context";
 import { AuthProvider } from "./hooks/use-auth";
 import { OrganizationProvider } from "./hooks/use-organization";
 import { ErrorBoundary } from "./lib/error-handling/error-boundary";
 import { PageLoadingSpinner } from "./components/ui/loading-spinner";
+import { ThemeProvider } from "./components/theme/theme-provider";
 
 // Eager load critical components
 import Index from "./pages/Index";
@@ -56,17 +57,18 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <OrganizationProvider>
-          <WorkflowProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+    <ThemeProvider defaultTheme="system" storageKey="ocma-theme">
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <OrganizationProvider>
+            <WorkflowProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/" element={<AppLayout />}>
+                  <Route path="/" element={<ResponsiveLayout />}>
                     <Route index element={<Index />} />
                     <Route path="calendar" element={
                       <Suspense fallback={<PageLoadingSpinner />}>
@@ -136,6 +138,7 @@ const App = () => (
         </OrganizationProvider>
       </AuthProvider>
     </QueryClientProvider>
+  </ThemeProvider>
   </ErrorBoundary>
 );
 
