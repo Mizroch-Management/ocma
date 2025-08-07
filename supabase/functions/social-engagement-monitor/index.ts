@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getApiKey } from '../_shared/api-key-manager.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,7 +19,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { platform, action, data } = await req.json()
+    const { platform, action, data, organizationId } = await req.json()
 
     let result;
     switch (action) {
@@ -26,7 +27,7 @@ serve(async (req) => {
         result = await monitorMentions(platform, data, supabase);
         break;
       case 'analyze_sentiment':
-        result = await analyzeSentiment(data, supabase);
+        result = await analyzeSentiment(data, supabase, organizationId);
         break;
       case 'discover_influencers':
         result = await discoverInfluencers(platform, data, supabase);
@@ -81,19 +82,23 @@ async function monitorMentions(platform: string, data: any, supabase: any) {
   };
 }
 
-async function analyzeSentiment(data: any, supabase: any) {
-  // Get AI platform for sentiment analysis
-  const { data: aiSettings } = await supabase
-    .from('system_settings')
-    .select('*')
-    .eq('category', 'ai_platforms')
-    .single();
+async function analyzeSentiment(data: any, supabase: any, organizationId?: string) {
+  console.log('[Social Engagement - Sentiment] Getting OpenAI API key for organization:', organizationId);
+  
+  const apiKeyResult = await getApiKey(supabase, {
+    organizationId,
+    platform: 'openai',
+    allowGlobalFallback: true,
+    allowEnvironmentFallback: true
+  });
 
-  // Use OpenAI for sentiment analysis
-  const openaiKey = await getAIKey('openai', supabase);
-  if (!openaiKey) {
-    throw new Error('OpenAI API key not configured');
+  if (!apiKeyResult.success) {
+    console.error('[Social Engagement - Sentiment] Failed to get API key:', apiKeyResult.error);
+    throw new Error(apiKeyResult.error || 'Failed to retrieve OpenAI API key');
   }
+
+  const openaiKey = apiKeyResult.apiKey!;
+  console.log('[Social Engagement - Sentiment] API key retrieved successfully from:', apiKeyResult.source);
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -169,18 +174,4 @@ async function trackHashtags(platform: string, data: any, supabase: any) {
   };
 }
 
-async function getAIKey(platform: string, supabase: any) {
-  try {
-    const { data } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('setting_key', `${platform}_api_key`)
-      .eq('category', 'ai_platforms')
-      .single();
-    
-    return data?.setting_value?.api_key;
-  } catch (error) {
-    console.error(`Error fetching ${platform} API key:`, error);
-    return null;
-  }
-}
+// Note: getAIKey function removed - now using centralized getApiKey from api-key-manager.ts

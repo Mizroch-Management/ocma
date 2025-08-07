@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useOrganization } from './use-organization';
+import { log } from '@/utils/logger';
 
 export function useExportAnalytics() {
   const { toast } = useToast();
@@ -46,7 +47,13 @@ export function useExportAnalytics() {
       });
 
     } catch (error) {
-      console.error('Export error:', error);
+      log.error('CSV export error', error instanceof Error ? error : new Error(String(error)), {
+        timeRange,
+        organizationId: currentOrganization?.id
+      }, {
+        component: 'useExportAnalytics',
+        action: 'export_csv'
+      });
       toast({
         title: "Export Failed",
         description: error instanceof Error ? error.message : "Failed to export data",
@@ -79,7 +86,13 @@ export function useExportAnalytics() {
       });
 
     } catch (error) {
-      console.error('Export error:', error);
+      log.error('JSON export error', error instanceof Error ? error : new Error(String(error)), {
+        timeRange,
+        organizationId: currentOrganization?.id
+      }, {
+        component: 'useExportAnalytics',
+        action: 'export_json'
+      });
       toast({
         title: "Export Failed",
         description: error instanceof Error ? error.message : "Failed to export data",

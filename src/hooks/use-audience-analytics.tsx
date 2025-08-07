@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from './use-organization';
+import { log } from '@/utils/logger';
 
 export interface AudienceAnalyticsData {
   audienceGrowth: Array<{
@@ -160,7 +161,13 @@ export function useAudienceAnalytics(timeRange: string = '30days') {
       });
 
     } catch (err) {
-      console.error('Error fetching audience analytics:', err);
+      log.error('Error fetching audience analytics', err instanceof Error ? err : new Error(String(err)), { 
+        timeRange, 
+        organizationId: currentOrganization?.id 
+      }, { 
+        component: 'useAudienceAnalytics', 
+        action: 'fetch_audience_analytics' 
+      });
       setError(err instanceof Error ? err.message : 'Failed to fetch audience analytics');
     } finally {
       setLoading(false);

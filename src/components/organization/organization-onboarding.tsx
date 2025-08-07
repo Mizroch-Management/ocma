@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useOrganization, type Organization } from '@/hooks/use-organization';
 import { Building2, Users, Plus, Search, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { log } from '@/utils/logger';
 
 export function OrganizationOnboarding() {
   const { createOrganization, requestJoinOrganization, searchOrganizations, fetchAllOrganizations, isAppOwner } = useOrganization();
@@ -56,7 +57,7 @@ export function OrganizationOnboarding() {
       setAllOrganizations(organizations);
       setFilteredOrganizations(organizations);
     } catch (error) {
-      console.error('Error loading organizations:', error);
+      log.error('Error loading organizations', error instanceof Error ? error : new Error(String(error)), {}, { component: 'OrganizationOnboarding', action: 'load_organizations' });
       toast.error('Failed to load organizations');
     } finally {
       setIsLoadingOrgs(false);

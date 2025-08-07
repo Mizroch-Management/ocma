@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
+import { log } from '@/utils/logger';
 
 interface Organization {
   id: string;
@@ -70,7 +71,8 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         .eq('user_id', user.id)
         .single();
         
-      setIsAppOwner(profile?.email === 'elimizroch@gmail.com');
+      const appOwnerEmail = import.meta.env.VITE_APP_OWNER_EMAIL || 'elimizroch@gmail.com';
+      setIsAppOwner(profile?.email === appOwnerEmail);
     };
     
     checkAppOwner();
@@ -79,12 +81,12 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   // Fetch user's organizations
   const fetchUserOrganizations = async () => {
     if (!user) {
-      console.log('No user found, skipping organization fetch');
+      log.debug('No user found, skipping organization fetch', {}, { component: 'useOrganization', action: 'fetch_user_organizations' });
       setLoading(false);
       return;
     }
     
-    console.log('Fetching organizations for user:', user.id, 'isAppOwner:', isAppOwner);
+    log.debug('Fetching organizations for user', { userId: user.id, isAppOwner }, { component: 'useOrganization', action: 'fetch_user_organizations' });
     
     try {
       setLoading(true);
@@ -92,7 +94,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       let organizations: Organization[] = [];
       
       if (isAppOwner) {
-        console.log('Fetching all organizations for app owner');
+        log.debug('Fetching all organizations for app owner', {}, { component: 'useOrganization', action: 'fetch_all_organizations' });
         // App owner can see all organizations
         const { data: allOrgs, error } = await supabase
           .from('organizations')
@@ -101,9 +103,9 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
           
         if (error) throw error;
         organizations = allOrgs || [];
-        console.log('App owner organizations:', organizations);
+        log.debug('App owner organizations retrieved', { organizationCount: organizations.length }, { component: 'useOrganization', action: 'fetch_all_organizations' });
       } else {
-        console.log('Fetching user organizations for regular user');
+        log.debug('Fetching user organizations for regular user', { userId: user.id }, { component: 'useOrganization', action: 'fetch_user_organizations' });
         // Regular users see only their organizations
         const { data: memberData, error: memberError } = await supabase
           .from('organization_members')
@@ -116,25 +118,25 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         if (memberError) throw memberError;
         
         organizations = memberData?.map(m => m.organizations).filter(Boolean) || [];
-        console.log('User organizations:', organizations);
+        log.debug('User organizations retrieved', { organizationCount: organizations.length }, { component: 'useOrganization', action: 'fetch_user_organizations' });
       }
       
       setUserOrganizations(organizations as Organization[]);
-      console.log('Setting userOrganizations to:', organizations);
+      log.debug('Setting user organizations', { organizationCount: organizations.length }, { component: 'useOrganization', action: 'set_organizations' });
       
       // Set current organization if not set
       if (!currentOrganization && organizations.length > 0) {
         setCurrentOrganization(organizations[0]);
-        console.log('Set current organization to:', organizations[0]);
+        log.debug('Set current organization', { organizationId: organizations[0].id, organizationName: organizations[0].name }, { component: 'useOrganization', action: 'set_current_organization' });
       } else if (organizations.length === 0) {
-        console.log('User has no organizations');
+        log.debug('User has no organizations', {}, { component: 'useOrganization', action: 'check_organizations' });
         setCurrentOrganization(null);
       }
     } catch (error: any) {
-      console.error('Error fetching organizations:', error);
+      log.error('Error fetching organizations', error instanceof Error ? error : new Error(String(error)), { userId: user?.id, isAppOwner }, { component: 'useOrganization', action: 'fetch_organizations' });
       toast.error('Failed to load organizations');
     } finally {
-      console.log('Setting loading to false');
+      log.debug('Setting loading to false', {}, { component: 'useOrganization', action: 'complete_loading' });
       setLoading(false);
     }
   };
@@ -156,7 +158,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       setOrganizationMembers(data || []);
     } catch (error: any) {
-      console.error('Error fetching organization members:', error);
+      log.error('Error fetching organization members', error instanceof Error ? error : new Error(String(error)), { organizationId }, { component: 'useOrganization', action: 'fetch_members' });
       toast.error('Failed to load organization members');
     }
   };
@@ -179,7 +181,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       setPendingMembers(data || []);
     } catch (error: any) {
-      console.error('Error fetching pending members:', error);
+      log.error('Error fetching pending members', error instanceof Error ? error : new Error(String(error)), { organizationId }, { component: 'useOrganization', action: 'fetch_pending_members' });
       toast.error('Failed to load pending members');
     }
   };

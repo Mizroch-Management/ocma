@@ -22,6 +22,7 @@ import {
   CheckCircle,
   Clock
 } from "lucide-react";
+import { log } from '@/utils/logger';
 
 interface WorkflowSummary {
   id: string;
@@ -71,7 +72,7 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
       if (error) throw error;
       setWorkflows(data || []);
     } catch (error) {
-      console.error('Error loading workflows:', error);
+      log.error('Error loading workflows', error instanceof Error ? error : new Error(String(error)), { organizationId: currentOrganization?.id }, { component: 'WorkflowManager', action: 'load_workflows' });
       toast({
         title: "Error",
         description: "Failed to load workflows",
@@ -124,7 +125,7 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
       // Automatically select the new workflow
       onSelectWorkflow(data.id);
     } catch (error) {
-      console.error('Error creating workflow:', error);
+      log.error('Error creating workflow', error instanceof Error ? error : new Error(String(error)), { organizationId: currentOrganization?.id, workflowName: name }, { component: 'WorkflowManager', action: 'create_workflow' });
       toast({
         title: "Error",
         description: "Failed to create workflow",
@@ -158,7 +159,7 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
         onSelectWorkflow(null);
       }
     } catch (error) {
-      console.error('Error deleting workflow:', error);
+      log.error('Error deleting workflow', error instanceof Error ? error : new Error(String(error)), { workflowId }, { component: 'WorkflowManager', action: 'delete_workflow' });
       toast({
         title: "Error",
         description: "Failed to delete workflow",

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { useWorkflowPersistence } from '@/hooks/use-workflow-persistence';
 import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
+import { log } from '@/utils/logger';
 
 interface WorkflowStrategy {
   id: string;
@@ -272,28 +273,40 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     
     const loadWorkflowData = async () => {
       try {
-        console.log('Loading workflow data for organization:', currentOrganization.id);
+        log.info('Loading workflow data for organization', { organizationId: currentOrganization.id }, {
+          component: 'WorkflowContext',
+          action: 'load_workflow_data'
+        });
         // Reset workflow state when switching organizations
         dispatch({ type: 'RESET_WORKFLOW' });
         
         // Try to load from database for current organization
         const dbState = await loadWorkflow();
         if (dbState) {
-          console.log('Successfully loaded workflow from database:', {
+          log.info('Successfully loaded workflow from database', {
             organizationId: currentOrganization.id,
             hasBusinessInfo: !!dbState.businessInfo,
             hasStrategy: !!dbState.approvedStrategy,
             plansCount: dbState.approvedPlans?.length || 0,
             contentCount: dbState.approvedContent?.length || 0,
             currentStep: dbState.progress?.currentStep
+          }, {
+            component: 'WorkflowContext',
+            action: 'load_success'
           });
           dispatch({ type: 'LOAD_WORKFLOW', payload: dbState });
           return;
         }
         
-        console.log('No workflow data found for organization:', currentOrganization.id);
+        log.info('No workflow data found for organization', { organizationId: currentOrganization.id }, {
+          component: 'WorkflowContext',
+          action: 'no_data_found'
+        });
       } catch (error) {
-        console.error('Error loading workflow data:', error);
+        log.error('Error loading workflow data', error as Error, undefined, {
+          component: 'WorkflowContext',
+          action: 'load_error'
+        });
       }
     };
     

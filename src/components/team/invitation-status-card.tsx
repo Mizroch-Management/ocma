@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, Clock, CheckCircle, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/use-organization";
+import { log } from '@/utils/logger';
 
 interface InvitationStatus {
   id: string;
@@ -40,7 +41,7 @@ export function InvitationStatusCard() {
       if (error) throw error;
       setInvitations(data || []);
     } catch (error) {
-      console.error('Error fetching invitations:', error);
+      log.error('Error fetching invitations', error instanceof Error ? error : new Error(String(error)), { organizationId: currentOrganization?.id }, { component: 'InvitationStatusCard', action: 'fetch_invitations' });
     } finally {
       setLoading(false);
     }

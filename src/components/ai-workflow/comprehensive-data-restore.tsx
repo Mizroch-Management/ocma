@@ -8,6 +8,7 @@ import { RefreshCw, AlertTriangle, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
+import { log } from '@/utils/logger';
 
 interface ComprehensiveDataRestoreProps {
   onNavigateToStep?: (stepIndex: number) => void;
@@ -56,11 +57,15 @@ export function ComprehensiveDataRestore({ onNavigateToStep }: ComprehensiveData
         throw new Error('No workflow data found in database');
       }
 
-      console.log('Restoring complete workflow data:', {
+      log.info('Restoring complete workflow data', {
         workflowId: workflow.id,
         hasDraftData: !!workflow.draft_data,
         hasBusinessInfo: !!workflow.business_info_data,
-        draftDataKeys: workflow.draft_data ? Object.keys(workflow.draft_data) : []
+        draftDataKeys: workflow.draft_data ? Object.keys(workflow.draft_data) : [],
+        organizationId: currentOrganization?.id
+      }, {
+        component: 'ComprehensiveDataRestore',
+        action: 'start_restore'
       });
 
       // Construct complete workflow state with proper type casting and progress detection
@@ -143,13 +148,17 @@ export function ComprehensiveDataRestore({ onNavigateToStep }: ComprehensiveData
         hasApprovedContent ? `✓ Approved Content (${restoredState.approvedContent.length})` : '✗ Approved Content'
       ];
 
-      console.log('Workflow restoration complete:', {
+      log.info('Workflow restoration complete', {
         restoredData: restorationDetails,
         currentStep: restoredState.progress.currentStep,
         completedSteps: restoredState.progress.completedSteps,
         hasStrategySteps,
         strategyStepsCount: draftData?.strategySteps?.length || 0,
-        workflowIsActive: restoredState.isWorkflowActive
+        workflowIsActive: restoredState.isWorkflowActive,
+        organizationId: currentOrganization?.id
+      }, {
+        component: 'ComprehensiveDataRestore',
+        action: 'complete_restore'
       });
 
       toast({
@@ -158,7 +167,12 @@ export function ComprehensiveDataRestore({ onNavigateToStep }: ComprehensiveData
       });
 
     } catch (error) {
-      console.error('Error restoring complete workflow data:', error);
+      log.error('Error restoring complete workflow data', error instanceof Error ? error : new Error(String(error)), {
+        organizationId: currentOrganization?.id
+      }, {
+        component: 'ComprehensiveDataRestore',
+        action: 'restore_error'
+      });
       toast({
         title: "Restoration Failed",
         description: "Failed to restore workflow data from database. Please check console for details.",

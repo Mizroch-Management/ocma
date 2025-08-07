@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkflow, type BusinessInfo, type AIStrategyStep } from "@/contexts/workflow-context";
 import { buildStrategyPrompt } from "@/lib/ai-prompt-builder";
 import { AIPlatformToolsSelector } from "./ai-platform-tools-selector";
+import { log } from '@/utils/logger';
 
 interface AIStrategyConsultantProps {
   onStrategyApproved: (strategy: any) => void;
@@ -73,7 +74,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
   // Load saved draft data on mount and calculate correct current step
   useEffect(() => {
     if (state.draftData?.strategySteps) {
-      console.log('Loading saved strategy steps:', state.draftData.strategySteps);
+      log.debug('Loading saved strategy steps', { strategyStepsCount: state.draftData.strategySteps.length }, { component: 'AIStrategyConsultant', action: 'load_saved_steps' });
       setSteps(state.draftData.strategySteps);
       
       // Calculate the correct current step based on progress
@@ -102,7 +103,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
         calculatedCurrentStep = savedSteps.length - 1;
       }
       
-      console.log('Calculated current step:', calculatedCurrentStep, 'from saved steps');
+      log.debug('Calculated current step from saved steps', { calculatedCurrentStep, totalSteps: savedSteps.length }, { component: 'AIStrategyConsultant', action: 'calculate_step' });
       setCurrentStep(calculatedCurrentStep);
       
       // Auto-set platform if we have saved progress but no platform selected
@@ -124,7 +125,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
           currentStepData.status === 'pending' && 
           !currentStepData.aiGenerated && 
           currentStep > 0) { // Don't auto-start the first step
-        console.log('Auto-continuing generation for step:', currentStep, currentStepData.title);
+        log.debug('Auto-continuing generation for step', { currentStep, stepTitle: currentStepData.title }, { component: 'AIStrategyConsultant', action: 'auto_continue_generation' });
         setTimeout(() => generateStepContent(currentStep), 1000);
       }
     }
@@ -211,7 +212,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
       });
 
     } catch (error) {
-      console.error('Error generating strategy content:', error);
+      log.error('Error generating strategy content', error instanceof Error ? error : new Error(String(error)), { currentStep, platform: selectedPlatform }, { component: 'AIStrategyConsultant', action: 'generate_content' });
       setSteps(prev => prev.map((s, i) => 
         i === stepIndex 
           ? { ...s, status: 'pending', progress: 0 }

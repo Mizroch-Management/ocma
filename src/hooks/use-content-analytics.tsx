@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { log } from '@/utils/logger';
 
 export interface ContentAnalyticsData {
   topPerformingContent: Array<{
@@ -168,7 +169,7 @@ export function useContentAnalytics(timeRange: string = '30days') {
       });
 
     } catch (err) {
-      console.error('Error fetching content analytics:', err);
+      log.error('Error fetching content analytics', err instanceof Error ? err : new Error(String(err)), { timeRange }, { component: 'useContentAnalytics', action: 'fetch_content_analytics' });
       setError(err instanceof Error ? err.message : 'Failed to fetch content analytics');
     } finally {
       setLoading(false);

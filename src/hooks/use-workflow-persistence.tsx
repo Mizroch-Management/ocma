@@ -4,6 +4,7 @@ import { useAuth } from './use-auth';
 import { useOrganization } from './use-organization';
 import type { WorkflowState } from '@/contexts/workflow-context';
 import { useToast } from './use-toast';
+import { log } from '@/utils/logger';
 
 interface WorkflowPersistenceHook {
   saveWorkflow: (state: WorkflowState, workflowId?: string) => Promise<void>;
@@ -32,9 +33,15 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         organizationId: currentOrganization?.id
       };
       localStorage.setItem('workflow_backup', JSON.stringify(backup));
-      console.log('Workflow backed up to local storage');
+      log.debug('Workflow backed up to local storage', { organizationId: currentOrganization?.id }, {
+        component: 'useWorkflowPersistence',
+        action: 'backup_local_storage'
+      });
     } catch (error) {
-      console.error('Failed to backup to local storage:', error);
+      log.error('Failed to backup workflow to local storage', error, undefined, {
+        component: 'useWorkflowPersistence',
+        action: 'backup_error'
+      });
     }
   }, [currentOrganization?.id]);
 
@@ -63,10 +70,16 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         });
       }
       
-      console.log('Workflow restored from local storage');
+      log.info('Workflow restored from local storage', { organizationId: currentOrganization?.id }, {
+        component: 'useWorkflowPersistence',
+        action: 'restore_local_storage'
+      });
       return parsed;
     } catch (error) {
-      console.error('Failed to restore from local storage:', error);
+      log.error('Failed to restore from local storage', error, undefined, {
+        component: 'useWorkflowPersistence',
+        action: 'restore_error'
+      });
       return null;
     }
   }, [currentOrganization?.id]);
@@ -75,7 +88,10 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
   const validateWorkflowData = (state: WorkflowState): boolean => {
     // Basic validation to ensure critical data isn't lost
     if (state.businessInfo && (!state.businessInfo.company || !state.businessInfo.industry)) {
-      console.warn('Invalid business info detected');
+      log.warn('Invalid business info detected', {}, {
+        component: 'useWorkflowPersistence',
+        action: 'validation_error'
+      });
       return false;
     }
     return true;
@@ -86,7 +102,10 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
 
     // Validate data before saving
     if (!validateWorkflowData(state)) {
-      console.error('Workflow data validation failed, not saving');
+      log.error('Workflow data validation failed, not saving', undefined, undefined, {
+        component: 'useWorkflowPersistence',
+        action: 'validation_failed'
+      });
       toast({
         title: "Data Validation Error",
         description: "Workflow data appears corrupted. Please check your input.",
@@ -99,12 +118,14 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
     backupToLocalStorage(state);
 
     try {
-      console.log('Saving workflow state:', {
-        businessInfo: state.businessInfo,
+      log.info('Saving workflow state', {
         hasBusinessInfo: !!state.businessInfo,
-        approvedStrategy: state.approvedStrategy,
-        progress: state.progress,
+        hasApprovedStrategy: !!state.approvedStrategy,
+        currentStep: state.progress?.currentStep,
         workflowId: workflowId
+      }, {
+        component: 'useWorkflowPersistence',
+        action: 'save_workflow'
       });
 
       // Ensure we have valid data structures and serialize for JSON storage
@@ -191,7 +212,10 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         description: "Your progress has been saved successfully.",
       });
     } catch (error) {
-      console.error('Failed to save workflow:', error);
+      log.error('Failed to save workflow', error, undefined, {
+        component: 'useWorkflowPersistence',
+        action: 'save_error'
+      });
       
       // Ensure local backup is still available
       backupToLocalStorage(state);
@@ -233,20 +257,28 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
 
       if (!workflow) {
         // Try to restore from local storage as fallback
-        console.log('No workflow found in database, checking local storage backup');
+        log.info('No workflow found in database, checking local storage backup', { workflowId }, {
+          component: 'useWorkflowPersistence',
+          action: 'fallback_to_local'
+        });
         const localBackup = restoreFromLocalStorage();
         if (localBackup) {
-          console.log('Restored workflow from local storage backup');
+          log.info('Restored workflow from local storage backup', {}, {
+            component: 'useWorkflowPersistence',
+            action: 'local_restore_success'
+          });
           return localBackup;
         }
         return null;
       }
 
-      console.log('Loading workflow from database:', {
+      log.info('Loading workflow from database', {
         id: workflow.id,
-        business_info_data: workflow.business_info_data,
         hasBusinessInfo: !!workflow.business_info_data,
-        updated_at: workflow.updated_at
+        updatedAt: workflow.updated_at
+      }, {
+        component: 'useWorkflowPersistence',
+        action: 'load_workflow'
       });
 
       // Reconstruct the WorkflowState from database with proper type casting
@@ -268,14 +300,15 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
         currentWorkflowId: workflow.id,
       };
 
-      console.log('Restored workflow state:', {
-        businessInfo: !!state.businessInfo,
-        draftData: !!state.draftData,
-        draftDataKeys: state.draftData ? Object.keys(state.draftData) : [],
+      log.debug('Restored workflow state', {
+        hasBusinessInfo: !!state.businessInfo,
+        hasDraftData: !!state.draftData,
         strategyStepsCount: state.draftData?.strategySteps?.length || 0,
-        currentStrategyStep: state.draftData?.currentStrategyStep,
-        approvedStrategy: !!state.approvedStrategy,
-        progress: state.progress
+        hasApprovedStrategy: !!state.approvedStrategy,
+        currentStep: state.progress?.currentStep
+      }, {
+        component: 'useWorkflowPersistence',
+        action: 'state_restored'
       });
 
       // Convert date strings back to Date objects
@@ -297,7 +330,10 @@ export const useWorkflowPersistence = (): WorkflowPersistenceHook => {
       lastSavedStateRef.current = JSON.stringify(state);
       return state;
     } catch (error) {
-      console.error('Failed to load workflow:', error);
+      log.error('Failed to load workflow', error, undefined, {
+        component: 'useWorkflowPersistence',
+        action: 'load_error'
+      });
       return null;
     }
   }, [user?.id, currentOrganization?.id]);

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useWorkflow } from "@/contexts/workflow-context";
 import { Wand2, Target, Calendar, TrendingUp, Copy, Edit, Save, Sparkles, ImageIcon, ExternalLink } from "lucide-react";
+import { log } from "@/utils/logger";
 
 export default function ContentCreation() {
   const [selectedStrategy, setSelectedStrategy] = useState("");
@@ -65,7 +66,11 @@ export default function ContentCreation() {
 
       setPlatforms(platformsStatus);
     } catch (error) {
-      console.error('Error fetching platform status:', error);
+      log.error('Failed to fetch platform status', error, undefined, {
+        component: 'ContentCreation',
+        action: 'fetch_platform_status',
+        organizationId: currentOrganization?.id
+      });
       // Fallback to default platforms if there's an error
       setPlatforms([
         { name: "Instagram", color: "bg-pink-500", enabled: false },

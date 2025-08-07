@@ -12,6 +12,7 @@ import { useWorkflow } from "@/contexts/workflow-context";
 import { useOrganization } from '@/hooks/use-organization';
 import { useAIPlatforms } from "@/hooks/use-ai-platforms";
 import { useToast } from "@/hooks/use-toast";
+import { log } from "@/utils/logger";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Wand2, 
@@ -115,9 +116,14 @@ export default function VisualCreator() {
   
   // Get configured platforms for debugging
   const configuredPlatforms = getConfiguredPlatforms();
-  console.log('Configured platforms:', configuredPlatforms);
-  console.log('Video platforms available:', aiPlatformsByType.video);
-  console.log('Filtered video platforms:', aiPlatformsByType.video.filter(platform => configuredPlatforms.some(cp => cp.key === platform.key)));
+  log.debug('AI platforms configuration', {
+    configuredPlatformsCount: configuredPlatforms.length,
+    videoPlatformsAvailable: aiPlatformsByType.video.length,
+    filteredVideoPlatformsCount: aiPlatformsByType.video.filter(platform => configuredPlatforms.some(cp => cp.key === platform.key)).length
+  }, {
+    component: 'VisualCreator',
+    action: 'platform_configuration'
+  });
 
   const visualStyles = {
     image: [
@@ -193,7 +199,11 @@ export default function VisualCreator() {
         isAIGenerated: true
       })));
     } catch (error: any) {
-      console.error('Failed to load AI suggestions:', error);
+      log.error('Failed to load AI suggestions', error, undefined, {
+        component: 'VisualCreator',
+        action: 'load_suggestions',
+        organizationId: currentOrganization?.id
+      });
       // Fallback to basic suggestions
       setAISuggestions([
         {
@@ -229,7 +239,11 @@ export default function VisualCreator() {
       if (error) throw error;
       setSavedVisuals(data || []);
     } catch (error: any) {
-      console.error('Failed to load saved content:', error);
+      log.error('Failed to load saved content', error, undefined, {
+        component: 'VisualCreator',
+        action: 'load_content',
+        organizationId: currentOrganization?.id
+      });
     } finally {
       setIsLoadingSaved(false);
     }
@@ -267,7 +281,11 @@ export default function VisualCreator() {
 
       loadSavedContent();
     } catch (error: any) {
-      console.error('Failed to save content:', error);
+      log.error('Failed to save visual content', error, undefined, {
+        component: 'VisualCreator',
+        action: 'save_content',
+        organizationId: currentOrganization?.id
+      });
       toast({
         title: "Save Failed",
         description: error.message || "Failed to save content. Please try again.",
@@ -413,7 +431,11 @@ export default function VisualCreator() {
       });
       
     } catch (error: any) {
-      console.error('Generation error:', error);
+      log.error('Visual generation failed', error, { prompt, platform }, {
+        component: 'VisualCreator',
+        action: 'generate_visual',
+        organizationId: currentOrganization?.id
+      });
       toast({
         title: "Generation Failed",
         description: error.message || "Failed to generate content. Please try again.",

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './use-auth';
 import { useOrganization } from './use-organization';
+import { log } from '@/utils/logger';
 
 export interface TeamMember {
   id: string;
@@ -78,7 +79,7 @@ export const useTeamManagement = () => {
       })));
 
     } catch (err) {
-      console.error('Error fetching team data:', err);
+      log.error('Error fetching team data', err instanceof Error ? err : new Error(String(err)), { organizationId: currentOrganization?.id }, { component: 'useTeamManagement', action: 'fetch_team_data' });
       setError(err instanceof Error ? err.message : 'Failed to fetch team data');
     } finally {
       setLoading(false);
@@ -121,7 +122,7 @@ export const useTeamManagement = () => {
       });
 
       if (emailError) {
-        console.warn('Failed to send invitation email:', emailError);
+        log.warn('Failed to send invitation email', { emailError, memberEmail }, { component: 'useTeamManagement', action: 'send_invitation_email' });
         // Don't throw error for email failure - invitation is still created
       }
 
@@ -129,7 +130,7 @@ export const useTeamManagement = () => {
       return { success: true };
 
     } catch (err) {
-      console.error('Error inviting member:', err);
+      log.error('Error inviting member', err instanceof Error ? err : new Error(String(err)), { memberEmail, role, organizationId: currentOrganization?.id }, { component: 'useTeamManagement', action: 'invite_member' });
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Failed to invite member' 
@@ -150,7 +151,7 @@ export const useTeamManagement = () => {
       return { success: true };
 
     } catch (err) {
-      console.error('Error updating member role:', err);
+      log.error('Error updating member role', err instanceof Error ? err : new Error(String(err)), { memberId, newRole }, { component: 'useTeamManagement', action: 'update_member_role' });
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Failed to update member role' 
@@ -171,7 +172,7 @@ export const useTeamManagement = () => {
       return { success: true };
 
     } catch (err) {
-      console.error('Error updating member permissions:', err);
+      log.error('Error updating member permissions', err instanceof Error ? err : new Error(String(err)), { memberId, permissions }, { component: 'useTeamManagement', action: 'update_member_permissions' });
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Failed to update member permissions' 
@@ -192,7 +193,7 @@ export const useTeamManagement = () => {
       return { success: true };
 
     } catch (err) {
-      console.error('Error removing member:', err);
+      log.error('Error removing member', err instanceof Error ? err : new Error(String(err)), { memberId }, { component: 'useTeamManagement', action: 'remove_member' });
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Failed to remove member' 
@@ -213,7 +214,7 @@ export const useTeamManagement = () => {
       return { success: true };
 
     } catch (err) {
-      console.error('Error canceling invitation:', err);
+      log.error('Error canceling invitation', err instanceof Error ? err : new Error(String(err)), { invitationId }, { component: 'useTeamManagement', action: 'cancel_invitation' });
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Failed to cancel invitation' 

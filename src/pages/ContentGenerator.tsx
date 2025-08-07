@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { log } from "@/utils/logger";
 import { ContentEditorDialog } from "@/components/content/content-editor-dialog";
 import { ContentSchedulerDialog } from "@/components/content/content-scheduler-dialog";
 import { 
@@ -130,7 +131,11 @@ export default function ContentGenerator() {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error loading content:', error);
+        log.error('Failed to load content', error, undefined, {
+          component: 'ContentGenerator',
+          action: 'load_content',
+          organizationId: currentOrganization?.id
+        });
         return;
       }
 
@@ -157,7 +162,11 @@ export default function ContentGenerator() {
         setGeneratedContent(formattedContent);
       }
     } catch (error) {
-      console.error('Error loading saved content:', error);
+      log.error('Error loading saved content', error, undefined, {
+        component: 'ContentGenerator',
+        action: 'load_saved_content',
+        organizationId: currentOrganization?.id
+      });
       toast({
         title: "Error Loading Content",
         description: "Failed to load your saved content.",
@@ -192,7 +201,11 @@ export default function ContentGenerator() {
         .single();
 
       if (error) {
-        console.error('Error saving content:', error);
+        log.error('Failed to save content', error, undefined, {
+          component: 'ContentGenerator',
+          action: 'save_content',
+          organizationId: currentOrganization?.id
+        });
         toast({
           title: "Save Error",
           description: "Failed to save content to database.",
@@ -202,7 +215,11 @@ export default function ContentGenerator() {
       }
       return data;
     } catch (error) {
-      console.error('Error saving content:', error);
+      log.error('Error saving content', error, undefined, {
+        component: 'ContentGenerator',
+        action: 'save_content_error',
+        organizationId: currentOrganization?.id
+      });
       return false;
     }
   };
@@ -277,7 +294,11 @@ export default function ContentGenerator() {
       setIsGenerating(false);
 
     } catch (error) {
-      console.error('Content generation error:', error);
+      log.error('Content generation failed', error, undefined, {
+        component: 'ContentGenerator',
+        action: 'generate_content',
+        organizationId: currentOrganization?.id
+      });
       setIsGenerating(false);
       
       toast({
@@ -386,7 +407,11 @@ export default function ContentGenerator() {
         .eq('id', contentId);
 
       if (error) {
-        console.error('Error deleting content:', error);
+        log.error('Failed to delete content', error, undefined, {
+          component: 'ContentGenerator',
+          action: 'delete_content',
+          organizationId: currentOrganization?.id
+        });
         toast({
           title: "Delete Error",
           description: "Failed to delete content from database.",
@@ -401,7 +426,11 @@ export default function ContentGenerator() {
         description: "Content has been permanently deleted."
       });
     } catch (error) {
-      console.error('Error deleting content:', error);
+      log.error('Error deleting content', error, undefined, {
+        component: 'ContentGenerator',
+        action: 'delete_content_error',
+        organizationId: currentOrganization?.id
+      });
       toast({
         title: "Delete Error", 
         description: "Failed to delete content.",

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from './use-organization';
+import { log } from '@/utils/logger';
 
 export interface AnalyticsData {
   totalContent: number;
@@ -176,7 +177,13 @@ export function useAnalyticsData(timeRange: string = '30days') {
       });
 
     } catch (err) {
-      console.error('Error fetching analytics data:', err);
+      log.error('Error fetching analytics data', err instanceof Error ? err : new Error(String(err)), { 
+        timeRange, 
+        organizationId: currentOrganization?.id 
+      }, { 
+        component: 'useAnalyticsData', 
+        action: 'fetch_analytics' 
+      });
       setError(err instanceof Error ? err.message : 'Failed to fetch analytics data');
     } finally {
       setLoading(false);

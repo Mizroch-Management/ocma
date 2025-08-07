@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/use-organization";
 import { useAuth } from "@/hooks/use-auth";
 import { UserPlus } from "lucide-react";
+import { log } from '@/utils/logger';
 
 interface InviteMemberDialogProps {
   onInviteSent: () => void;
@@ -55,7 +56,7 @@ export function InviteMemberDialog({ onInviteSent }: InviteMemberDialogProps) {
       });
 
       if (emailError) {
-        console.warn('Email sending failed:', emailError);
+        log.warn('Email sending failed', { emailError, memberEmail: email }, { component: 'InviteMemberDialog', action: 'send_invitation_email' });
         // Don't throw - invitation was created successfully
       }
 

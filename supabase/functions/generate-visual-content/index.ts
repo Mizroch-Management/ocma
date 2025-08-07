@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { getApiKey } from '../_shared/api-key-manager.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, style, dimensions, platform, mediaType, settings } = await req.json();
+    const { prompt, style, dimensions, platform, mediaType, settings, organizationId } = await req.json();
     
     // Initialize Supabase client
     const supabase = createClient(
@@ -28,16 +29,16 @@ serve(async (req) => {
     let result;
     switch (platform) {
       case 'openai':
-        result = await generateWithOpenAI(prompt, style, dimensions, settings);
+        result = await generateWithOpenAI(prompt, style, dimensions, settings, supabase, organizationId);
         break;
       case 'stability_ai':
-        result = await generateWithStabilityAI(prompt, style, dimensions, settings);
+        result = await generateWithStabilityAI(prompt, style, dimensions, settings, supabase, organizationId);
         break;
       case 'runware':
-        result = await generateWithRunware(prompt, style, dimensions, settings);
+        result = await generateWithRunware(prompt, style, dimensions, settings, supabase, organizationId);
         break;
       case 'huggingface':
-        result = await generateWithHuggingFace(prompt, style, dimensions, settings);
+        result = await generateWithHuggingFace(prompt, style, dimensions, settings, supabase, organizationId);
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
@@ -59,40 +60,23 @@ serve(async (req) => {
   }
 });
 
-async function generateWithOpenAI(prompt: string, style: string, dimensions: string, settings: any) {
-  // Get API key from database
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
+async function generateWithOpenAI(prompt: string, style: string, dimensions: string, settings: any, supabase: any, organizationId?: string) {
+  console.log('[Generate Visual - OpenAI] Getting API key for organization:', organizationId);
   
-  console.log('Attempting to fetch OpenAI API key from database...');
-  
-  const { data: apiKeyData, error } = await supabase
-    .from('system_settings')
-    .select('*')
-    .eq('setting_key', 'openai_api_key')
-    .eq('category', 'ai_platforms');
-    
-  console.log('Raw API key query result:', { apiKeyData, error, count: apiKeyData?.length });
-  
-  if (error) {
-    console.error('Database error:', error);
-    throw new Error(`Database error: ${error.message}`);
+  const apiKeyResult = await getApiKey(supabase, {
+    organizationId,
+    platform: 'openai',
+    allowGlobalFallback: true,
+    allowEnvironmentFallback: true
+  });
+
+  if (!apiKeyResult.success) {
+    console.error('[Generate Visual - OpenAI] Failed to get API key:', apiKeyResult.error);
+    throw new Error(apiKeyResult.error || 'Failed to retrieve OpenAI API key');
   }
-  
-  if (!apiKeyData || apiKeyData.length === 0) {
-    console.error('No OpenAI API key record found in database');
-    throw new Error('OpenAI API key not found in system settings');
-  }
-  
-  const apiKey = apiKeyData[0]?.setting_value?.api_key;
-  console.log('Extracted API key exists:', !!apiKey);
-  
-  if (!apiKey) {
-    console.error('No OpenAI API key found in setting_value');
-    throw new Error('OpenAI API key not configured in system settings');
-  }
+
+  const apiKey = apiKeyResult.apiKey!;
+  console.log('[Generate Visual - OpenAI] API key retrieved successfully from:', apiKeyResult.source);
 
   const dimensionMap: { [key: string]: string } = {
     'square': '1024x1024',
@@ -134,32 +118,23 @@ async function generateWithOpenAI(prompt: string, style: string, dimensions: str
   };
 }
 
-async function generateWithStabilityAI(prompt: string, style: string, dimensions: string, settings: any) {
-  // Get API key from database
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
+async function generateWithStabilityAI(prompt: string, style: string, dimensions: string, settings: any, supabase: any, organizationId?: string) {
+  console.log('[Generate Visual - Stability AI] Getting API key for organization:', organizationId);
   
-  const { data: apiKeyData, error } = await supabase
-    .from('system_settings')
-    .select('setting_value')
-    .eq('setting_key', 'stability_ai_api_key')
-    .eq('category', 'ai_platforms')
-    .maybeSingle();
-    
-  console.log('Stability AI API key query result:', { apiKeyData, error });
-    
-  if (error) {
-    console.error('Database error:', error);
-    throw new Error(`Database error: ${error.message}`);
+  const apiKeyResult = await getApiKey(supabase, {
+    organizationId,
+    platform: 'stability',
+    allowGlobalFallback: true,
+    allowEnvironmentFallback: true
+  });
+
+  if (!apiKeyResult.success) {
+    console.error('[Generate Visual - Stability AI] Failed to get API key:', apiKeyResult.error);
+    throw new Error(apiKeyResult.error || 'Failed to retrieve Stability AI API key');
   }
-  
-  const apiKey = apiKeyData?.setting_value?.api_key;
-  if (!apiKey) {
-    console.error('No Stability AI API key found in database');
-    throw new Error('Stability AI API key not configured in system settings');
-  }
+
+  const apiKey = apiKeyResult.apiKey!;
+  console.log('[Generate Visual - Stability AI] API key retrieved successfully from:', apiKeyResult.source);
 
   const dimensionMap: { [key: string]: { width: number, height: number } } = {
     'square': { width: 1024, height: 1024 },
@@ -202,32 +177,23 @@ async function generateWithStabilityAI(prompt: string, style: string, dimensions
   };
 }
 
-async function generateWithRunware(prompt: string, style: string, dimensions: string, settings: any) {
-  // Get API key from database
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
+async function generateWithRunware(prompt: string, style: string, dimensions: string, settings: any, supabase: any, organizationId?: string) {
+  console.log('[Generate Visual - Runware] Getting API key for organization:', organizationId);
   
-  const { data: apiKeyData, error } = await supabase
-    .from('system_settings')
-    .select('setting_value')
-    .eq('setting_key', 'runware_api_key')
-    .eq('category', 'ai_platforms')
-    .maybeSingle();
-    
-  console.log('Runware API key query result:', { apiKeyData, error });
-    
-  if (error) {
-    console.error('Database error:', error);
-    throw new Error(`Database error: ${error.message}`);
+  const apiKeyResult = await getApiKey(supabase, {
+    organizationId,
+    platform: 'runware',
+    allowGlobalFallback: true,
+    allowEnvironmentFallback: true
+  });
+
+  if (!apiKeyResult.success) {
+    console.error('[Generate Visual - Runware] Failed to get API key:', apiKeyResult.error);
+    throw new Error(apiKeyResult.error || 'Failed to retrieve Runware API key');
   }
-  
-  const apiKey = apiKeyData?.setting_value?.api_key;
-  if (!apiKey) {
-    console.error('No Runware API key found in database');
-    throw new Error('Runware API key not configured in system settings');
-  }
+
+  const apiKey = apiKeyResult.apiKey!;
+  console.log('[Generate Visual - Runware] API key retrieved successfully from:', apiKeyResult.source);
 
   const dimensionMap: { [key: string]: { width: number, height: number } } = {
     'square': { width: 1024, height: 1024 },
@@ -282,32 +248,23 @@ async function generateWithRunware(prompt: string, style: string, dimensions: st
   };
 }
 
-async function generateWithHuggingFace(prompt: string, style: string, dimensions: string, settings: any) {
-  // Get API key from database
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
+async function generateWithHuggingFace(prompt: string, style: string, dimensions: string, settings: any, supabase: any, organizationId?: string) {
+  console.log('[Generate Visual - HuggingFace] Getting API key for organization:', organizationId);
   
-  const { data: apiKeyData, error } = await supabase
-    .from('system_settings')
-    .select('setting_value')
-    .eq('setting_key', 'huggingface_api_key')
-    .eq('category', 'ai_platforms')
-    .maybeSingle();
-    
-  console.log('HuggingFace API key query result:', { apiKeyData, error });
-    
-  if (error) {
-    console.error('Database error:', error);
-    throw new Error(`Database error: ${error.message}`);
+  const apiKeyResult = await getApiKey(supabase, {
+    organizationId,
+    platform: 'huggingface',
+    allowGlobalFallback: true,
+    allowEnvironmentFallback: true
+  });
+
+  if (!apiKeyResult.success) {
+    console.error('[Generate Visual - HuggingFace] Failed to get API key:', apiKeyResult.error);
+    throw new Error(apiKeyResult.error || 'Failed to retrieve HuggingFace API key');
   }
-  
-  const apiKey = apiKeyData?.setting_value?.api_key;
-  if (!apiKey) {
-    console.error('No HuggingFace API key found in database');
-    throw new Error('HuggingFace API key not configured in system settings');
-  }
+
+  const apiKey = apiKeyResult.apiKey!;
+  console.log('[Generate Visual - HuggingFace] API key retrieved successfully from:', apiKeyResult.source);
 
   const enhancedPrompt = `${prompt}, ${style} style, high quality`;
 

@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { log } from "@/utils/logger";
 import { 
   MessageSquare, 
   Heart, 
@@ -122,7 +123,10 @@ export default function SocialMediaEngagement() {
       await discoverInfluencers(selectedPlatform, criteria);
       setSearchResults(influencers);
     } catch (error) {
-      console.error('Error searching influencers:', error);
+      log.error('Failed to search influencers', error, { query, platform }, {
+        component: 'SocialMediaEngagement',
+        action: 'search_influencers'
+      });
     } finally {
       setIsSearching(false);
     }

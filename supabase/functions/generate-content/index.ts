@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getApiKey } from '../_shared/api-key-manager.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,29 +30,22 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get OpenAI API key from database for the specific organization
-    console.log('Fetching OpenAI API key from database for organization:', organizationId);
-    const { data: apiKeyData, error: apiKeyError } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('setting_key', 'openai_api_key')
-      .eq('organization_id', organizationId)
-      .maybeSingle();
+    // Get OpenAI API key using centralized management system
+    console.log('[Generate Content] Fetching OpenAI API key for organization:', organizationId);
+    const apiKeyResult = await getApiKey(supabase, {
+      organizationId,
+      platform: 'openai',
+      allowGlobalFallback: true,
+      allowEnvironmentFallback: true
+    });
 
-    console.log('API key query result:', { apiKeyData, apiKeyError });
-
-    if (apiKeyError) {
-      console.error('Database error:', apiKeyError);
-      throw new Error(`Database error: ${apiKeyError.message}`);
+    if (!apiKeyResult.success) {
+      console.error('[Generate Content] Failed to get API key:', apiKeyResult.error);
+      throw new Error(apiKeyResult.error || 'Failed to retrieve OpenAI API key');
     }
 
-    if (!apiKeyData?.setting_value?.api_key) {
-      console.error('No API key found in database for organization:', organizationId);
-      throw new Error(`OpenAI API key not configured for this organization. Please configure it in your organization settings.`);
-    }
-
-    const openAIApiKey = apiKeyData.setting_value.api_key;
-    console.log('API key found, length:', openAIApiKey.length);
+    const openAIApiKey = apiKeyResult.apiKey!;
+    console.log('[Generate Content] API key retrieved successfully from:', apiKeyResult.source);
 
     // Build the content generation prompt based on parameters
     let systemPrompt = `You are an expert content marketing strategist and copywriter. Generate high-quality, engaging content based on the user's requirements.`;

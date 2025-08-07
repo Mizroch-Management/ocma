@@ -12,6 +12,7 @@ import { Loader2, UserPlus, Shield, Users, UserMinus, Clock, CheckCircle, XCircl
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 import { InvitationStatusCard } from "@/components/team/invitation-status-card";
+import { log } from "@/utils/logger";
 
 interface OrganizationMemberWithProfile {
   id: string;
@@ -44,10 +45,13 @@ export default function Team() {
   const fetchOrganizationMembers = async () => {
     if (!currentOrganization) return;
     
-    console.log('DEBUG - fetchOrganizationMembers called with:', {
-      currentOrganization: currentOrganization,
-      userId: user?.id,
-      userEmail: user?.email
+    log.debug('Fetching organization members', {
+      organizationId: currentOrganization.id,
+      userId: user?.id
+    }, {
+      component: 'Team',
+      action: 'fetch_members',
+      organizationId: currentOrganization.id
     });
     
     try {
@@ -111,17 +115,22 @@ export default function Team() {
       const currentUserMember = membersData?.find(member => member.user_id === user?.id);
       setCurrentUserRole(currentUserMember?.role || null);
       
-      console.log('DEBUG - Data loaded:', {
+      log.info('Organization members loaded successfully', {
         activeMembers: membersWithProfiles.length,
         pendingMembers: pendingWithProfiles.length,
-        currentUserMember: currentUserMember,
-        currentUserRole: currentUserMember?.role || null,
-        allMembersData: membersData,
-        pendingData: pendingData
+        currentUserRole: currentUserMember?.role || null
+      }, {
+        component: 'Team',
+        action: 'members_loaded',
+        organizationId: currentOrganization.id
       });
 
     } catch (error: any) {
-      console.error('Error fetching organization members:', error);
+      log.error('Failed to fetch organization members', error, undefined, {
+        component: 'Team',
+        action: 'fetch_members_error',
+        organizationId: currentOrganization.id
+      });
       toast({
         title: "Error loading team members",
         description: error.message,
@@ -240,12 +249,14 @@ export default function Team() {
 
   const canManageUsers = currentUserRole === 'owner' || currentUserRole === 'admin';
   
-  console.log('DEBUG - Permission check:', {
+  log.debug('Team permissions calculated', {
     currentUserRole,
     canManageUsers,
-    pendingMembersCount: pendingMembers.length,
-    user: user?.id,
-    currentOrg: currentOrganization?.id
+    pendingMembersCount: pendingMembers.length
+  }, {
+    component: 'Team',
+    action: 'permission_check',
+    organizationId: currentOrganization?.id
   });
 
   const getRoleBadgeVariant = (role: string) => {

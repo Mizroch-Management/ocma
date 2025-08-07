@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { log } from '@/utils/logger';
 
 export interface AIPlatform {
   key: string;
@@ -58,7 +59,10 @@ export function useAIPlatforms() {
 
       setPlatforms(platformList);
     } catch (error) {
-      console.error('Error fetching AI platforms:', error);
+      log.error('Error fetching AI platforms', error instanceof Error ? error : new Error(String(error)), {}, {
+        component: 'useAIPlatforms',
+        action: 'fetch_platforms'
+      });
     } finally {
       setLoading(false);
     }

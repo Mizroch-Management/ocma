@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { log } from '@/utils/logger';
 
 export interface SocialMention {
   id: string;
@@ -100,7 +101,7 @@ export function useSocialEngagement() {
         description: `Found ${data.total_count} mentions with ${data.high_priority_count} high priority items.`,
       });
     } catch (error) {
-      console.error('Error monitoring mentions:', error);
+      log.error('Error monitoring mentions', error instanceof Error ? error : new Error(String(error)), { platform }, { component: 'useSocialEngagement', action: 'monitor_mentions' });
       toast({
         title: "Error",
         description: "Failed to monitor mentions. Please try again.",
@@ -130,7 +131,7 @@ export function useSocialEngagement() {
         description: `Found ${data.total_count} engagement opportunities with ${data.high_priority_count} high priority items.`,
       });
     } catch (error) {
-      console.error('Error getting opportunities:', error);
+      log.error('Error getting opportunities', error instanceof Error ? error : new Error(String(error)), {}, { component: 'useSocialEngagement', action: 'get_opportunities' });
       toast({
         title: "Error",
         description: "Failed to analyze opportunities. Please try again.",
@@ -160,7 +161,7 @@ export function useSocialEngagement() {
         description: `Found ${data.total_found} influencers with ${data.high_priority} high priority matches.`,
       });
     } catch (error) {
-      console.error('Error discovering influencers:', error);
+      log.error('Error discovering influencers', error instanceof Error ? error : new Error(String(error)), { niche }, { component: 'useSocialEngagement', action: 'discover_influencers' });
       toast({
         title: "Error",
         description: "Failed to discover influencers. Please try again.",
@@ -198,7 +199,7 @@ export function useSocialEngagement() {
 
       return data;
     } catch (error) {
-      console.error('Error generating AI response:', error);
+      log.error('Error generating AI response', error instanceof Error ? error : new Error(String(error)), { originalText, platform }, { component: 'useSocialEngagement', action: 'generate_ai_response' });
       toast({
         title: "Error",
         description: "Failed to generate AI response. Please try again.",
@@ -222,7 +223,7 @@ export function useSocialEngagement() {
 
       return data;
     } catch (error) {
-      console.error('Error analyzing sentiment:', error);
+      log.error('Error analyzing sentiment', error instanceof Error ? error : new Error(String(error)), { text }, { component: 'useSocialEngagement', action: 'analyze_sentiment' });
       toast({
         title: "Error",
         description: "Failed to analyze sentiment. Please try again.",
@@ -251,7 +252,7 @@ export function useSocialEngagement() {
 
       return data;
     } catch (error) {
-      console.error('Error tracking hashtags:', error);
+      log.error('Error tracking hashtags', error instanceof Error ? error : new Error(String(error)), { hashtags }, { component: 'useSocialEngagement', action: 'track_hashtags' });
       toast({
         title: "Error",
         description: "Failed to track hashtags. Please try again.",

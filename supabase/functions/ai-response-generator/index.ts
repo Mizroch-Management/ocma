@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getApiKey } from '../_shared/api-key-manager.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +25,8 @@ serve(async (req) => {
       response_style = 'professional', 
       platform,
       user_profile = {},
-      conversation_history = []
+      conversation_history = [],
+      organizationId
     } = await req.json()
 
     const response = await generateAIResponse({
@@ -34,7 +36,8 @@ serve(async (req) => {
       platform,
       user_profile,
       conversation_history,
-      supabase
+      supabase,
+      organizationId
     });
 
     return new Response(
@@ -62,13 +65,24 @@ serve(async (req) => {
 })
 
 async function generateAIResponse(params: any) {
-  const { original_content, context, response_style, platform, user_profile, conversation_history, supabase } = params;
+  const { original_content, context, response_style, platform, user_profile, conversation_history, supabase, organizationId } = params;
 
-  // Get OpenAI API key
-  const openaiKey = await getAIKey('openai', supabase);
-  if (!openaiKey) {
-    throw new Error('OpenAI API key not configured');
+  // Get OpenAI API key using centralized management system
+  console.log('[AI Response Generator] Getting OpenAI API key for organization:', organizationId);
+  const apiKeyResult = await getApiKey(supabase, {
+    organizationId,
+    platform: 'openai',
+    allowGlobalFallback: true,
+    allowEnvironmentFallback: true
+  });
+
+  if (!apiKeyResult.success) {
+    console.error('[AI Response Generator] Failed to get API key:', apiKeyResult.error);
+    throw new Error(apiKeyResult.error || 'Failed to retrieve OpenAI API key');
   }
+
+  const openaiKey = apiKeyResult.apiKey!;
+  console.log('[AI Response Generator] API key retrieved successfully from:', apiKeyResult.source);
 
   // Build context-aware prompt
   const systemPrompt = buildSystemPrompt(response_style, platform, context);
@@ -253,18 +267,4 @@ function optimizeForPlatform(response: string, platform: string) {
   };
 }
 
-async function getAIKey(platform: string, supabase: any) {
-  try {
-    const { data } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('setting_key', `${platform}_api_key`)
-      .eq('category', 'ai_platforms')
-      .single();
-    
-    return data?.setting_value?.api_key;
-  } catch (error) {
-    console.error(`Error fetching ${platform} API key:`, error);
-    return null;
-  }
-}
+// Note: getAIKey function removed - now using centralized getApiKey from api-key-manager.ts

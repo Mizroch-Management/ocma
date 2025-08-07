@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, addDays, isAfter, isBefore } from "date-fns";
 import { useOrganization } from "@/hooks/use-organization";
+import { log } from "@/utils/logger";
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState({
@@ -43,7 +44,11 @@ export default function Dashboard() {
         .eq('organization_id', currentOrganization.id);
 
       if (contentError) {
-        console.error('Error loading content data:', contentError);
+        log.error('Failed to load content data', contentError, undefined, {
+          component: 'Dashboard',
+          action: 'load_content_data',
+          organizationId: currentOrganization?.id
+        });
         return;
       }
 
@@ -57,7 +62,11 @@ export default function Dashboard() {
         .eq('generated_content.organization_id', currentOrganization.id);
 
       if (logsError) {
-        console.error('Error loading publication logs:', logsError);
+        log.error('Failed to load publication logs', logsError, undefined, {
+          component: 'Dashboard',
+          action: 'load_publication_logs',
+          organizationId: currentOrganization?.id
+        });
       }
 
       // Calculate metrics
@@ -114,7 +123,11 @@ export default function Dashboard() {
       });
 
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      log.error('Error loading dashboard data', error, undefined, {
+        component: 'Dashboard',
+        action: 'load_dashboard_error',
+        organizationId: currentOrganization?.id
+      });
     } finally {
       setIsLoading(false);
     }

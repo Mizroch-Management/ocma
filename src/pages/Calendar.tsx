@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWorkflow } from "@/contexts/workflow-context";
+import { log } from "@/utils/logger";
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -170,7 +171,7 @@ export default function Calendar() {
           table: 'publication_logs'
         },
         (payload) => {
-          console.log('Publication log change detected:', payload);
+          log.debug('Publication log change detected', { payload }, { component: 'Calendar', action: 'publication_log_change' });
           loadPublicationLogs();
         }
       )
@@ -187,7 +188,7 @@ export default function Calendar() {
           table: 'generated_content'
         },
         (payload) => {
-          console.log('Content change detected:', payload);
+          log.debug('Content change detected', { payload }, { component: 'Calendar', action: 'content_change' });
           loadScheduledContent();
           loadGeneratedContent();
         }
@@ -216,7 +217,11 @@ export default function Calendar() {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error loading generated content:', error);
+        log.error('Failed to load generated content', error, undefined, {
+          component: 'Calendar',
+          action: 'load_content',
+          organizationId: currentOrganization?.id
+        });
         return;
       }
 
@@ -224,7 +229,11 @@ export default function Calendar() {
         setGeneratedContent(data);
       }
     } catch (error) {
-      console.error('Error loading generated content:', error);
+      log.error('Error loading generated content', error, undefined, {
+        component: 'Calendar',
+        action: 'load_content_error',
+        organizationId: currentOrganization?.id
+      });
     } finally {
       setIsLoadingGeneratedContent(false);
     }
@@ -245,7 +254,11 @@ export default function Calendar() {
       const { data, error } = await query.order('scheduled_date', { ascending: true });
 
       if (error) {
-        console.error('Error loading scheduled content:', error);
+        log.error('Failed to load scheduled content', error, undefined, {
+          component: 'Calendar',
+          action: 'load_scheduled',
+          organizationId: currentOrganization?.id
+        });
         return;
       }
 
@@ -253,7 +266,11 @@ export default function Calendar() {
         setScheduledContent(data);
       }
     } catch (error) {
-      console.error('Error loading scheduled content:', error);
+      log.error('Error loading scheduled content', error, undefined, {
+        component: 'Calendar',
+        action: 'load_scheduled_error',
+        organizationId: currentOrganization?.id
+      });
     }
   };
 
@@ -277,7 +294,11 @@ export default function Calendar() {
         .limit(50);
 
       if (error) {
-        console.error('Error loading publication logs:', error);
+        log.error('Failed to load publication logs', error, undefined, {
+          component: 'Calendar',
+          action: 'load_logs',
+          organizationId: currentOrganization?.id
+        });
         return;
       }
 
@@ -286,7 +307,11 @@ export default function Calendar() {
         setLastUpdated(new Date());
       }
     } catch (error) {
-      console.error('Error loading publication logs:', error);
+      log.error('Error loading publication logs', error, undefined, {
+        component: 'Calendar',
+        action: 'load_logs_error',
+        organizationId: currentOrganization?.id
+      });
     } finally {
       setIsLoadingPublicationLogs(false);
     }
@@ -306,7 +331,11 @@ export default function Calendar() {
         .eq('id', contentId);
 
       if (error) {
-        console.error('Error scheduling content:', error);
+        log.error('Failed to schedule content', error, { contentId }, {
+          component: 'Calendar',
+          action: 'schedule_content',
+          organizationId: currentOrganization?.id
+        });
         return false;
       }
 
@@ -317,7 +346,11 @@ export default function Calendar() {
       ]);
       return true;
     } catch (error) {
-      console.error('Error scheduling content:', error);
+      log.error('Error scheduling content', error, undefined, {
+        component: 'Calendar',
+        action: 'schedule_error',
+        organizationId: currentOrganization?.id
+      });
       return false;
     }
   };

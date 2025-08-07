@@ -2,15 +2,19 @@ import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft } from "lucide-react";
+import { log } from "@/utils/logger";
 
 const NotFound = () => {
   const location = useLocation();
 
   useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
+    log.warn('Page not found', { 
+      path: location.pathname,
+      referrer: document.referrer 
+    }, {
+      component: 'NotFound',
+      action: 'route_not_found'
+    });
   }, [location.pathname]);
 
   return (
