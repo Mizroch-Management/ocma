@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/utils/logger';
@@ -82,7 +82,7 @@ export function useSocialEngagement() {
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
-  const monitorMentions = async (platform: string) => {
+  const monitorMentions = useCallback(async (platform: string) => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('social-engagement-monitor', {
@@ -110,7 +110,7 @@ export function useSocialEngagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Empty dependency array since this function doesn't depend on any props or state
 
   const getEngagementOpportunities = async (platform: string) => {
     setAnalyzing(true);
@@ -274,7 +274,7 @@ export function useSocialEngagement() {
     }, 5 * 60 * 1000); // 5 minutes
 
     return () => clearInterval(interval);
-  }, [loading, analyzing]);
+  }, [loading, analyzing, monitorMentions]);
 
   return {
     mentions,

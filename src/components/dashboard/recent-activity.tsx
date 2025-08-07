@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LoadingWrapper, ActivityListSkeleton } from "@/components/ui/loading-states";
 import { 
   CheckCircle, 
   Clock, 
@@ -263,19 +264,17 @@ export function RecentActivity() {
         <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
       </CardHeader>
       <CardContent className="space-y-1">
-        {isLoading ? (
-          <div className="text-sm text-muted-foreground text-center py-4">
-            Loading recent activity...
-          </div>
-        ) : activities.length === 0 ? (
-          <div className="text-sm text-muted-foreground text-center py-4">
-            No recent activity
-          </div>
-        ) : (
-          activities.map((activity) => (
+        <LoadingWrapper
+          isLoading={isLoading}
+          isEmpty={!isLoading && activities.length === 0}
+          emptyTitle="No recent activity"
+          emptyDescription="Activity will appear here as content is created and published"
+          skeleton={<ActivityListSkeleton items={7} />}
+        >
+          {activities.map((activity) => (
             <ActivityItem key={activity.id} item={activity} />
-          ))
-        )}
+          ))}
+        </LoadingWrapper>
       </CardContent>
     </Card>
   );

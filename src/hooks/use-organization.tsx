@@ -110,7 +110,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         const { data: memberData, error: memberError } = await supabase
           .from('organization_members')
           .select(`
-            organizations (*)
+            organizations (id, name, description, status, created_at, updated_at)
           `)
           .eq('user_id', user.id)
           .eq('status', 'active');
@@ -147,13 +147,14 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from('organization_members')
         .select(`
-          *,
+          id, organization_id, user_id, role, status, joined_at, created_at,
           profiles (
             full_name,
             email
           )
         `)
-        .eq('organization_id', organizationId);
+        .eq('organization_id', organizationId)
+        .order('joined_at', { ascending: false });
         
       if (error) throw error;
       setOrganizationMembers(data || []);

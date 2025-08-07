@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { LoadingWrapper, ContentCardSkeleton, RefreshLoading } from "@/components/ui/loading-states";
 import { useWorkflow } from "@/contexts/workflow-context";
 import { log } from "@/utils/logger";
 import { 
@@ -874,15 +875,19 @@ export default function Calendar() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoadingGeneratedContent ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  Loading generated content...
-                </div>
-              ) : generatedContent.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  No generated content available for scheduling
-                </div>
-              ) : (
+              <LoadingWrapper
+                isLoading={isLoadingGeneratedContent}
+                isEmpty={!isLoadingGeneratedContent && generatedContent.length === 0}
+                emptyTitle="No generated content"
+                emptyDescription="No generated content available for scheduling"
+                skeleton={
+                  <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <ContentCardSkeleton key={i} />
+                    ))}
+                  </div>
+                }
+              >
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {generatedContent.slice(0, 5).map(content => (
                     <div key={content.id} className="p-3 border border-purple-200 bg-purple-50/50 rounded-lg">
@@ -939,7 +944,7 @@ export default function Calendar() {
                     </div>
                   )}
                 </div>
-              )}
+              </LoadingWrapper>
             </CardContent>
           </Card>
 
@@ -967,21 +972,25 @@ export default function Calendar() {
                   onClick={loadPublicationLogs}
                   disabled={isLoadingPublicationLogs}
                 >
-                  <RefreshCw className={cn("h-4 w-4", isLoadingPublicationLogs && "animate-spin")} />
+                  <RefreshLoading isLoading={isLoadingPublicationLogs} />
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {isLoadingPublicationLogs ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
-                  Loading publication logs...
-                </div>
-              ) : publicationLogs.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  No publication activity yet
-                </div>
-              ) : (
+              <LoadingWrapper
+                isLoading={isLoadingPublicationLogs}
+                isEmpty={!isLoadingPublicationLogs && publicationLogs.length === 0}
+                emptyTitle="No publication activity"
+                emptyDescription="No publication activity yet"
+                retry={loadPublicationLogs}
+                skeleton={
+                  <div className="space-y-3">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <ContentCardSkeleton key={i} />
+                    ))}
+                  </div>
+                }
+              >
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {publicationLogs.slice(0, 10).map(log => {
                     const platform = platforms.find(p => p.id === log.platform);
@@ -1051,7 +1060,7 @@ export default function Calendar() {
                     </div>
                   )}
                 </div>
-              )}
+              </LoadingWrapper>
             </CardContent>
           </Card>
         </div>

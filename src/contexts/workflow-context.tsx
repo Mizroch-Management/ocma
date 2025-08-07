@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
 import { useWorkflowPersistence } from '@/hooks/use-workflow-persistence';
 import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
@@ -330,8 +330,8 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [state, autoSaveWorkflow, user]);
 
-  const contextValue = { state, dispatch };
-  // Remove debug logs for production
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({ state, dispatch }), [state]);
   
   return (
     <WorkflowContext.Provider value={contextValue}>

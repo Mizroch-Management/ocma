@@ -1,4 +1,6 @@
+import { memo, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MetricsCardSkeleton } from "@/components/ui/loading-states";
 import { 
   FileText, 
   Calendar, 
@@ -21,7 +23,7 @@ interface MetricCardProps {
   description?: string;
 }
 
-function MetricCard({ title, value, change, icon, description }: MetricCardProps) {
+const MetricCard = memo(function MetricCard({ title, value, change, icon, description }: MetricCardProps) {
   const getTrendIcon = () => {
     if (!change) return null;
     
@@ -74,7 +76,7 @@ function MetricCard({ title, value, change, icon, description }: MetricCardProps
       </CardContent>
     </Card>
   );
-}
+});
 
 interface MetricsCardsProps {
   data?: {
@@ -90,37 +92,47 @@ interface MetricsCardsProps {
   isLoading?: boolean;
 }
 
-export function MetricsCards({ data, isLoading = false }: MetricsCardsProps) {
-  const metrics = [
+const MetricsCards = memo(function MetricsCards({ data, isLoading = false }: MetricsCardsProps) {
+  const metrics = useMemo(() => [
     {
       title: "Total Content",
-      value: isLoading ? "..." : (data?.totalContent || 0),
+      value: data?.totalContent || 0,
       change: { value: 0, type: "neutral" as const },
       icon: <FileText className="h-4 w-4" />,
       description: "pieces created"
     },
     {
       title: "Scheduled Content",
-      value: isLoading ? "..." : (data?.scheduledContent || 0),
+      value: data?.scheduledContent || 0,
       change: { value: 0, type: "neutral" as const },
       icon: <Calendar className="h-4 w-4" />,
       description: "ready to publish"
     },
     {
       title: "Draft Content",
-      value: isLoading ? "..." : (data?.draftContent || 0),
+      value: data?.draftContent || 0,
       change: { value: 0, type: "neutral" as const },
       icon: <Edit3 className="h-4 w-4" />,
       description: "in progress"
     },
     {
       title: "Published Content",
-      value: isLoading ? "..." : (data?.publishedContent || 0),
+      value: data?.publishedContent || 0,
       change: { value: 0, type: "neutral" as const },
       icon: <Share2 className="h-4 w-4" />,
       description: "successfully published"
     }
-  ];
+  ], [data]);
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <MetricsCardSkeleton key={index} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -129,4 +141,6 @@ export function MetricsCards({ data, isLoading = false }: MetricsCardsProps) {
       ))}
     </div>
   );
-}
+});
+
+export { MetricsCards };

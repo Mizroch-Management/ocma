@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricsCards } from "@/components/dashboard/metrics-cards";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LoadingWrapper, SkeletonCard } from "@/components/ui/loading-states";
 import { format, addDays, isAfter, isBefore } from "date-fns";
 import { useOrganization } from "@/hooks/use-organization";
 import { log } from "@/utils/logger";
 
-export default function Dashboard() {
+function Dashboard() {
   const [dashboardData, setDashboardData] = useState({
     totalContent: 0,
     scheduledContent: 0,
@@ -30,18 +31,19 @@ export default function Dashboard() {
     if (currentOrganization) {
       loadDashboardData();
     }
-  }, [currentOrganization]);
+  }, [currentOrganization, loadDashboardData]);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!currentOrganization) return;
     
     setIsLoading(true);
     try {
-      // Load content statistics for current organization
+      // Load content statistics for current organization (optimized query)
       const { data: contentData, error: contentError } = await supabase
         .from('generated_content')
-        .select('*')
-        .eq('organization_id', currentOrganization.id);
+        .select('publication_status, is_scheduled, scheduled_date, scheduled_platforms, title, id, created_at')
+        .eq('organization_id', currentOrganization.id)
+        .order('created_at', { ascending: false });
 
       if (contentError) {
         log.error('Failed to load content data', contentError, undefined, {
@@ -52,14 +54,16 @@ export default function Dashboard() {
         return;
       }
 
-      // Load publication logs for performance metrics from current organization
+      // Load publication logs for performance metrics from current organization (optimized)
       const { data: publicationLogs, error: logsError } = await supabase
         .from('publication_logs')
         .select(`
-          *,
-          generated_content!inner(organization_id)
+          status, platform, metrics, created_at,
+          generated_content!inner(organization_id, id)
         `)
-        .eq('generated_content.organization_id', currentOrganization.id);
+        .eq('generated_content.organization_id', currentOrganization.id)
+        .order('created_at', { ascending: false })
+        .limit(100); // Add pagination for better performance
 
       if (logsError) {
         log.error('Failed to load publication logs', logsError, undefined, {
@@ -131,9 +135,9 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentOrganization]);
 
-  const getPlatformBadgeColor = (platforms) => {
+  const getPlatformBadgeColor = useCallback((platforms) => {
     if (!platforms || platforms.length === 0) return "bg-gray-500";
     const platform = platforms[0];
     switch (platform) {
@@ -144,7 +148,7 @@ export default function Dashboard() {
       case 'youtube': return "bg-red-600";
       default: return "bg-gray-500";
     }
-  };
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -177,15 +181,13 @@ export default function Dashboard() {
               <CardTitle className="font-semibold">Upcoming Posts</CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  Loading upcoming posts...
-                </div>
-              ) : dashboardData.upcomingPosts.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  No upcoming scheduled posts
-                </div>
-              ) : (
+              <LoadingWrapper
+                isLoading={isLoading}
+                isEmpty={!isLoading && dashboardData.upcomingPosts.length === 0}
+                emptyTitle="No upcoming posts"
+                emptyDescription="No upcoming scheduled posts"
+                skeleton={<SkeletonCard lines={3} />}
+              >
                 <div className="space-y-3">
                   {dashboardData.upcomingPosts.map(post => (
                     <div key={post.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
@@ -211,7 +213,7 @@ export default function Dashboard() {
                     </div>
                   ))}
                 </div>
-              )}
+              </LoadingWrapper>
             </CardContent>
           </Card>
 
@@ -221,11 +223,10 @@ export default function Dashboard() {
               <CardTitle className="font-semibold">Performance Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  Loading performance data...
-                </div>
-              ) : (
+              <LoadingWrapper
+                isLoading={isLoading}
+                skeleton={<SkeletonCard lines={5} />}
+              >
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Total Reach</span>
@@ -261,7 +262,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                 </div>
-              )}
+              </LoadingWrapper>
             </CardContent>
           </Card>
         </div>
@@ -269,3 +270,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+export default memo(Dashboard);
