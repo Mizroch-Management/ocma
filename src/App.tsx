@@ -61,7 +61,6 @@ const App = () => (
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <OrganizationProvider>
-            <WorkflowProvider>
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
@@ -134,7 +133,6 @@ const App = () => (
                 </Routes>
               </BrowserRouter>
             </TooltipProvider>
-          </WorkflowProvider>
         </OrganizationProvider>
       </AuthProvider>
     </QueryClientProvider>
