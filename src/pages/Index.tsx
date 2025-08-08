@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
 import { OrganizationOnboarding } from '@/components/organization/organization-onboarding';
-import Dashboard from './Dashboard';
 import { Loader2 } from 'lucide-react';
+
+const Dashboard = lazy(() => import('./Dashboard'));
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
@@ -54,7 +55,15 @@ const Index = () => {
   }
 
   // User has active organization, show dashboard
-  return <Dashboard />;
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    }>
+      <Dashboard />
+    </Suspense>
+  );
 };
 
 export default Index;
