@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingWrapper, SkeletonCard } from "@/components/ui/loading-states";
 import { format, addDays, isAfter, isBefore } from "date-fns";
 import { useOrganization } from "@/hooks/use-organization";
-import { log } from "@/utils/logger";
+// import { log } from "@/utils/logger";
 
 function Dashboard() {
   const [dashboardData, setDashboardData] = useState({
@@ -46,11 +46,7 @@ function Dashboard() {
         .order('created_at', { ascending: false });
 
       if (contentError) {
-        log.error('Failed to load content data', contentError, undefined, {
-          component: 'Dashboard',
-          action: 'load_content_data',
-          organizationId: currentOrganization?.id
-        });
+        console.error('Failed to load content data:', contentError);
         return;
       }
 
@@ -66,11 +62,7 @@ function Dashboard() {
         .limit(100); // Add pagination for better performance
 
       if (logsError) {
-        log.error('Failed to load publication logs', logsError, undefined, {
-          component: 'Dashboard',
-          action: 'load_publication_logs',
-          organizationId: currentOrganization?.id
-        });
+        console.error('Failed to load publication logs:', logsError);
       }
 
       // Calculate metrics
@@ -127,11 +119,7 @@ function Dashboard() {
       });
 
     } catch (error) {
-      log.error('Error loading dashboard data', error, undefined, {
-        component: 'Dashboard',
-        action: 'load_dashboard_error',
-        organizationId: currentOrganization?.id
-      });
+      console.error('Error loading dashboard data:', error);
     } finally {
       setIsLoading(false);
     }

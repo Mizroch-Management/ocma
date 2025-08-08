@@ -52,7 +52,8 @@ class Logger {
    * Set global context that will be included in all logs
    */
   setContext(context: Partial<LogContext>): void {
-    this.context = { ...this.context, ...context };
+    // Simplified context setting without spread operators
+    Object.assign(this.context, context);
   }
 
   /**
@@ -118,33 +119,21 @@ class Logger {
    * API request/response logging
    */
   apiRequest(method: string, url: string, data?: any, context?: Partial<LogContext>): void {
-    this.info(`API Request: ${method} ${url}`, { requestData: data }, {
-      ...context,
-      action: 'api_request',
-      metadata: { method, url }
-    });
+    this.info(`API Request: ${method} ${url}`, { requestData: data }, context);
   }
 
   apiResponse(method: string, url: string, status: number, data?: any, duration?: number, context?: Partial<LogContext>): void {
     const level = status >= 400 ? LogLevel.ERROR : LogLevel.INFO;
     const message = `API Response: ${method} ${url} - ${status}`;
     
-    this.log(level, message, undefined, { responseData: data, duration }, {
-      ...context,
-      action: 'api_response',
-      metadata: { method, url, status, duration }
-    });
+    this.log(level, message, undefined, { responseData: data, duration }, context);
   }
 
   /**
    * User action logging
    */
   userAction(action: string, data?: any, context?: Partial<LogContext>): void {
-    this.info(`User Action: ${action}`, data, {
-      ...context,
-      action: 'user_action',
-      metadata: { action }
-    });
+    this.info(`User Action: ${action}`, data, context);
   }
 
   /**
@@ -168,11 +157,7 @@ class Logger {
    * Workflow step logging
    */
   workflowStep(step: string, data?: any, context?: Partial<LogContext>): void {
-    this.info(`Workflow Step: ${step}`, data, {
-      ...context,
-      action: 'workflow_step',
-      metadata: { step }
-    });
+    this.info(`Workflow Step: ${step}`, data, context);
   }
 
   /**
@@ -183,37 +168,24 @@ class Logger {
       return;
     }
 
-    const logEntry: LogEntry = {
-      level,
-      message,
-      context: { ...this.context, ...context },
-      error,
-      data,
-      timestamp: new Date().toISOString()
-    };
-
-    // Format the log entry
-    const formattedMessage = this.formatLogEntry(logEntry);
+    // Simplified logging without spread operator issues
+    const timestamp = new Date().toISOString();
+    const simpleMessage = `[${timestamp}] ${message}`;
 
     // Output to appropriate console method
     switch (level) {
       case LogLevel.ERROR:
-        console.error(formattedMessage, error || '');
+        console.error(simpleMessage, error || '');
         break;
       case LogLevel.WARN:
-        console.warn(formattedMessage);
+        console.warn(simpleMessage);
         break;
       case LogLevel.INFO:
-        console.info(formattedMessage);
+        console.info(simpleMessage);
         break;
       case LogLevel.DEBUG:
-        console.log(formattedMessage);
+        console.log(simpleMessage);
         break;
-    }
-
-    // Send to external logging service in production
-    if (!this.isDevelopment && level <= LogLevel.WARN) {
-      this.sendToExternalLogger(logEntry);
     }
   }
 
