@@ -36,10 +36,9 @@ export class ErrorFactory {
       severity,
       message,
       userMessage,
-      context: {
-        timestamp: new Date(),
-        ...context
-      },
+      context: Object.assign({
+        timestamp: new Date()
+      }, context),
       originalError,
       stack: originalError?.stack || new Error().stack,
       retryable,
@@ -55,11 +54,11 @@ export class ErrorFactory {
     context: Partial<ErrorContext> & { attemptedAction?: string },
     originalError?: Error
   ): AuthenticationError {
-    return {
-      ...this.createBaseError(code, ErrorCategory.AUTHENTICATION, ErrorSeverity.MEDIUM, message, userMessage, context, false, originalError),
+    const baseError = this.createBaseError(code, ErrorCategory.AUTHENTICATION, ErrorSeverity.MEDIUM, message, userMessage, context, false, originalError);
+    return Object.assign(baseError, {
       category: ErrorCategory.AUTHENTICATION,
       attemptedAction: context.attemptedAction
-    };
+    });
   }
 
   // Authorization Errors

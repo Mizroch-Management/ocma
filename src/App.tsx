@@ -8,7 +8,7 @@ import { ResponsiveLayout } from "./components/layout/responsive-layout";
 import { WorkflowProvider } from "./contexts/workflow-context";
 import { AuthProvider } from "./hooks/use-auth";
 import { OrganizationProvider } from "./hooks/use-organization";
-import { ErrorBoundary } from "./lib/error-handling/error-boundary";
+import { SimpleErrorBoundary } from "./lib/simple-error-boundary";
 import { PageLoadingSpinner } from "./components/ui/loading-spinner";
 import { ThemeProvider } from "./components/theme/theme-provider";
 
@@ -56,7 +56,7 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <ErrorBoundary>
+  <SimpleErrorBoundary>
     <ThemeProvider defaultTheme="system" storageKey="ocma-theme">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
@@ -139,7 +139,7 @@ const App = () => (
       </AuthProvider>
     </QueryClientProvider>
   </ThemeProvider>
-  </ErrorBoundary>
+  </SimpleErrorBoundary>
 );
 
 export default App;
