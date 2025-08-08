@@ -66,13 +66,7 @@ export default defineConfig(({ mode }) => ({
     sourcemap: false,
     // Optimize CSS
     cssCodeSplit: true,
-    // Enable minification
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: mode === 'production',
-        drop_debugger: mode === 'production'
-      }
-    }
+    // Disable minification to debug the error
+    minify: false
   },
 }));
