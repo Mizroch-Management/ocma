@@ -27,12 +27,6 @@ function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const { currentOrganization } = useOrganization();
 
-  useEffect(() => {
-    if (currentOrganization) {
-      loadDashboardData();
-    }
-  }, [currentOrganization, loadDashboardData]);
-
   const loadDashboardData = useCallback(async () => {
     if (!currentOrganization) return;
     
@@ -124,6 +118,12 @@ function Dashboard() {
       setIsLoading(false);
     }
   }, [currentOrganization]);
+
+  useEffect(() => {
+    if (currentOrganization) {
+      loadDashboardData();
+    }
+  }, [currentOrganization, loadDashboardData]);
 
   const getPlatformBadgeColor = useCallback((platforms) => {
     if (!platforms || platforms.length === 0) return "bg-gray-500";

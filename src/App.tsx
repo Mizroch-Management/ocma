@@ -13,7 +13,7 @@ import { PageLoadingSpinner } from "./components/ui/loading-spinner";
 import { ThemeProvider } from "./components/theme/theme-provider";
 
 // Eager load critical components
-import Index from "./pages/IndexWithOrg";  // TEST WITH ORG PROVIDER
+import Index from "./pages/Index";  // FIXED - Using full Index with Dashboard
 import Auth from "./pages/Auth";
 
 // Lazy load non-critical components for better initial bundle size
