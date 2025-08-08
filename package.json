@@ -65,7 +65,8 @@
     "uuid": "^11.1.0",
     "vaul": "^0.9.3",
     "zod": "^3.23.8",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "@vitejs/plugin-react-swc": "^3.5.0"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -76,7 +77,6 @@
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
