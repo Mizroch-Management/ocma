@@ -63,16 +63,24 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   // Check if user is app owner
   useEffect(() => {
     const checkAppOwner = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsAppOwner(false);
+        return;
+      }
       
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('user_id', user.id)
-        .single();
-        
-      const appOwnerEmail = import.meta.env.VITE_APP_OWNER_EMAIL || 'elimizroch@gmail.com';
-      setIsAppOwner(profile?.email === appOwnerEmail);
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('user_id', user.id)
+          .single();
+          
+        const appOwnerEmail = import.meta.env.VITE_APP_OWNER_EMAIL || 'elimizroch@gmail.com';
+        setIsAppOwner(profile?.email === appOwnerEmail);
+      } catch (error) {
+        console.error('Error checking app owner status:', error);
+        setIsAppOwner(false);
+      }
     };
     
     checkAppOwner();
@@ -83,6 +91,12 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     if (!user) {
       log.debug('No user found, skipping organization fetch', {}, { component: 'useOrganization', action: 'fetch_user_organizations' });
       setLoading(false);
+      return;
+    }
+    
+    // Wait for isAppOwner to be determined
+    if (isAppOwner === null) {
+      log.debug('App owner status not determined yet, waiting...', {}, { component: 'useOrganization', action: 'fetch_user_organizations' });
       return;
     }
     
@@ -401,9 +415,18 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (user && isAppOwner !== null) {
-      fetchUserOrganizations();
-    }
+    const initializeOrganizations = async () => {
+      if (user && isAppOwner !== null) {
+        try {
+          await fetchUserOrganizations();
+        } catch (error) {
+          console.error('Failed to initialize organizations:', error);
+          setLoading(false);
+        }
+      }
+    };
+    
+    initializeOrganizations();
   }, [user, isAppOwner]);
 
   const value = {
