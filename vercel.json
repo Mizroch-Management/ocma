@@ -41,12 +41,5 @@
         }
       ]
     }
-  ],
-  "build": {
-    "env": {
-      "VITE_SUPABASE_URL": "https://wxxjbkqnvpbjywejfrox.supabase.co",
-      "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key",
-      "NODE_VERSION": "18"
-    }
-  }
+  ]
 }
