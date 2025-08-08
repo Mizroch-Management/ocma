@@ -13,7 +13,7 @@ import { PageLoadingSpinner } from "./components/ui/loading-spinner";
 import { ThemeProvider } from "./components/theme/theme-provider";
 
 // Eager load critical components
-import Index from "./pages/IndexUltraSimple";  // ULTRA SIMPLE - NO ORG PROVIDER
+import Index from "./pages/IndexWithOrg";  // TEST WITH ORG PROVIDER
 import Auth from "./pages/Auth";
 
 // Lazy load non-critical components for better initial bundle size
@@ -60,7 +60,7 @@ const App = () => (
     <ThemeProvider defaultTheme="system" storageKey="ocma-theme">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          {/* TEMPORARILY BYPASSING OrganizationProvider */}
+          <OrganizationProvider>
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
@@ -134,7 +134,7 @@ const App = () => (
                 </Routes>
               </BrowserRouter>
             </TooltipProvider>
-        {/* END BYPASS */}
+        </OrganizationProvider>
       </AuthProvider>
     </QueryClientProvider>
   </ThemeProvider>
