@@ -67,9 +67,8 @@ const App = () => (
                 <BrowserRouter>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/" element={<Index />} />
-                  <Route path="/old" element={<ResponsiveLayout />}>
-                    <Route index element={<div>Old</div>} />
+                  <Route path="/" element={<ResponsiveLayout />}>
+                    <Route index element={<Index />} />
                     <Route path="calendar" element={
                       <Suspense fallback={<PageLoadingSpinner />}>
                         <Calendar />
