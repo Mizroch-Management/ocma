@@ -91,18 +91,20 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
     }
   ]);
 
-  // Load saved draft data on mount
+  // Load saved draft data on mount - only depend on the entire draftData object
   useEffect(() => {
-    if (state.draftData?.monthlyOverview) {
-      setMonthlyOverview(state.draftData.monthlyOverview);
+    if (state.draftData) {
+      if (state.draftData.monthlyOverview) {
+        setMonthlyOverview(state.draftData.monthlyOverview);
+      }
+      if (state.draftData.planningPhase) {
+        setPlanningPhase(state.draftData.planningPhase);
+      }
+      if (state.draftData.weeklyPlans) {
+        setWeeklyPlans(state.draftData.weeklyPlans);
+      }
     }
-    if (state.draftData?.planningPhase) {
-      setPlanningPhase(state.draftData.planningPhase);
-    }
-    if (state.draftData?.weeklyPlans) {
-      setWeeklyPlans(state.draftData.weeklyPlans);
-    }
-  }, [state.draftData?.monthlyOverview, state.draftData?.planningPhase, state.draftData?.weeklyPlans]);
+  }, [state.draftData]);
 
   // Auto-save when data changes (but not on initial load)
   const [isInitialized, setIsInitialized] = useState(false);
