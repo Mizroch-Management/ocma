@@ -13,7 +13,7 @@ import { PageLoadingSpinner } from "./components/ui/loading-spinner";
 import { ThemeProvider } from "./components/theme/theme-provider";
 
 // Eager load critical components
-import Index from "./pages/Index";
+import Index from "./pages/IndexSimple";  // TEMPORARILY using simple version to debug
 import Auth from "./pages/Auth";
 
 // Lazy load non-critical components for better initial bundle size
@@ -67,8 +67,9 @@ const App = () => (
                 <BrowserRouter>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/" element={<ResponsiveLayout />}>
-                    <Route index element={<Index />} />
+                  <Route path="/" element={<Index />} />
+                  <Route path="/old" element={<ResponsiveLayout />}>
+                    <Route index element={<div>Old</div>} />
                     <Route path="calendar" element={
                       <Suspense fallback={<PageLoadingSpinner />}>
                         <Calendar />
