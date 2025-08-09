@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useOrganization } from "@/hooks/use-organization";
 import { Wand2, Edit3, RefreshCw, CheckCircle, Copy, Eye, Share, MessageSquare, Image, Video, FileText, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkflow, type ContentPiece } from "@/contexts/workflow-context";
@@ -20,6 +21,7 @@ interface IntelligentContentCreatorProps {
 export function IntelligentContentCreator({ contentPlans, onContentApproved }: IntelligentContentCreatorProps) {
   const { toast } = useToast();
   const { state, dispatch } = useWorkflow();
+  const { currentOrganization } = useOrganization();
   
   const [selectedWeek, setSelectedWeek] = useState("1");
   const [selectedDay, setSelectedDay] = useState("monday");
@@ -124,6 +126,7 @@ export function IntelligentContentCreator({ contentPlans, onContentApproved }: I
             strategy: `Week ${week} - ${day} content`,
             platforms: [piece.platform.toLowerCase()],
             customPrompt: aiPrompt,
+            organizationId: currentOrganization?.id,
             aiTool: 'gpt-4o-mini'
           }
         });
@@ -206,6 +209,7 @@ export function IntelligentContentCreator({ contentPlans, onContentApproved }: I
           strategy: `Week ${selectedWeek} - ${selectedDay} content`,
           platforms: [piece.platform.toLowerCase()],
           customPrompt: `Generate ${piece.type} content for ${piece.platform} for ${selectedDay} of week ${selectedWeek}. ${piece.userPrompt || ''}`,
+          organizationId: workflowState?.organizationId,
           aiTool: 'gpt-4o-mini'
         }
       });

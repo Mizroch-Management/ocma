@@ -244,7 +244,8 @@ export default function ContentGenerator() {
           strategy: strategies.find(s => s.id === selectedStrategy)?.name,
           platforms: selectedPlatforms,
           customPrompt: contentPrompt,
-          aiTool: selectedAITool
+          aiTool: selectedAITool,
+          organizationId: currentOrganization?.id // Pass organization ID for API key retrieval
         }
       });
 

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useOrganization } from "@/hooks/use-organization";
 import { Calendar, Edit3, RefreshCw, CheckCircle, Lightbulb, Target, Clock, BarChart3, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkflow, type WorkflowContentPlan, type BusinessInfo, type AIStrategyStep } from "@/contexts/workflow-context";
@@ -19,6 +20,7 @@ interface SmartContentPlannerProps {
 export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPlannerProps) {
   const { toast } = useToast();
   const { state, dispatch } = useWorkflow();
+  const { currentOrganization } = useOrganization();
   
   const [planningPhase, setPlanningPhase] = useState<'overview' | 'weekly'>('overview');
   const [showPrompts, setShowPrompts] = useState<{[key: string]: boolean}>({});
@@ -167,7 +169,8 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
           strategy: strategy?.name || 'Monthly Content Strategy',
           platforms: ['instagram', 'linkedin', 'twitter'],
           customPrompt: aiPrompt,
-          aiTool: 'gpt-4o-mini'
+          aiTool: 'gpt-4o-mini',
+          organizationId: currentOrganization?.id
         }
       });
 
@@ -259,7 +262,8 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
           strategy: weekThemes[weekIndex],
           platforms: ['instagram', 'linkedin', 'twitter'],
           customPrompt: aiPrompt,
-          aiTool: 'gpt-4o-mini'
+          aiTool: 'gpt-4o-mini',
+          organizationId: currentOrganization?.id
         }
       });
 
