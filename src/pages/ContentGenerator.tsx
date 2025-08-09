@@ -43,7 +43,8 @@ import {
   Facebook,
   Twitter,
   Linkedin,
-  Youtube
+  Youtube,
+  Send
 } from "lucide-react";
 
 export default function ContentGenerator() {
@@ -157,7 +158,8 @@ export default function ContentGenerator() {
           createdAt: new Date(item.created_at),
           isScheduled: item.is_scheduled,
           scheduledDate: item.scheduled_date,
-          scheduledPlatforms: item.scheduled_platforms || []
+          scheduledPlatforms: item.scheduled_platforms || [],
+          publication_status: item.publication_status || 'draft'
         }));
         setGeneratedContent(formattedContent);
       }
@@ -327,7 +329,8 @@ export default function ContentGenerator() {
           createdAt: new Date(savedContent.created_at),
           isScheduled: savedContent.is_scheduled || false,
           scheduledDate: savedContent.scheduled_date,
-          scheduledPlatforms: savedContent.scheduled_platforms || []
+          scheduledPlatforms: savedContent.scheduled_platforms || [],
+          publication_status: savedContent.publication_status || 'draft'
         };
         
         setGeneratedContent(prev => [formattedSavedContent, ...prev]);
@@ -504,6 +507,62 @@ export default function ContentGenerator() {
       toast({
         title: "Scheduling Failed",
         description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handlePublishNow = async (contentId: string) => {
+    try {
+      // Update the content status to published
+      const { error } = await supabase
+        .from('generated_content')
+        .update({
+          publication_status: 'published',
+          is_scheduled: false,
+          scheduled_date: new Date().toISOString()
+        })
+        .eq('id', contentId);
+
+      if (error) {
+        log.error('Failed to publish content', error, undefined, {
+          component: 'ContentGenerator',
+          action: 'publish_content',
+          organizationId: currentOrganization?.id
+        });
+        toast({
+          title: "Publish Error",
+          description: "Failed to publish content.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Update local state
+      setGeneratedContent(prev => 
+        prev.map(item => 
+          item.id === contentId 
+            ? { ...item, publication_status: 'published', isScheduled: false }
+            : item
+        )
+      );
+
+      toast({
+        title: "Content Published!",
+        description: "Your content has been published and is now visible in Social Engagement."
+      });
+
+      // Reload content to ensure consistency
+      loadSavedContent();
+    } catch (error) {
+      log.error('Error publishing content', error, undefined, {
+        component: 'ContentGenerator',
+        action: 'publish_content_error',
+        organizationId: currentOrganization?.id
+      });
+      toast({
+        title: "Publishing Failed",
+        description: "An unexpected error occurred while publishing.",
         variant: "destructive"
       });
     }
@@ -805,6 +864,16 @@ export default function ContentGenerator() {
                         <Badge variant="outline">
                           {aiTools.find(t => t.value === content.aiTool)?.label}
                         </Badge>
+                        {content.publication_status === 'published' && (
+                          <Badge variant="default" className="bg-green-600">
+                            Published
+                          </Badge>
+                        )}
+                        {content.publication_status === 'scheduled' && (
+                          <Badge variant="secondary">
+                            Scheduled
+                          </Badge>
+                        )}
                       </div>
                       <CardDescription>
                         Strategy: {strategies.find(s => s.id === content.strategy)?.name}
@@ -827,6 +896,11 @@ export default function ContentGenerator() {
                     </div>
                     
                     <div className="flex items-center gap-2">
+                      {content.publication_status !== 'published' && (
+                        <Button variant="ghost" size="sm" onClick={() => handlePublishNow(content.id)}>
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => handleEditContent(content)}>
                         <Edit3 className="h-4 w-4" />
                       </Button>
