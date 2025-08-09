@@ -276,19 +276,39 @@ export default function ContentGenerator() {
       // Save to database and add to top of list
       const savedContent = await saveContentToDatabase(newContent);
       if (savedContent) {
-        setGeneratedContent(prev => [savedContent, ...prev]);
+        // Format the saved content to match the state structure
+        const formattedSavedContent = {
+          id: savedContent.id,
+          title: savedContent.title,
+          content: savedContent.content,
+          type: savedContent.content_type,
+          aiTool: savedContent.ai_tool,
+          strategy: newContent.strategy, // Keep original strategy reference
+          platforms: savedContent.platforms || [],
+          variations: savedContent.variations || [],
+          suggestions: savedContent.suggestions || [],
+          metadata: savedContent.metadata || {},
+          schedulingSuggestions: savedContent.scheduling_suggestions || [],
+          platformOptimizations: savedContent.platform_optimizations || {},
+          hashtags: savedContent.hashtags || [],
+          createdAt: new Date(savedContent.created_at),
+          isScheduled: savedContent.is_scheduled || false,
+          scheduledDate: savedContent.scheduled_date,
+          scheduledPlatforms: savedContent.scheduled_platforms || []
+        };
+        
+        setGeneratedContent(prev => [formattedSavedContent, ...prev]);
         
         toast({
           title: "Content Generated & Saved!",
           description: "Your AI-generated content is ready and saved to your library."
         });
       } else {
-        // If database save fails, still add to local state
-        setGeneratedContent(prev => [newContent, ...prev]);
-        
+        // If database save fails, still add to local state without ID
         toast({
-          title: "Content Generated!",
-          description: "Content generated but not saved to database. It will be lost on refresh."
+          title: "Content Not Saved",
+          description: "Content generated but not saved to database. Scheduling will not be available.",
+          variant: "destructive"
         });
       }
       

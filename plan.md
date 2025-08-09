@@ -33,14 +33,22 @@ The content generator is failing because the `organizationId` is not being passe
 - [ ] Add better error messaging for API key issues (optional)
 - [ ] Log API key source for debugging (already implemented in API key manager)
 
+## Step 5: Content Scheduling Fix 🔄
+- [x] Identified that saved content needs proper formatting with database fields
+- [x] Fixed content state formatting after database save
+- [x] Ensured content ID is preserved for scheduling
+- [x] Added error handling for missing content ID
+- [ ] Testing complete scheduling flow
+
 ## Progress Tracking
 - ✅ Issue investigation completed
 - ✅ Root cause identified
 - ✅ Fix implementation completed
-- ✅ Testing completed
-- ✅ Verification completed
+- 🔄 Testing in progress
+- ⏳ Final verification pending
 
 ## Files Modified
-1. `/workspaces/ocma/src/pages/ContentGenerator.tsx` - Added organizationId to Edge Function call
+1. `/workspaces/ocma/src/pages/ContentGenerator.tsx` - Added organizationId to Edge Function call, fixed content formatting after save
 2. `/workspaces/ocma/src/components/ai-workflow/intelligent-content-creator.tsx` - Added useOrganization hook and organizationId
 3. `/workspaces/ocma/src/components/ai-workflow/smart-content-planner.tsx` - Added useOrganization hook and organizationId
+4. `/workspaces/ocma/supabase/functions/generate-content/index.ts` - Fixed JSON parsing and text content display
