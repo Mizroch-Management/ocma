@@ -77,18 +77,17 @@ serve(async (req) => {
 
     userPrompt += `\n\nContent Type Guidelines: ${contentInstructions[contentType as keyof typeof contentInstructions] || 'Create engaging content optimized for the specified platforms.'}`;
 
-    userPrompt += `\n\nProvide the response in this JSON format:
-{
-  "title": "Content title",
-  "content": "Main content",
-  "variations": ["variation 1", "variation 2"],
-  "suggestions": ["improvement suggestion 1", "improvement suggestion 2", "improvement suggestion 3"],
-  "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3"],
-  "platformOptimizations": {
-    "instagram": {"content": "IG optimized version", "hashtags": ["#ig1", "#ig2"], "cta": "Shop now"},
-    "linkedin": {"content": "LinkedIn optimized version", "hashtags": ["#linkedin1", "#linkedin2"], "cta": "Learn more"}
-  }
-}`;
+    userPrompt += `\n\nProvide a structured response with the following sections:
+
+1. TITLE: A catchy title for the content
+2. MAIN CONTENT: The primary content piece (write in natural, engaging language - no JSON)
+3. VARIATION 1: An alternative version of the content
+4. VARIATION 2: Another alternative version
+5. SUGGESTIONS: Three specific improvement suggestions
+6. HASHTAGS: Relevant hashtags for the content
+7. PLATFORM OPTIMIZATIONS: Specific versions for different platforms if requested
+
+Format your response with clear section headers using "###" but ensure the content itself is natural text, not JSON.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -114,26 +113,73 @@ serve(async (req) => {
     const data = await response.json();
     const generatedText = data.choices[0].message.content;
 
-    // Try to parse as JSON, fallback to text if it fails
+    // Parse the structured text response
     let parsedContent;
     try {
+      // First try JSON parsing in case the AI returns JSON
       parsedContent = JSON.parse(generatedText);
+      // If it's JSON, ensure content field is plain text
+      if (typeof parsedContent.content === 'object') {
+        parsedContent.content = JSON.stringify(parsedContent.content);
+      }
     } catch (e) {
-      // If JSON parsing fails, create a structured response from the text
+      // Parse the text-based response with section headers
+      const sections: any = {};
+      const lines = generatedText.split('\n');
+      let currentSection = '';
+      let currentContent: string[] = [];
+      
+      for (const line of lines) {
+        if (line.startsWith('### ') || line.match(/^\d+\.\s+(TITLE|MAIN CONTENT|VARIATION|SUGGESTIONS|HASHTAGS|PLATFORM)/)) {
+          // Save previous section if exists
+          if (currentSection && currentContent.length > 0) {
+            sections[currentSection] = currentContent.join('\n').trim();
+          }
+          // Start new section
+          currentSection = line.replace(/^###\s+/, '').replace(/^\d+\.\s+/, '').replace(':', '').trim();
+          currentContent = [];
+        } else if (line.trim()) {
+          currentContent.push(line);
+        }
+      }
+      // Save last section
+      if (currentSection && currentContent.length > 0) {
+        sections[currentSection] = currentContent.join('\n').trim();
+      }
+      
+      // Extract variations
+      const variations = [];
+      if (sections['VARIATION 1']) variations.push(sections['VARIATION 1']);
+      if (sections['VARIATION 2']) variations.push(sections['VARIATION 2']);
+      
+      // Extract suggestions (split by line or bullet points)
+      const suggestionsText = sections['SUGGESTIONS'] || '';
+      const suggestions = suggestionsText
+        .split(/\n|•|·|-/)
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0)
+        .slice(0, 3);
+      
+      // Extract hashtags
+      const hashtagsText = sections['HASHTAGS'] || '';
+      const hashtags = hashtagsText
+        .match(/#\w+/g) || ['#content', '#marketing', '#social'];
+      
       parsedContent = {
-        title: `AI Generated ${contentType}`,
-        content: generatedText,
-        variations: [
-          generatedText + " (Alternative approach)",
-          generatedText.length > 100 ? generatedText.substring(0, 100) + "..." : generatedText + " (Short version)"
+        title: sections['TITLE'] || `AI Generated ${contentType}`,
+        content: sections['MAIN CONTENT'] || generatedText,
+        variations: variations.length > 0 ? variations : [
+          (sections['MAIN CONTENT'] || generatedText) + " (Alternative approach)",
+          (sections['MAIN CONTENT'] || generatedText).substring(0, 100) + "..."
         ],
-        suggestions: [
+        suggestions: suggestions.length > 0 ? suggestions : [
           "Consider adding more engaging visuals",
           "Include a stronger call-to-action",
           "Test different posting times for optimal engagement"
         ],
-        hashtags: ["#AI", "#Content", "#Marketing"],
-        platformOptimizations: {}
+        hashtags: hashtags,
+        platformOptimizations: sections['PLATFORM OPTIMIZATIONS'] ? 
+          { general: sections['PLATFORM OPTIMIZATIONS'] } : {}
       };
     }
 

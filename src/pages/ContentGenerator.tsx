@@ -400,6 +400,62 @@ export default function ContentGenerator() {
     setSchedulingContent(content);
   };
 
+  const handleSaveSchedule = async (scheduledContent: any) => {
+    try {
+      // Update the content in the database with schedule information
+      const { error } = await supabase
+        .from('generated_content')
+        .update({
+          is_scheduled: true,
+          scheduled_date: scheduledContent.scheduledDate,
+          scheduled_platforms: scheduledContent.platforms,
+          publication_status: 'scheduled'
+        })
+        .eq('id', scheduledContent.id);
+
+      if (error) {
+        log.error('Failed to save schedule', error, undefined, {
+          component: 'ContentGenerator',
+          action: 'save_schedule',
+          organizationId: currentOrganization?.id
+        });
+        toast({
+          title: "Schedule Error",
+          description: "Failed to save schedule. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Update local state
+      setGeneratedContent(prev => 
+        prev.map(item => 
+          item.id === scheduledContent.id 
+            ? { ...item, ...scheduledContent }
+            : item
+        )
+      );
+
+      toast({
+        title: "Content Scheduled!",
+        description: `Your content has been scheduled for ${new Date(scheduledContent.scheduledDate).toLocaleString()}`
+      });
+
+      setSchedulingContent(null);
+    } catch (error) {
+      log.error('Error scheduling content', error, undefined, {
+        component: 'ContentGenerator',
+        action: 'schedule_content_error',
+        organizationId: currentOrganization?.id
+      });
+      toast({
+        title: "Scheduling Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleDeleteContent = async (contentId: string) => {
     try {
       const { error } = await supabase
@@ -920,7 +976,7 @@ export default function ContentGenerator() {
         isOpen={!!schedulingContent}
         onOpenChange={(open) => !open && setSchedulingContent(null)}
         content={schedulingContent}
-        onSchedule={handleSaveContent}
+        onSchedule={handleSaveSchedule}
       />
     </div>
   );
