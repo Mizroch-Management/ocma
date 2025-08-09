@@ -179,48 +179,81 @@ export default function ContentGenerator() {
 
   const saveContentToDatabase = async (content: any) => {
     try {
-      const { data, error } = await supabase
-        .from('generated_content')
-        .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          organization_id: currentOrganization?.id || null,
-          title: content.title,
-          content: content.content,
-          content_type: content.type,
-          strategy: content.strategy,
-          platforms: content.platforms,
-          ai_tool: content.aiTool,
-          variations: content.variations,
-          suggestions: content.suggestions,
-          hashtags: content.hashtags,
-          platform_optimizations: content.platformOptimizations,
-          metadata: content.metadata,
-          scheduling_suggestions: content.schedulingSuggestions
-        })
-        .select()
-        .single();
-
-      if (error) {
-        log.error('Failed to save content', error, undefined, {
-          component: 'ContentGenerator',
-          action: 'save_content',
-          organizationId: currentOrganization?.id
-        });
+      // Get current user
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        console.error('User authentication error:', userError);
         toast({
-          title: "Save Error",
-          description: "Failed to save content to database.",
+          title: "Authentication Error",
+          description: "Please sign in to save content.",
           variant: "destructive"
         });
         return null;
       }
+
+      // Convert strategy ID to strategy name if needed
+      let strategyName = content.strategy;
+      if (content.strategy && strategies.find(s => s.id === content.strategy)) {
+        strategyName = strategies.find(s => s.id === content.strategy)?.name || content.strategy;
+      }
+
+      const insertData = {
+        user_id: userData.user.id,
+        organization_id: currentOrganization?.id || null,
+        title: content.title || 'Untitled Content',
+        content: content.content || '',
+        content_type: content.type || 'general',
+        strategy: strategyName,
+        platforms: content.platforms || [],
+        ai_tool: content.aiTool,
+        variations: content.variations || [],
+        suggestions: content.suggestions || [],
+        hashtags: content.hashtags || [],
+        platform_optimizations: content.platformOptimizations || {},
+        metadata: content.metadata || {},
+        scheduling_suggestions: content.schedulingSuggestions || []
+      };
+
+      console.log('Attempting to save content with data:', insertData);
+
+      const { data, error } = await supabase
+        .from('generated_content')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database save error:', error);
+        log.error('Failed to save content', error, undefined, {
+          component: 'ContentGenerator',
+          action: 'save_content',
+          organizationId: currentOrganization?.id,
+          errorDetails: error.message,
+          errorCode: error.code
+        });
+        toast({
+          title: "Save Error",
+          description: `Failed to save: ${error.message}`,
+          variant: "destructive"
+        });
+        return null;
+      }
+
+      console.log('Content saved successfully:', data);
       return data;
     } catch (error) {
+      console.error('Unexpected error saving content:', error);
       log.error('Error saving content', error, undefined, {
         component: 'ContentGenerator',
         action: 'save_content_error',
         organizationId: currentOrganization?.id
       });
-      return false;
+      toast({
+        title: "Unexpected Error",
+        description: "An unexpected error occurred while saving.",
+        variant: "destructive"
+      });
+      return null;
     }
   };
 
