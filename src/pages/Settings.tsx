@@ -94,11 +94,11 @@ export default function Settings() {
       name: "Twitter/X",
       icon: Twitter,
       fields: [
-        { key: "api_key", label: "API Key", type: "text", placeholder: "Your Twitter API Key" },
-        { key: "api_secret", label: "API Secret", type: "password", placeholder: "Your Twitter API Secret" },
+        { key: "api_key", label: "API Key (Consumer Key)", type: "text", placeholder: "Your Twitter API Key" },
+        { key: "api_secret", label: "API Secret (Consumer Secret)", type: "password", placeholder: "Your Twitter API Secret" },
         { key: "access_token", label: "Access Token", type: "password", placeholder: "Your Access Token" },
         { key: "access_token_secret", label: "Access Token Secret", type: "password", placeholder: "Your Access Token Secret" },
-        { key: "bearer_token", label: "Bearer Token", type: "password", placeholder: "Your Bearer Token" }
+        { key: "bearer_token", label: "Bearer Token (Optional - for OAuth 2.0)", type: "password", placeholder: "Your Bearer Token (optional)" }
       ]
     },
     linkedin: {
@@ -108,7 +108,8 @@ export default function Settings() {
         { key: "client_id", label: "Client ID", type: "text", placeholder: "Your LinkedIn Client ID" },
         { key: "client_secret", label: "Client Secret", type: "password", placeholder: "Your LinkedIn Client Secret" },
         { key: "access_token", label: "Access Token", type: "password", placeholder: "Your Access Token" },
-        { key: "organization_id", label: "Organization ID", type: "text", placeholder: "Your Company Page ID" }
+        { key: "person_id", label: "Person ID (Auto-fetched)", type: "text", placeholder: "Will be auto-fetched" },
+        { key: "organization_id", label: "Organization ID (Optional)", type: "text", placeholder: "Your Company Page ID (optional)" }
       ]
     },
     youtube: {
@@ -283,6 +284,52 @@ export default function Settings() {
     updateSetting(`${platform}_api_key`, settingValue);
   };
 
+  const fetchLinkedInId = async (platform: string) => {
+    const platformConfig = getSetting(`${platform}_integration`) as PlatformConfig;
+    const accessToken = platformConfig?.credentials?.access_token;
+    
+    if (!accessToken) {
+      toast({
+        title: "Error",
+        description: "Please enter your LinkedIn access token first",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-linkedin-id', {
+        body: { access_token: accessToken }
+      });
+      
+      if (error) throw error;
+      
+      if (data.success) {
+        // Update the credentials with the fetched IDs
+        const newCredentials = {
+          ...platformConfig?.credentials,
+          person_id: data.person_id || platformConfig?.credentials?.person_id,
+          organization_id: data.organization_id || platformConfig?.credentials?.organization_id
+        };
+        
+        updatePlatformCredentials(platform, newCredentials);
+        
+        toast({
+          title: "Success",
+          description: "LinkedIn IDs fetched successfully",
+        });
+      } else {
+        throw new Error(data.error || 'Failed to fetch LinkedIn IDs');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch LinkedIn IDs. Please check your access token.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   const testPlatformConfiguration = async (platform: string, type: 'social_media' | 'ai_platform') => {
     const testKey = `${platform}_${type}`;
     setTesting(prev => ({ ...prev, [testKey]: true }));
@@ -486,7 +533,17 @@ export default function Settings() {
                                        <span className="text-yellow-600 font-medium">Fill in credentials to connect</span>
                                      }
                                    </p>
-                                   {Object.values(platformConfig?.credentials || {}).some(value => value.trim() !== '') && (
+                                   {platformKey === 'linkedin' && platformConfig?.credentials?.access_token && (
+                                     <Button
+                                       onClick={() => fetchLinkedInId(platformKey)}
+                                       className="w-full mb-2"
+                                       variant="secondary"
+                                     >
+                                       <RefreshCw className="h-4 w-4 mr-2" />
+                                       Auto-fetch LinkedIn IDs
+                                     </Button>
+                                   )}
+                                   {Object.values(platformConfig?.credentials || {}).some(value => value && value.toString().trim() !== '') && (
                                      <Button
                                        onClick={() => testPlatformConfiguration(platformKey, 'social_media')}
                                        disabled={testing[`${platformKey}_social_media`]}
