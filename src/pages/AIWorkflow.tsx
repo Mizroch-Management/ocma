@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWorkflow, type BusinessInfo } from "@/contexts/workflow-context";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { WorkflowStepNavigation } from "@/components/ai-workflow/workflow-step-navigation";
 import { WorkflowProgressTracker } from "@/components/ai-workflow/workflow-progress-tracker";
 import { WorkflowStepRenderer } from "@/components/ai-workflow/workflow-step-renderer";
 import { WorkflowDataManager } from "@/components/ai-workflow/workflow-data-manager";
+import { WorkflowManager } from "@/components/ai-workflow/workflow-manager";
+import { Button } from "@/components/ui/button";
+import { FolderOpen, Plus } from "lucide-react";
 
 /**
  * Refactored AIWorkflow Component
@@ -27,53 +31,33 @@ export default function AIWorkflow() {
   const { state } = useWorkflow();
   
   // Core workflow state
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(() => {
+    // Initialize from workflow state if available
+    return state.currentStep || 0;
+  });
   const [isManualNavigation, setIsManualNavigation] = useState(false);
-  const [showWorkflowManager, setShowWorkflowManager] = useState(!state.businessInfo);
+  const [showWorkflowManager, setShowWorkflowManager] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   /**
-   * Determine the appropriate step based on workflow state
-   * This replaces the complex useEffect logic from the original component
-   */
-  const determineCurrentStep = useCallback((): number => {
-    // If manually navigated, respect the user's choice
-    if (isManualNavigation) {
-      return currentStep;
-    }
-
-    // Determine step based on completed work
-    if (!state.businessInfo) {
-      return 0; // Business Info step
-    }
-    
-    if (!state.progress.strategyApproved && !state.approvedStrategy) {
-      return 1; // Strategy step
-    }
-    
-    if (!state.progress.plansApproved && (!state.approvedPlans || state.approvedPlans.length === 0)) {
-      return 2; // Planning step
-    }
-    
-    if (!state.progress.contentApproved && (!state.approvedContent || state.approvedContent.length === 0)) {
-      return 3; // Creation step
-    }
-    
-    if (!state.progress.schedulingComplete) {
-      return 4; // Scheduling step
-    }
-    
-    return 4; // All steps complete, stay on final step
-  }, [state, isManualNavigation, currentStep]);
-
-  /**
-   * Update current step when workflow state changes
+   * Initialize the current step from the workflow state
+   * Only run once on component mount
    */
   useEffect(() => {
-    const newStep = determineCurrentStep();
-    if (newStep !== currentStep && !isManualNavigation) {
-      setCurrentStep(newStep);
+    if (!isInitialized && state.currentStep !== undefined) {
+      setCurrentStep(state.currentStep);
+      setIsInitialized(true);
     }
-  }, [determineCurrentStep, currentStep, isManualNavigation]);
+  }, [state.currentStep, isInitialized]);
+
+  /**
+   * Save current step to workflow state when it changes
+   */
+  useEffect(() => {
+    if (isInitialized) {
+      dispatch({ type: 'SET_CURRENT_STEP', payload: currentStep });
+    }
+  }, [currentStep, isInitialized, dispatch]);
 
   /**
    * Handle step navigation from child components
@@ -108,15 +92,33 @@ export default function AIWorkflow() {
   }, [toast]);
 
   /**
-   * Show workflow manager if no business info
+   * Show workflow manager initially or when requested
    */
+  const handleShowWorkflowManager = useCallback((show: boolean) => {
+    setShowWorkflowManager(show);
+  }, []);
+
+  // Show workflow manager if requested or no workflow is loaded
   if (showWorkflowManager) {
     return (
       <div className="container mx-auto px-4 py-6">
-        <WorkflowDataManager
-          currentStep={currentStep}
-          onStepChange={handleStepChange}
-        />
+        <div className="max-w-7xl mx-auto space-y-6">
+          <WorkflowManager
+            onSelectWorkflow={(workflowId) => {
+              if (workflowId) {
+                dispatch({ type: 'SET_CURRENT_WORKFLOW_ID', payload: workflowId });
+                setShowWorkflowManager(false);
+                // Load the workflow data
+                const loadWorkflow = async () => {
+                  const { loadWorkflow } = useWorkflowPersistence();
+                  await loadWorkflow(workflowId);
+                };
+                loadWorkflow();
+              }
+            }}
+            currentWorkflowId={state.currentWorkflowId || null}
+          />
+        </div>
       </div>
     );
   }
@@ -125,11 +127,34 @@ export default function AIWorkflow() {
     <div className="container mx-auto px-4 py-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">AI Marketing Workflow</h1>
-          <p className="text-gray-600 mt-2">
-            Complete your AI-powered marketing setup step by step
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">AI Marketing Workflow</h1>
+            <p className="text-gray-600 mt-2">
+              Complete your AI-powered marketing setup step by step
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowWorkflowManager(true)}
+              className="flex items-center gap-2"
+            >
+              <FolderOpen className="h-4 w-4" />
+              Manage Workflows
+            </Button>
+            <Button
+              onClick={() => {
+                dispatch({ type: 'RESET_WORKFLOW' });
+                setCurrentStep(0);
+                setIsInitialized(false);
+              }}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New Workflow
+            </Button>
+          </div>
         </div>
 
         {/* Main Content Grid */}

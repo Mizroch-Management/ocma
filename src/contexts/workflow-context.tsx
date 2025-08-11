@@ -158,6 +158,7 @@ interface WorkflowState {
   progress: WorkflowProgress;
   isWorkflowActive: boolean;
   currentWorkflowId?: string;
+  currentStep: number;
 }
 
 type WorkflowAction = 
@@ -168,6 +169,8 @@ type WorkflowAction =
   | { type: 'SET_APPROVED_PLANS'; payload: ContentPlan[] }
   | { type: 'SET_APPROVED_CONTENT'; payload: GeneratedContent[] }
   | { type: 'UPDATE_PROGRESS'; payload: Partial<WorkflowProgress> }
+  | { type: 'SET_CURRENT_STEP'; payload: number }
+  | { type: 'SET_CURRENT_WORKFLOW_ID'; payload: string }
   | { type: 'RESET_WORKFLOW' }
   | { type: 'LOAD_WORKFLOW'; payload: WorkflowState };
 
@@ -186,6 +189,7 @@ const initialState: WorkflowState = {
     schedulingComplete: false,
   },
   isWorkflowActive: false,
+  currentStep: 0,
 };
 
 const workflowReducer = (state: WorkflowState, action: WorkflowAction): WorkflowState => {
@@ -246,6 +250,20 @@ const workflowReducer = (state: WorkflowState, action: WorkflowAction): Workflow
       return {
         ...state,
         progress: { ...state.progress, ...action.payload },
+      };
+    case 'SET_CURRENT_STEP':
+      return {
+        ...state,
+        currentStep: action.payload,
+        progress: {
+          ...state.progress,
+          currentStep: action.payload,
+        },
+      };
+    case 'SET_CURRENT_WORKFLOW_ID':
+      return {
+        ...state,
+        currentWorkflowId: action.payload,
       };
     case 'RESET_WORKFLOW':
       return initialState;

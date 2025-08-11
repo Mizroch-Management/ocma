@@ -129,16 +129,19 @@ export function WorkflowDataManager({ currentStep, onStepChange }: WorkflowDataM
     });
   };
 
-  const handleWorkflowSelect = (workflowId: string) => {
-    setCurrentWorkflowId(workflowId);
-    dispatch({ type: 'SET_CURRENT_WORKFLOW_ID', payload: workflowId });
-  };
-
-  const handleCreateNewWorkflow = () => {
-    setCurrentWorkflowId(null);
-    dispatch({ type: 'RESET_WORKFLOW' });
-    setShowWorkflowManager(false);
-    onStepChange(0);
+  const handleWorkflowSelect = (workflowId: string | null) => {
+    if (workflowId) {
+      setCurrentWorkflowId(workflowId);
+      dispatch({ type: 'SET_CURRENT_WORKFLOW_ID', payload: workflowId });
+      setShowWorkflowManager(false);
+      handleLoadWorkflow();
+    } else {
+      // Create new workflow
+      setCurrentWorkflowId(null);
+      dispatch({ type: 'RESET_WORKFLOW' });
+      setShowWorkflowManager(false);
+      onStepChange(0);
+    }
   };
 
   const getWorkflowStatus = () => {
@@ -159,13 +162,12 @@ export function WorkflowDataManager({ currentStep, onStepChange }: WorkflowDataM
 
   const status = getWorkflowStatus();
 
-  // Show workflow manager if no business info
+  // Show workflow manager if requested
   if (showWorkflowManager) {
     return (
       <WorkflowManager
-        onWorkflowSelect={handleWorkflowSelect}
-        onCreateNew={handleCreateNewWorkflow}
-        onBusinessInfoSubmit={handleBusinessInfoUpdate}
+        onSelectWorkflow={handleWorkflowSelect}
+        currentWorkflowId={currentWorkflowId}
       />
     );
   }
