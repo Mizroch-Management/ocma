@@ -28,7 +28,8 @@ import { FolderOpen, Plus } from "lucide-react";
  */
 export default function AIWorkflow() {
   const { toast } = useToast();
-  const { state } = useWorkflow();
+  const { state, dispatch } = useWorkflow();
+  const { loadWorkflow } = useWorkflowPersistence();
   
   // Core workflow state
   const [currentStep, setCurrentStep] = useState(() => {
@@ -104,16 +105,12 @@ export default function AIWorkflow() {
       <div className="container mx-auto px-4 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
           <WorkflowManager
-            onSelectWorkflow={(workflowId) => {
+            onSelectWorkflow={async (workflowId) => {
               if (workflowId) {
                 dispatch({ type: 'SET_CURRENT_WORKFLOW_ID', payload: workflowId });
                 setShowWorkflowManager(false);
                 // Load the workflow data
-                const loadWorkflow = async () => {
-                  const { loadWorkflow } = useWorkflowPersistence();
-                  await loadWorkflow(workflowId);
-                };
-                loadWorkflow();
+                await loadWorkflow(workflowId);
               }
             }}
             currentWorkflowId={state.currentWorkflowId || null}
