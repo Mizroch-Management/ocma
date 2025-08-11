@@ -67,7 +67,20 @@ export const businessInfoSchema = z.object({
   teamMembers: z
     .array(z.string().min(1, 'Team member description cannot be empty').max(200))
     .min(1, 'At least one team member is required')
-    .max(10, 'Maximum 10 team members allowed')
+    .max(10, 'Maximum 10 team members allowed'),
+  
+  uploadedFiles: z
+    .array(z.object({
+      id: z.string(),
+      name: z.string(),
+      size: z.number(),
+      type: z.string(),
+      url: z.string(),
+      thumbnailUrl: z.string().optional(),
+      uploadedAt: z.date()
+    }))
+    .optional()
+    .default([])
 });
 
 // Individual field validation for real-time feedback
@@ -85,6 +98,7 @@ export const businessInfoFieldSchemas = {
   keyMetrics: businessInfoSchema.shape.keyMetrics,
   additionalContext: businessInfoSchema.shape.additionalContext,
   teamMembers: businessInfoSchema.shape.teamMembers,
+  uploadedFiles: businessInfoSchema.shape.uploadedFiles,
 };
 
 export type BusinessInfo = z.infer<typeof businessInfoSchema>;

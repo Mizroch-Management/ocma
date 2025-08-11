@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -129,6 +130,36 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
       toast({
         title: "Error",
         description: "Failed to create workflow",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const resumeWorkflowFromStep = async (workflowId: string, stepIndex: number) => {
+    try {
+      // Update the workflow's current step in the database
+      const { error } = await supabase
+        .from('workflows')
+        .update({
+          current_step: stepIndex,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', workflowId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Workflow will resume from ${getStepName(stepIndex)}`
+      });
+
+      // Select the workflow after updating step
+      onSelectWorkflow(workflowId);
+    } catch (error) {
+      log.error('Error updating workflow step', error instanceof Error ? error : new Error(String(error)), { workflowId, stepIndex }, { component: 'WorkflowManager', action: 'resume_from_step' });
+      toast({
+        title: "Error",
+        description: "Failed to update workflow step",
         variant: "destructive"
       });
     }
@@ -320,14 +351,43 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => onSelectWorkflow(workflow.id)}
-                    >
-                      <Play className="h-3 w-3 mr-1" />
-                      {currentWorkflowId === workflow.id ? 'Current' : 'Continue'}
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          className="flex-1"
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          {currentWorkflowId === workflow.id ? 'Current' : 'Continue'}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem onClick={() => onSelectWorkflow(workflow.id)}>
+                          <Play className="h-3 w-3 mr-2" />
+                          Continue from {getStepName(workflow.current_step)}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => resumeWorkflowFromStep(workflow.id, 0)}>
+                          <Building2 className="h-3 w-3 mr-2" />
+                          Start from Business Info
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => resumeWorkflowFromStep(workflow.id, 1)}>
+                          <Brain className="h-3 w-3 mr-2" />
+                          Start from Strategy
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => resumeWorkflowFromStep(workflow.id, 2)}>
+                          <Calendar className="h-3 w-3 mr-2" />
+                          Start from Planning
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => resumeWorkflowFromStep(workflow.id, 3)}>
+                          <Edit3 className="h-3 w-3 mr-2" />
+                          Start from Content Creation
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => resumeWorkflowFromStep(workflow.id, 4)}>
+                          <CheckCircle className="h-3 w-3 mr-2" />
+                          Start from Scheduling
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     
                     <Button 
                       size="sm" 

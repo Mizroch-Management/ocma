@@ -66,7 +66,7 @@ export function WorkflowStepRenderer({
   onStepChange, 
   onBusinessInfoUpdate 
 }: WorkflowStepRendererProps) {
-  const { state } = useWorkflow();
+  const { state, dispatch } = useWorkflow();
   
   // Ensure currentStep is within bounds
   const validStep = Math.max(0, Math.min(currentStep, stepConfig.length - 1));
@@ -87,8 +87,9 @@ export function WorkflowStepRenderer({
   const Icon = step.icon;
   const StepComponent = step.component;
 
+  // Allow free navigation between all sections
   const canGoBack = validStep > 0;
-  const canGoForward = validStep < stepConfig.length - 1 && isStepCompleted(validStep);
+  const canGoForward = validStep < stepConfig.length - 1; // Removed completion requirement
 
   function isStepCompleted(stepIndex: number): boolean {
     switch (stepIndex) {
@@ -157,30 +158,41 @@ export function WorkflowStepRenderer({
 
       {/* Step Content */}
       <div className="min-h-[400px]">
-        {React.createElement(StepComponent, {
-          // Business Info Collector props
-          onInfoSubmitted: onBusinessInfoUpdate,
+        {(() => {
+          // Use any type for StepComponent to allow different prop types
+          const StepComponentAny = StepComponent as any;
+          const componentProps: any = { key: `step-${validStep}` };
           
-          // AI Strategy Consultant props
-          businessInfo: state.businessInfo,
-          onStrategyApproved: (strategy: any) => {
-            // This will be handled by the workflow context
-          },
+          // Add props based on the current step
+          switch (validStep) {
+            case 0: // Business Info Collector
+              componentProps.onInfoSubmitted = onBusinessInfoUpdate;
+              break;
+            case 1: // AI Strategy Consultant
+              componentProps.businessInfo = state.businessInfo;
+              componentProps.onStrategyApproved = (strategy: any) => {
+                dispatch({ type: 'SET_APPROVED_STRATEGY', payload: strategy });
+              };
+              break;
+            case 2: // Smart Content Planner
+              componentProps.strategy = state.approvedStrategy;
+              componentProps.onPlanApproved = (plans: any[]) => {
+                dispatch({ type: 'SET_APPROVED_PLANS', payload: plans });
+              };
+              break;
+            case 3: // Intelligent Content Creator
+              componentProps.contentPlans = state.approvedPlans;
+              componentProps.onContentApproved = (content: any[]) => {
+                dispatch({ type: 'SET_APPROVED_CONTENT', payload: content });
+              };
+              break;
+            case 4: // Workflow Integration Dashboard
+              // No specific props needed
+              break;
+          }
           
-          // Smart Content Planner props
-          strategy: state.approvedStrategy,
-          onPlanApproved: (plans: any[]) => {
-            // This will be handled by the workflow context
-          },
-          
-          // Intelligent Content Creator props
-          contentPlans: state.approvedPlans,
-          onContentApproved: (content: any[]) => {
-            // This will be handled by the workflow context
-          },
-          
-          key: `step-${validStep}` // Force re-render when step changes
-        })}
+          return <StepComponentAny {...componentProps} />;
+        })()}
       </div>
 
       {/* Navigation Controls */}
@@ -199,17 +211,19 @@ export function WorkflowStepRenderer({
 
             <div className="flex items-center gap-2">
               {stepConfig.map((_, index) => (
-                <div
+                <button
                   key={index}
+                  onClick={() => onStepChange(index)}
                   className={`
-                    w-2 h-2 rounded-full transition-colors
+                    w-3 h-3 rounded-full transition-all cursor-pointer hover:scale-125
                     ${index === validStep 
-                      ? 'bg-blue-500' 
+                      ? 'bg-blue-500 ring-2 ring-blue-300' 
                       : isStepCompleted(index) 
-                        ? 'bg-green-500' 
-                        : 'bg-gray-300'
+                        ? 'bg-green-500 hover:bg-green-600' 
+                        : 'bg-gray-300 hover:bg-gray-400'
                     }
                   `}
+                  title={`Go to ${stepConfig[index].title}`}
                 />
               ))}
             </div>
@@ -227,14 +241,14 @@ export function WorkflowStepRenderer({
         </CardContent>
       </Card>
 
-      {/* Step Validation Messages */}
+      {/* Step Helper Message */}
       {validStep > 0 && !isStepCompleted(validStep - 1) && (
-        <Card className="border-amber-200 bg-amber-50">
+        <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-amber-700">
+            <div className="flex items-center gap-2 text-blue-700">
               <Icon className="h-4 w-4" />
               <span className="text-sm font-medium">
-                Complete the previous step to unlock all features of this step.
+                Note: Previous steps may need to be completed for optimal results, but you can work on any section.
               </span>
             </div>
           </CardContent>

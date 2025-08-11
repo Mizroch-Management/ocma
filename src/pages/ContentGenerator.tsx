@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { log } from "@/utils/logger";
 import { ContentEditorDialog } from "@/components/content/content-editor-dialog";
 import { ContentSchedulerDialog } from "@/components/content/content-scheduler-dialog";
+import { FileUpload, type UploadedFile } from "@/components/ui/file-upload";
 import { 
   Wand2, 
   Brain, 
@@ -24,6 +25,7 @@ import {
   Image, 
   Video, 
   Mic,
+  Paperclip,
   Copy,
   Edit3,
   Save,
@@ -62,6 +64,7 @@ export default function ContentGenerator() {
   const [editingContent, setEditingContent] = useState<any>(null);
   const [schedulingContent, setSchedulingContent] = useState<any>(null);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   const strategies = [
     { id: "1", name: "Q1 Brand Awareness", type: "Brand Strategy" },
@@ -273,14 +276,26 @@ export default function ContentGenerator() {
     
     try {
       // Call the Supabase edge function to generate real content
+      // Include uploaded files in the prompt if any
+      let enhancedPrompt = contentPrompt;
+      if (uploadedFiles.length > 0) {
+        const fileDescriptions = uploadedFiles.map(f => `[Attached: ${f.name} (${f.type})]`).join(', ');
+        enhancedPrompt = `${contentPrompt}\n\nVisual content attached: ${fileDescriptions}. Please create content that references or complements these visuals.`;
+      }
+
       const { data, error } = await supabase.functions.invoke('generate-content', {
         body: {
           contentType: selectedContentType,
           strategy: strategies.find(s => s.id === selectedStrategy)?.name,
           platforms: selectedPlatforms,
-          customPrompt: contentPrompt,
+          customPrompt: enhancedPrompt,
           aiTool: selectedAITool,
-          organizationId: currentOrganization?.id // Pass organization ID for API key retrieval
+          organizationId: currentOrganization?.id, // Pass organization ID for API key retrieval
+          attachedFiles: uploadedFiles.map(f => ({
+            url: f.url,
+            name: f.name,
+            type: f.type
+          }))
         }
       });
 
@@ -305,6 +320,7 @@ export default function ContentGenerator() {
         schedulingSuggestions: data.schedulingSuggestions || [],
         platformOptimizations: data.platformOptimizations || {},
         hashtags: data.hashtags || [],
+        attachedFiles: uploadedFiles,
         createdAt: new Date()
       };
       
@@ -807,6 +823,24 @@ export default function ContentGenerator() {
                 </Button>
               ))}
             </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>
+              <Paperclip className="h-4 w-4 inline mr-2" />
+              Attach Visual Content
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Upload images, videos, or documents to include with your generated content
+            </p>
+            <FileUpload
+              onFilesUploaded={setUploadedFiles}
+              existingFiles={uploadedFiles}
+              maxFiles={5}
+              maxSize={50}
+              compact={true}
+              acceptedTypes={['image/*', 'video/*', 'application/pdf']}
+            />
           </div>
           
           <Button 

@@ -262,21 +262,106 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
   };
 
   const retryStep = (stepIndex: number) => {
-    generateStepContent(stepIndex, steps[stepIndex].userPrompt);
+    // Use the edited AI prompt if available, otherwise generate a new one
+    const step = steps[stepIndex];
+    if (step.aiPrompt) {
+      // Use the edited prompt directly
+      setSteps(prev => prev.map((s, i) => 
+        i === stepIndex 
+          ? { ...s, status: 'generating', progress: 0 }
+          : s
+      ));
+
+      // Generate with the edited prompt
+      const progressInterval = setInterval(() => {
+        setSteps(prev => prev.map((s, i) => 
+          i === stepIndex && s.progress < 90
+            ? { ...s, progress: s.progress + 10 }
+            : s
+        ));
+      }, 500);
+
+      const platformTools = getPlatformTools(selectedPlatform);
+      
+      supabase.functions.invoke('generate-content', {
+        body: {
+          contentType: 'strategy-section',
+          strategy: step.title,
+          platforms: [selectedPlatform],
+          customPrompt: step.aiPrompt,
+          aiTool: 'gpt-4o-mini',
+          enabledTools: platformTools,
+          organizationId: currentOrganization?.id
+        }
+      }).then(response => {
+        clearInterval(progressInterval);
+        
+        if (!response.error && response.data?.content) {
+          setSteps(prev => prev.map((s, i) => 
+            i === stepIndex 
+              ? { 
+                  ...s, 
+                  aiGenerated: response.data.content,
+                  status: 'review',
+                  progress: 100 
+                }
+              : s
+          ));
+          
+          toast({
+            title: "Regeneration Complete",
+            description: `${step.title} has been regenerated with your custom prompt.`
+          });
+        } else {
+          throw new Error(response.error?.message || 'Failed to generate content');
+        }
+      }).catch(error => {
+        clearInterval(progressInterval);
+        setSteps(prev => prev.map((s, i) => 
+          i === stepIndex 
+            ? { ...s, status: 'review', progress: 0 }
+            : s
+        ));
+        
+        toast({
+          title: "Regeneration Failed",
+          description: "Failed to regenerate content. Please try again.",
+          variant: "destructive"
+        });
+      });
+    } else {
+      // Fallback to normal generation
+      generateStepContent(stepIndex, steps[stepIndex].userPrompt);
+    }
   };
 
   const editApprovedStep = (stepIndex: number) => {
-    // Set the step back to review mode so user can edit
-    setSteps(prev => prev.map((s, i) => 
-      i === stepIndex ? { ...s, status: 'review' } : s
-    ));
+    // Set the step back to review mode and invalidate all subsequent steps
+    setSteps(prev => prev.map((s, i) => {
+      if (i === stepIndex) {
+        return { ...s, status: 'review' };
+      } else if (i > stepIndex) {
+        // Reset subsequent steps as they depend on this one
+        return { 
+          ...s, 
+          status: 'pending', 
+          aiGenerated: '', 
+          progress: 0,
+          aiPrompt: '' 
+        };
+      }
+      return s;
+    }));
     
     // Set current step to this step so it's highlighted and visible
     setCurrentStep(stepIndex);
     
+    // Clear approved strategy if we're editing any step
+    dispatch({ type: 'SET_APPROVED_STRATEGY', payload: null });
+    
     toast({
       title: "Step Ready for Edit",
-      description: `${steps[stepIndex].title} is now ready for editing and regeneration.`
+      description: `${steps[stepIndex].title} is now ready for editing. Subsequent steps will need to be regenerated.`
     });
   };
 
@@ -395,37 +480,48 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
 
                 {step.status === 'review' && (
                   <div className="space-y-4 p-4 border rounded-lg bg-background/50">
-                    {/* AI Prompt Visibility Toggle */}
-                    {step.aiPrompt && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => togglePromptVisibility(step.id)}
-                            className="text-xs"
-                          >
-                            {showPrompts[step.id] ? (
-                              <>
-                                <EyeOff className="h-3 w-3 mr-1" />
-                                Hide AI Prompt
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="h-3 w-3 mr-1" />
-                                Show AI Prompt
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        {showPrompts[step.id] && (
-                          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border text-xs">
-                            <label className="text-xs font-medium text-blue-800 dark:text-blue-200">AI Prompt Used:</label>
-                            <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 mt-1">{step.aiPrompt}</pre>
-                          </div>
-                        )}
+                    {/* AI Prompt Visibility and Editing */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => togglePromptVisibility(step.id)}
+                          className="text-xs"
+                        >
+                          {showPrompts[step.id] ? (
+                            <>
+                              <EyeOff className="h-3 w-3 mr-1" />
+                              Hide AI Prompt
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-3 w-3 mr-1" />
+                              Show/Edit AI Prompt
+                            </>
+                          )}
+                        </Button>
                       </div>
-                    )}
+                      {showPrompts[step.id] && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-blue-800 dark:text-blue-200">AI Prompt (Editable):</label>
+                          <Textarea
+                            value={step.aiPrompt || buildStrategyPrompt(
+                              businessInfo,
+                              step.title,
+                              step.description,
+                              steps.slice(0, index).filter(s => s.status === 'approved'),
+                              step.userPrompt
+                            )}
+                            onChange={(e) => setSteps(prev => prev.map((s, i) => 
+                              i === index ? { ...s, aiPrompt: e.target.value } : s
+                            ))}
+                            className="text-xs font-mono bg-blue-50 dark:bg-blue-950/20 border-blue-200"
+                            rows={6}
+                          />
+                        </div>
+                      )}
+                    </div>
 
                     <div className="space-y-2">
                       <label className="text-sm font-medium">AI Generated Content:</label>
@@ -464,37 +560,48 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
                       <p className="text-sm text-green-800 dark:text-green-200 font-medium">Step approved and ready for next phase</p>
                     </div>
 
-                    {/* AI Prompt Visibility Toggle */}
-                    {step.aiPrompt && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => togglePromptVisibility(step.id)}
-                            className="text-xs"
-                          >
-                            {showPrompts[step.id] ? (
-                              <>
-                                <EyeOff className="h-3 w-3 mr-1" />
-                                Hide AI Prompt
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="h-3 w-3 mr-1" />
-                                Show AI Prompt
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        {showPrompts[step.id] && (
-                          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border text-xs">
-                            <label className="text-xs font-medium text-blue-800 dark:text-blue-200">AI Prompt Used:</label>
-                            <pre className="whitespace-pre-wrap text-blue-700 dark:text-blue-300 mt-1">{step.aiPrompt}</pre>
-                          </div>
-                        )}
+                    {/* AI Prompt Visibility and Editing */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => togglePromptVisibility(step.id)}
+                          className="text-xs"
+                        >
+                          {showPrompts[step.id] ? (
+                            <>
+                              <EyeOff className="h-3 w-3 mr-1" />
+                              Hide AI Prompt
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-3 w-3 mr-1" />
+                              Show/Edit AI Prompt
+                            </>
+                          )}
+                        </Button>
                       </div>
-                    )}
+                      {showPrompts[step.id] && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-blue-800 dark:text-blue-200">AI Prompt (Editable):</label>
+                          <Textarea
+                            value={step.aiPrompt || buildStrategyPrompt(
+                              businessInfo,
+                              step.title,
+                              step.description,
+                              steps.slice(0, index).filter(s => s.status === 'approved'),
+                              step.userPrompt
+                            )}
+                            onChange={(e) => setSteps(prev => prev.map((s, i) => 
+                              i === index ? { ...s, aiPrompt: e.target.value } : s
+                            ))}
+                            className="text-xs font-mono bg-blue-50 dark:bg-blue-950/20 border-blue-200"
+                            rows={6}
+                          />
+                        </div>
+                      )}
+                    </div>
 
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Generated Content:</label>

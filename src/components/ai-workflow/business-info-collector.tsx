@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Target, Users, DollarSign, Globe, CheckCircle, UserPlus, X } from "lucide-react";
+import { Building2, Target, Users, DollarSign, Globe, CheckCircle, UserPlus, X, Paperclip } from "lucide-react";
 import { useWorkflow, type BusinessInfo } from "@/contexts/workflow-context";
+import { FileUpload, type UploadedFile } from "@/components/ui/file-upload";
 
 
 interface BusinessInfoCollectorProps {
@@ -36,7 +37,8 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
       "The best Marketing strategy firm in the world",
       "The best content creative director and brand manager", 
       "The best social media marketer"
-    ]
+    ],
+    uploadedFiles: []
   });
 
   // Load saved business info on mount
@@ -50,7 +52,8 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
           "The best Marketing strategy firm in the world",
           "The best content creative director and brand manager", 
           "The best social media marketer"
-        ]
+        ],
+        uploadedFiles: savedInfo.uploadedFiles || []
       });
     }
   }, [state.businessInfo, state.draftData?.businessInfoDraft]);
@@ -412,6 +415,28 @@ export function BusinessInfoCollector({ onInfoSubmitted }: BusinessInfoCollector
                   onChange={(e) => updateField('additionalContext', e.target.value)}
                   placeholder="Any additional information that might help create a better strategy..."
                   rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  <Paperclip className="h-4 w-4 inline mr-2" />
+                  Upload Business Assets
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Upload brand guidelines, logos, product images, or any relevant documents
+                </p>
+                <FileUpload
+                  onFilesUploaded={(files) => {
+                    const updatedInfo = { ...businessInfo, uploadedFiles: files };
+                    setBusinessInfo(updatedInfo);
+                    dispatch({ type: 'UPDATE_BUSINESS_INFO_DRAFT', payload: updatedInfo });
+                  }}
+                  existingFiles={businessInfo.uploadedFiles || []}
+                  maxFiles={10}
+                  maxSize={50}
+                  compact={true}
+                  acceptedTypes={['image/*', 'application/pdf', '.doc', '.docx', '.ppt', '.pptx']}
                 />
               </div>
             </div>
