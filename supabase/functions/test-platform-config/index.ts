@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { testTwitterOAuth1 } from './twitter-oauth1.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -367,14 +368,13 @@ async function testInstagram(credentials: any) {
 }
 
 async function testTwitter(credentials: any) {
-  // X/Twitter now requires OAuth 2.0 with proper user authentication
-  // Bearer tokens can be App-only tokens or User tokens
-  const { bearer_token, access_token } = credentials;
-  const token = bearer_token || access_token;
+  // X/Twitter supports both OAuth 2.0 and OAuth 1.0a
+  // Try OAuth 2.0 first, then fall back to OAuth 1.0a
+  const { bearer_token, api_key, api_secret, access_token, access_token_secret } = credentials;
   
-  if (!token) {
-    return { success: false, message: 'X (Twitter) OAuth 2.0 access token or bearer token is required', details: null };
-  }
+  // Try OAuth 2.0 bearer token first if available
+  if (bearer_token) {
+    console.log('Testing Twitter with OAuth 2.0 bearer token...');
 
   // First try to validate the token with a simple tweet creation test
   // This will verify if the token has tweet.write scope
@@ -412,15 +412,25 @@ async function testTwitter(credentials: any) {
       };
     } else if (createResponse.status === 403) {
       // Token doesn't have tweet.write scope, but might be valid for reading
+      // Token might be App-Only, try OAuth 1.0a if available
+      console.log('OAuth 2.0 failed with 403, trying OAuth 1.0a...');
+      if (api_key && api_secret && access_token && access_token_secret) {
+        return await testTwitterOAuth1(credentials);
+      }
       return { 
         success: false, 
-        message: 'X (Twitter) token is valid but lacks tweet.write scope. Please re-authenticate with proper scopes.',
+        message: 'X (Twitter) OAuth 2.0 token is App-Only (cannot post). Please use OAuth 1.0a credentials or get a User Context OAuth 2.0 token.',
         details: null
       };
     } else if (createResponse.status === 401) {
+      // Invalid token, try OAuth 1.0a if available
+      console.log('OAuth 2.0 failed with 401, trying OAuth 1.0a...');
+      if (api_key && api_secret && access_token && access_token_secret) {
+        return await testTwitterOAuth1(credentials);
+      }
       return { 
         success: false, 
-        message: 'X (Twitter) OAuth 2.0 token is invalid or expired. Please re-authenticate.',
+        message: 'X (Twitter) OAuth 2.0 token is invalid or expired. Please provide valid OAuth 1.0a credentials.',
         details: null
       };
     } else {
@@ -429,6 +439,13 @@ async function testTwitter(credentials: any) {
       try {
         const errorJson = JSON.parse(errorText);
         errorMessage = errorJson.detail || errorJson.title || errorJson.message || errorMessage;
+        
+        // If it's an authentication type error, try OAuth 1.0a
+        if (errorJson.type === 'https://api.twitter.com/2/problems/unsupported-authentication' && 
+            api_key && api_secret && access_token && access_token_secret) {
+          console.log('Unsupported auth type for OAuth 2.0, trying OAuth 1.0a...');
+          return await testTwitterOAuth1(credentials);
+        }
       } catch {
         errorMessage = errorText || errorMessage;
       }
@@ -441,7 +458,23 @@ async function testTwitter(credentials: any) {
       details: null
     };
   }
+  }
+  
+  // No OAuth 2.0 token, try OAuth 1.0a
+  if (api_key && api_secret && access_token && access_token_secret) {
+    console.log('No OAuth 2.0 token, using OAuth 1.0a...');
+    return await testTwitterOAuth1(credentials);
+  }
+  
+  return { 
+    success: false, 
+    message: 'X (Twitter) requires either OAuth 2.0 bearer token or complete OAuth 1.0a credentials (api_key, api_secret, access_token, access_token_secret)',
+    details: null
+  };
 }
+
+// Import OAuth 1.0a test function
+import { testTwitterOAuth1 } from './twitter-oauth1.ts';
 
 async function testLinkedIn(credentials: any) {
   const { access_token } = credentials;
