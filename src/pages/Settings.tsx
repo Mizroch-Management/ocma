@@ -166,13 +166,21 @@ export default function Settings() {
   }, {} as Record<string, any>);
 
   useEffect(() => {
+    console.log('Settings useEffect - currentOrganization changed:', currentOrganization);
     if (currentOrganization) {
       fetchSettings();
+    } else {
+      console.warn('No organization selected - Settings will not load');
     }
   }, [currentOrganization]);
 
   const fetchSettings = async () => {
-    if (!currentOrganization) return;
+    if (!currentOrganization) {
+      console.warn('fetchSettings called without organization');
+      return;
+    }
+    
+    console.log('Fetching settings for org:', currentOrganization.name, '(ID:', currentOrganization.id, ')');
     
     try {
       const { data, error } = await supabase
@@ -181,6 +189,7 @@ export default function Settings() {
         .eq('organization_id', currentOrganization.id);
       
       if (error) throw error;
+      console.log('Settings loaded:', data?.length || 0, 'items');
       setSettings(data || []);
     } catch (error) {
       toast({
@@ -194,34 +203,59 @@ export default function Settings() {
   };
 
   const updateSetting = async (settingKey: string, newValue: any) => {
-    if (!currentOrganization) return;
+    console.log('=== UPDATE SETTING DEBUG ===');
+    console.log('Setting Key:', settingKey);
+    console.log('New Value:', newValue);
+    console.log('Current Organization:', currentOrganization);
+    console.log('Organization ID:', currentOrganization?.id);
+    console.log('Organization Name:', currentOrganization?.name);
+    
+    if (!currentOrganization) {
+      console.error('❌ No currentOrganization - cannot save!');
+      toast({
+        title: "Error",
+        description: "No organization selected. Please select an organization first.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setSaving(true);
     try {
+      console.log('✅ Attempting to save with org ID:', currentOrganization.id);
       // Check if setting exists for this organization
       const existingSetting = settings.find(s => s.setting_key === settingKey);
       
       if (existingSetting) {
+        console.log('📝 Updating existing setting:', existingSetting.id);
         // Update existing setting
-        const { error } = await supabase
+        const { data: updateData, error } = await supabase
           .from('system_settings')
           .update({ setting_value: newValue })
           .eq('setting_key', settingKey)
-          .eq('organization_id', currentOrganization.id);
+          .eq('organization_id', currentOrganization.id)
+          .select();
         
+        console.log('Update result:', { data: updateData, error });
         if (error) throw error;
       } else {
-        // Create new setting for this organization
-        const { error } = await supabase
-          .from('system_settings')
-          .insert({
-            setting_key: settingKey,
-            setting_value: newValue,
-            organization_id: currentOrganization.id,
-            category: settingKey.includes('_api_key') ? 'ai_platforms' : 'integration',
-            description: `Setting for ${settingKey}`
-          });
+        console.log('➕ Creating new setting');
+        const insertData = {
+          setting_key: settingKey,
+          setting_value: newValue,
+          organization_id: currentOrganization.id,
+          category: settingKey.includes('_api_key') ? 'ai_platforms' : 'integration',
+          description: `Setting for ${settingKey}`
+        };
+        console.log('Insert data:', insertData);
         
+        // Create new setting for this organization
+        const { data: insertResult, error } = await supabase
+          .from('system_settings')
+          .insert(insertData)
+          .select();
+        
+        console.log('Insert result:', { data: insertResult, error });
         if (error) throw error;
       }
       
@@ -246,14 +280,32 @@ export default function Settings() {
         return updatedSettings;
       });
       
+      console.log('✅ Settings saved successfully!');
       toast({
         title: "Settings Updated",
         description: "Your changes have been saved successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Settings save error:', error);
+      console.error('Error details:', {
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        stack: error?.stack
+      });
+      
+      // More detailed error message
+      let errorMessage = error?.message || "Failed to save settings";
+      if (error?.code === '42501') {
+        errorMessage = "Permission denied. Please ensure you're logged in and have selected an organization.";
+      } else if (error?.code === '23503') {
+        errorMessage = "Organization not found. Please select a valid organization.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to save settings",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -334,14 +386,21 @@ export default function Settings() {
     const testKey = `${platform}_${type}`;
     setTesting(prev => ({ ...prev, [testKey]: true }));
 
+    console.log('=== TEST PLATFORM CONFIGURATION ===');
+    console.log('Platform:', platform);
+    console.log('Type:', type);
+    console.log('Current Organization:', currentOrganization?.name, '(ID:', currentOrganization?.id, ')');
+    
     try {
       let requestBody;
       if (type === 'ai_platform') {
         const apiKeySetting = getSetting(`${platform}_api_key`);
+        console.log('API key setting:', apiKeySetting);
+        console.log('Has API key?', !!apiKeySetting?.api_key);
         requestBody = {
           platform,
           type,
-          api_key: apiKeySetting.api_key
+          api_key: apiKeySetting?.api_key || ''
         };
       } else {
         const platformConfig = getSetting(`${platform}_integration`) as PlatformConfig;
