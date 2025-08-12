@@ -31,7 +31,7 @@ serve(async (req) => {
 
     const { platform, type, credentials, api_key }: TestRequest = await req.json();
 
-    let testResult = { success: false, message: '', details: null };
+    let testResult: { success: boolean; message: string; details?: any } = { success: false, message: '', details: null };
 
     if (type === 'ai_platform') {
       testResult = await testAIPlatform(platform, api_key);
@@ -94,7 +94,7 @@ serve(async (req) => {
 
 async function testAIPlatform(platform: string, apiKey: string) {
   if (!apiKey || apiKey.trim() === '') {
-    return { success: false, message: 'API key is required' };
+    return { success: false, message: 'API key is required', details: null };
   }
 
   try {
@@ -116,10 +116,10 @@ async function testAIPlatform(platform: string, apiKey: string) {
       case 'runware':
         return await testRunware(apiKey);
       default:
-        return { success: false, message: 'Unsupported AI platform' };
+        return { success: false, message: 'Unsupported AI platform', details: null };
     }
   } catch (error) {
-    return { success: false, message: `Test failed: ${error.message}` };
+    return { success: false, message: `Test failed: ${error.message}`, details: null };
   }
 }
 
@@ -143,10 +143,10 @@ async function testSocialMediaPlatform(platform: string, credentials: any) {
       case 'snapchat':
         return await testSnapchat(credentials);
       default:
-        return { success: false, message: 'Unsupported social media platform' };
+        return { success: false, message: 'Unsupported social media platform', details: null };
     }
   } catch (error) {
-    return { success: false, message: `Test failed: ${error.message}` };
+    return { success: false, message: `Test failed: ${error.message}`, details: null };
   }
 }
 
@@ -168,7 +168,7 @@ async function testOpenAI(apiKey: string) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `OpenAI API error: ${error}` };
+    return { success: false, message: `OpenAI API error: ${error}`, details: null };
   }
 }
 
@@ -195,7 +195,7 @@ async function testAnthropic(apiKey: string) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `Anthropic API error: ${error}` };
+    return { success: false, message: `Anthropic API error: ${error}`, details: null };
   }
 }
 
@@ -211,7 +211,7 @@ async function testGoogleAI(apiKey: string) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `Google AI API error: ${error}` };
+    return { success: false, message: `Google AI API error: ${error}`, details: null };
   }
 }
 
@@ -237,7 +237,7 @@ async function testPerplexity(apiKey: string) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `Perplexity API error: ${error}` };
+    return { success: false, message: `Perplexity API error: ${error}`, details: null };
   }
 }
 
@@ -259,7 +259,7 @@ async function testHuggingFace(apiKey: string) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `Hugging Face API error: ${error}` };
+    return { success: false, message: `Hugging Face API error: ${error}`, details: null };
   }
 }
 
@@ -279,7 +279,7 @@ async function testStabilityAI(apiKey: string) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `Stability AI API error: ${error}` };
+    return { success: false, message: `Stability AI API error: ${error}`, details: null };
   }
 }
 
@@ -299,7 +299,7 @@ async function testElevenLabs(apiKey: string) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `ElevenLabs API error: ${error}` };
+    return { success: false, message: `ElevenLabs API error: ${error}`, details: null };
   }
 }
 
@@ -319,7 +319,7 @@ async function testRunware(apiKey: string) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `Runware API error: ${error}` };
+    return { success: false, message: `Runware API error: ${error}`, details: null };
   }
 }
 
@@ -327,7 +327,7 @@ async function testRunware(apiKey: string) {
 async function testFacebook(credentials: any) {
   const { access_token, page_id } = credentials;
   if (!access_token) {
-    return { success: false, message: 'Facebook access token is required' };
+    return { success: false, message: 'Facebook access token is required', details: null };
   }
 
   const response = await fetch(`https://graph.facebook.com/v18.0/${page_id || 'me'}?access_token=${access_token}`);
@@ -341,14 +341,14 @@ async function testFacebook(credentials: any) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `Facebook API error: ${error}` };
+    return { success: false, message: `Facebook API error: ${error}`, details: null };
   }
 }
 
 async function testInstagram(credentials: any) {
   const { access_token, user_id } = credentials;
   if (!access_token) {
-    return { success: false, message: 'Instagram access token is required' };
+    return { success: false, message: 'Instagram access token is required', details: null };
   }
 
   const response = await fetch(`https://graph.instagram.com/${user_id || 'me'}?fields=id,username&access_token=${access_token}`);
@@ -362,39 +362,91 @@ async function testInstagram(credentials: any) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `Instagram API error: ${error}` };
+    return { success: false, message: `Instagram API error: ${error}`, details: null };
   }
 }
 
 async function testTwitter(credentials: any) {
-  const { bearer_token } = credentials;
-  if (!bearer_token) {
-    return { success: false, message: 'Twitter bearer token is required' };
+  // X/Twitter now requires OAuth 2.0 with proper user authentication
+  // Bearer tokens can be App-only tokens or User tokens
+  const { bearer_token, access_token } = credentials;
+  const token = bearer_token || access_token;
+  
+  if (!token) {
+    return { success: false, message: 'X (Twitter) OAuth 2.0 access token or bearer token is required', details: null };
   }
 
-  const response = await fetch('https://api.twitter.com/2/users/me', {
-    headers: {
-      'Authorization': `Bearer ${bearer_token}`
+  // First try to validate the token with a simple tweet creation test
+  // This will verify if the token has tweet.write scope
+  try {
+    // Test with a dry-run approach - create and immediately delete
+    const testTweet = `OCMA test tweet - ${Date.now()}`;
+    const createResponse = await fetch('https://api.twitter.com/2/tweets', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ text: testTweet })
+    });
+
+    if (createResponse.ok) {
+      const createData = await createResponse.json();
+      const tweetId = createData.data?.id;
+      
+      // Try to delete the test tweet to keep timeline clean
+      if (tweetId) {
+        await fetch(`https://api.twitter.com/2/tweets/${tweetId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).catch(() => {}); // Ignore delete errors
+      }
+      
+      return { 
+        success: true, 
+        message: 'X (Twitter) OAuth 2.0 credentials verified successfully - posting enabled',
+        details: { 
+          status: 'Connected with tweet.write scope',
+          test_tweet_id: tweetId 
+        }
+      };
+    } else if (createResponse.status === 403) {
+      // Token doesn't have tweet.write scope, but might be valid for reading
+      return { 
+        success: false, 
+        message: 'X (Twitter) token is valid but lacks tweet.write scope. Please re-authenticate with proper scopes.',
+        details: null
+      };
+    } else if (createResponse.status === 401) {
+      return { 
+        success: false, 
+        message: 'X (Twitter) OAuth 2.0 token is invalid or expired. Please re-authenticate.',
+        details: null
+      };
+    } else {
+      const errorText = await createResponse.text();
+      let errorMessage = 'Failed to verify X (Twitter) credentials';
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.detail || errorJson.title || errorJson.message || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      return { success: false, message: `X (Twitter) API error: ${errorMessage}`, details: null };
     }
-  });
-  
-  if (response.ok) {
-    const data = await response.json();
+  } catch (error: any) {
     return { 
-      success: true, 
-      message: 'Twitter credentials verified successfully',
-      details: { username: data.data?.username, id: data.data?.id }
+      success: false, 
+      message: `X (Twitter) connection error: ${error.message || 'Unknown error occurred'}`,
+      details: null
     };
-  } else {
-    const error = await response.text();
-    return { success: false, message: `Twitter API error: ${error}` };
   }
 }
 
 async function testLinkedIn(credentials: any) {
   const { access_token } = credentials;
   if (!access_token) {
-    return { success: false, message: 'LinkedIn access token is required' };
+    return { success: false, message: 'LinkedIn access token is required', details: null };
   }
 
   const response = await fetch('https://api.linkedin.com/v2/people/~', {
@@ -412,14 +464,14 @@ async function testLinkedIn(credentials: any) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `LinkedIn API error: ${error}` };
+    return { success: false, message: `LinkedIn API error: ${error}`, details: null };
   }
 }
 
 async function testYouTube(credentials: any) {
   const { api_key } = credentials;
   if (!api_key) {
-    return { success: false, message: 'YouTube API key is required' };
+    return { success: false, message: 'YouTube API key is required', details: null };
   }
 
   const response = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true&key=${api_key}`);
@@ -433,7 +485,7 @@ async function testYouTube(credentials: any) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `YouTube API error: ${error}` };
+    return { success: false, message: `YouTube API error: ${error}`, details: null };
   }
 }
 
@@ -442,7 +494,7 @@ async function testTikTok(credentials: any) {
   // For now, just validate required fields are present
   const { app_id, access_token } = credentials;
   if (!app_id || !access_token) {
-    return { success: false, message: 'TikTok App ID and access token are required' };
+    return { success: false, message: 'TikTok App ID and access token are required', details: null };
   }
 
   return { 
@@ -455,7 +507,7 @@ async function testTikTok(credentials: any) {
 async function testPinterest(credentials: any) {
   const { access_token } = credentials;
   if (!access_token) {
-    return { success: false, message: 'Pinterest access token is required' };
+    return { success: false, message: 'Pinterest access token is required', details: null };
   }
 
   const response = await fetch('https://api.pinterest.com/v5/user_account', {
@@ -473,7 +525,7 @@ async function testPinterest(credentials: any) {
     };
   } else {
     const error = await response.text();
-    return { success: false, message: `Pinterest API error: ${error}` };
+    return { success: false, message: `Pinterest API error: ${error}`, details: null };
   }
 }
 
@@ -482,7 +534,7 @@ async function testSnapchat(credentials: any) {
   // For now, just validate required fields are present
   const { client_id, access_token } = credentials;
   if (!client_id || !access_token) {
-    return { success: false, message: 'Snapchat Client ID and access token are required' };
+    return { success: false, message: 'Snapchat Client ID and access token are required', details: null };
   }
 
   return { 

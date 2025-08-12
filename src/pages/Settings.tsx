@@ -91,14 +91,14 @@ export default function Settings() {
       ]
     },
     twitter: {
-      name: "Twitter/X",
+      name: "X (Twitter)",
       icon: Twitter,
       fields: [
-        { key: "api_key", label: "API Key (Consumer Key)", type: "text", placeholder: "Your Twitter API Key" },
-        { key: "api_secret", label: "API Secret (Consumer Secret)", type: "password", placeholder: "Your Twitter API Secret" },
-        { key: "access_token", label: "Access Token", type: "password", placeholder: "Your Access Token" },
-        { key: "access_token_secret", label: "Access Token Secret", type: "password", placeholder: "Your Access Token Secret" },
-        { key: "bearer_token", label: "Bearer Token (Optional - for OAuth 2.0)", type: "password", placeholder: "Your Bearer Token (optional)" }
+        { key: "bearer_token", label: "OAuth 2.0 Bearer Token (Required)", type: "password", placeholder: "OAuth 2.0 token with tweet.write scope" },
+        { key: "api_key", label: "API Key (Legacy OAuth 1.0a)", type: "text", placeholder: "Consumer Key (optional)" },
+        { key: "api_secret", label: "API Secret (Legacy OAuth 1.0a)", type: "password", placeholder: "Consumer Secret (optional)" },
+        { key: "access_token", label: "Access Token (Legacy OAuth 1.0a)", type: "password", placeholder: "Access Token (optional)" },
+        { key: "access_token_secret", label: "Access Token Secret (Legacy OAuth 1.0a)", type: "password", placeholder: "Access Token Secret (optional)" }
       ]
     },
     linkedin: {

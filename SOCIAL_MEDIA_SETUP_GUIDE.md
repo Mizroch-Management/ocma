@@ -12,28 +12,43 @@ This guide will help you properly configure social media integrations for OCMA. 
 
 ## Platform-Specific Setup Instructions
 
-### 🐦 Twitter/X Setup
+### 🐦 X (Twitter) Setup
 
-#### Required Credentials:
-- **API Key** (also called Consumer Key)
-- **API Secret** (also called Consumer Secret)
-- **Access Token**
-- **Access Token Secret**
-- **Bearer Token** (optional, for OAuth 2.0)
+#### ⚠️ Important: OAuth 2.0 Required
+X/Twitter now requires OAuth 2.0 with proper scopes for posting. The legacy OAuth 1.0a is being phased out.
 
-#### How to Get Credentials:
+#### Required Credentials (OAuth 2.0):
+- **OAuth 2.0 Bearer Token** with `tweet.write` and `users.read` scopes (REQUIRED)
+
+#### How to Get OAuth 2.0 Credentials:
 1. Go to [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
 2. Create a new app or select existing one
-3. Under "Keys and tokens" tab:
-   - Generate API Key & Secret
-   - Generate Access Token & Secret
-4. **Important**: Set app permissions to "Read and Write"
-5. For posting, you may need "Elevated" access (apply in developer portal)
+3. Enable OAuth 2.0:
+   - Go to "User authentication settings"
+   - Enable OAuth 2.0
+   - Set Type of App: "Web App, Automated App or Bot"
+   - Add Callback URL (your app's redirect URL)
+   - Select Required Scopes:
+     - `tweet.read` - Read tweets
+     - `tweet.write` - Post tweets (REQUIRED for posting)
+     - `users.read` - Read user info
+     - `offline.access` - For refresh tokens
+4. Generate OAuth 2.0 tokens:
+   - Use the OAuth 2.0 flow to get user authorization
+   - Exchange authorization code for access token
+   - The bearer token must have `tweet.write` scope
+
+#### Legacy OAuth 1.0a (Optional - Being Deprecated):
+- API Key (Consumer Key)
+- API Secret (Consumer Secret)  
+- Access Token
+- Access Token Secret
 
 #### Common Issues:
-- **"Unauthorized"**: Check app has "Read and Write" permissions
-- **"Not permitted"**: Apply for Elevated access
-- **401 Error**: Regenerate all tokens
+- **"OAuth 2.0 error"**: Token lacks `tweet.write` scope - re-authenticate with proper scopes
+- **"Unauthorized"**: Token expired or invalid - regenerate OAuth 2.0 token
+- **"403 Forbidden"**: Missing required scopes - ensure `tweet.write` is included
+- **401 Error**: Invalid or expired token - re-authenticate
 
 ### 📘 Facebook Setup
 
