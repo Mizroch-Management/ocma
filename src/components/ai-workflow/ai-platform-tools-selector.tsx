@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -214,6 +213,8 @@ export function AIPlatformToolsSelector({
           organization_id: currentOrganization.id,
           category: 'ai_tools',
           description: `AI tools configuration for ${selectedPlatform}`
+        }, {
+          onConflict: 'setting_key,organization_id'
         });
 
       if (error) throw error;
