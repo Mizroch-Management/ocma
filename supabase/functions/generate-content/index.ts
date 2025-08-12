@@ -107,7 +107,16 @@ Format your response with clear section headers using "###" but ensure the conte
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      
+      if (response.status === 401) {
+        throw new Error('Invalid or missing OpenAI API key. Please configure a valid API key in Settings > AI Platforms > OpenAI');
+      } else if (response.status === 429) {
+        throw new Error('OpenAI rate limit exceeded. Please wait and try again');
+      } else {
+        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      }
     }
 
     const data = await response.json();

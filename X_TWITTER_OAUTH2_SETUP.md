@@ -34,19 +34,53 @@ The error you encountered ("unable and something to do with OAuth 2.0") has been
 - ✅ `users.read` - Read user profile information
 - ✅ `offline.access` - Get refresh tokens for long-lived access
 
-### Step 5: Generate OAuth 2.0 Token
-There are two methods:
+### Step 5: Generate OAuth 2.0 User Context Token
 
-#### Method A: Using OAuth 2.0 Flow (Recommended)
-1. Implement the OAuth 2.0 authorization flow in your app
-2. Direct users to: `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&scope=tweet.read%20tweet.write%20users.read%20offline.access&state=STATE&code_challenge=CHALLENGE&code_challenge_method=S256`
-3. Exchange the authorization code for an access token
+**⚠️ IMPORTANT**: You need a **User Context** OAuth 2.0 token, NOT an App-Only bearer token!
 
-#### Method B: Using Postman or Similar Tool
-1. Use Postman's OAuth 2.0 authorization helper
-2. Configure with your app's credentials
-3. Set scopes: `tweet.read tweet.write users.read offline.access`
-4. Complete the authorization flow to get your bearer token
+#### What's the Difference?
+- **App-Only Token**: Can only read public data, CANNOT post tweets
+- **User Context Token**: Can post tweets and perform user actions
+
+#### Method A: Quick Test with Postman (Recommended for Testing)
+1. Download and install [Postman](https://www.postman.com/downloads/)
+2. Create a new OAuth 2.0 request:
+   - **Auth Type**: OAuth 2.0
+   - **Grant Type**: Authorization Code (With PKCE)
+   - **Auth URL**: `https://twitter.com/i/oauth2/authorize`
+   - **Access Token URL**: `https://api.twitter.com/2/oauth2/token`
+   - **Client ID**: Your app's OAuth 2.0 Client ID
+   - **Client Secret**: Your app's Client Secret (if not using PKCE)
+   - **Scope**: `tweet.read tweet.write users.read offline.access`
+   - **State**: Any random string
+   - **Code Challenge Method**: S256
+3. Click "Get New Access Token"
+4. Authorize with your Twitter account
+5. Copy the access token (this is your User Context bearer token)
+
+#### Method B: Manual OAuth 2.0 Flow
+1. Generate a code verifier and challenge for PKCE
+2. Direct user to authorize:
+   ```
+   https://twitter.com/i/oauth2/authorize?
+   response_type=code&
+   client_id=YOUR_CLIENT_ID&
+   redirect_uri=YOUR_REDIRECT_URI&
+   scope=tweet.read%20tweet.write%20users.read%20offline.access&
+   state=STATE&
+   code_challenge=CHALLENGE&
+   code_challenge_method=S256
+   ```
+3. After authorization, exchange the code for tokens:
+   ```bash
+   curl -X POST https://api.twitter.com/2/oauth2/token \
+     -H 'Content-Type: application/x-www-form-urlencoded' \
+     -d 'grant_type=authorization_code' \
+     -d 'code=AUTHORIZATION_CODE' \
+     -d 'redirect_uri=YOUR_REDIRECT_URI' \
+     -d 'client_id=YOUR_CLIENT_ID' \
+     -d 'code_verifier=YOUR_CODE_VERIFIER'
+   ```
 
 ### Step 6: Add Token to OCMA
 1. Go to Settings in OCMA
