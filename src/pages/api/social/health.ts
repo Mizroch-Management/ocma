@@ -8,7 +8,7 @@ function buildEnvAccounts(): SocialAccount[] {
   const list: SocialAccount[] = [];
   
   if (process.env.X_BEARER_TOKEN) {
-    list.push({ id: 'env-x', platform: 'x', access_token: process.env.X_BEARER_TOKEN, metadata: {} });
+    list.push({ id: 'env-twitter', platform: 'twitter', access_token: process.env.X_BEARER_TOKEN, metadata: {} });
   }
   
   if (process.env.LINKEDIN_ACCESS_TOKEN && (process.env.LINKEDIN_AUTHOR_URN || process.env.LINKEDIN_ORG_URN)) {

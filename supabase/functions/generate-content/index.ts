@@ -206,9 +206,28 @@ Format your response with clear section headers using "###" but ensure the conte
 
   } catch (error) {
     console.error('Error in generate-content function:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to generate content';
+    let details = error.message;
+    
+    if (error.message.includes('API key')) {
+      errorMessage = 'OpenAI API key not configured';
+      details = 'Please configure your OpenAI API key in Settings > AI Platforms';
+    } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+      errorMessage = 'Invalid OpenAI API key';
+      details = 'The OpenAI API key is invalid. Please check your API key in Settings';
+    } else if (error.message.includes('429')) {
+      errorMessage = 'Rate limit exceeded';
+      details = 'Too many requests. Please wait a moment and try again';
+    } else if (error.message.includes('OpenAI API error')) {
+      errorMessage = 'OpenAI API error';
+      details = 'The OpenAI service returned an error. Please try again';
+    }
+    
     return new Response(JSON.stringify({ 
-      error: error.message,
-      details: 'Failed to generate content. Please check your API key and try again.'
+      error: errorMessage,
+      details: details
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

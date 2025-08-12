@@ -3,7 +3,7 @@ type AnyJson = Record<string, any>;
 
 export type SocialAccount = {
   id: string;
-  platform: 'x' | 'linkedin' | 'facebook' | 'instagram';
+  platform: 'twitter' | 'linkedin' | 'facebook' | 'instagram';
   access_token: string;
   refresh_token?: string | null;
   expires_at?: string | null; // ISO
@@ -32,7 +32,7 @@ export async function testPostability(account: SocialAccount, live = false) {
 
   try {
     switch (account.platform) {
-      case 'x': {
+      case 'twitter': {
         // X (Twitter) — requires token with tweet.write
         if (baseResult.missing.length) break;
         if (!live) { // no clean read endpoint for write scope; return readiness only

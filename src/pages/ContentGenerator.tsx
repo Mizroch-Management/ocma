@@ -283,6 +283,9 @@ export default function ContentGenerator() {
         enhancedPrompt = `${contentPrompt}\n\nVisual content attached: ${fileDescriptions}. Please create content that references or complements these visuals.`;
       }
 
+      // Log for debugging
+      console.log('Generating content with organization ID:', currentOrganization?.id);
+      
       const { data, error } = await supabase.functions.invoke('generate-content', {
         body: {
           contentType: selectedContentType,
@@ -290,7 +293,7 @@ export default function ContentGenerator() {
           platforms: selectedPlatforms,
           customPrompt: enhancedPrompt,
           aiTool: selectedAITool,
-          organizationId: currentOrganization?.id, // Pass organization ID for API key retrieval
+          organizationId: currentOrganization?.id || null, // Pass organization ID for API key retrieval
           attachedFiles: uploadedFiles.map(f => ({
             url: f.url,
             name: f.name,
@@ -304,7 +307,9 @@ export default function ContentGenerator() {
       }
 
       if (data.error) {
-        throw new Error(data.error);
+        // Show both error and details if available
+        const errorMessage = data.details ? `${data.error}: ${data.details}` : data.error;
+        throw new Error(errorMessage);
       }
 
       const newContent = {
