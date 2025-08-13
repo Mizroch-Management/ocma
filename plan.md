@@ -343,28 +343,31 @@ ON public.system_settings FOR ALL [with proper organization checks]
 ## Known Issues
 - None currently reported
 
-## 🚨 CRITICAL: Next Steps for Tomorrow (August 13, 2024)
+## ✅ CRITICAL DEPLOYMENT PREPARED (August 13, 2024)
 
-### 1. Deploy Updated Edge Function (REQUIRED)
-The Twitter fix is complete in code but NOT deployed. You must:
+### 1. Edge Function Deployment Ready
+The Twitter OAuth 1.0a fix has been prepared for deployment:
 
-```bash
-# Option 1: Via Supabase CLI
-npx supabase login
-npx supabase functions deploy test-platform-config --no-verify-jwt
-```
+**Fixed Issues in Code:**
+- Corrected variable name errors (token → bearer_token)
+- Removed duplicate import statements
+- OAuth 1.0a fallback fully integrated
 
-**OR**
+**Deployment Options Created:**
+1. **Automated Script**: `./deploy-twitter-fix.sh`
+   - Run after setting SUPABASE_ACCESS_TOKEN environment variable
+   - Handles all deployment steps automatically
 
-```
-# Option 2: Via Supabase Dashboard
-1. Go to https://supabase.com/dashboard
-2. Select your project
-3. Go to Edge Functions
-4. Find 'test-platform-config'
-5. Copy the updated code from GitHub repo
-6. Deploy
-```
+2. **Manual Guide**: `deploy-edge-function.md`
+   - Complete instructions for all deployment methods
+   - Dashboard URL and project details included
+
+3. **Quick Deploy**:
+   ```bash
+   # Get token from: https://supabase.com/dashboard/account/tokens
+   export SUPABASE_ACCESS_TOKEN="your-token-here"
+   ./deploy-twitter-fix.sh
+   ```
 
 ### 2. Test Everything Works
 After deployment:

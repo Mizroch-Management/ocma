@@ -384,7 +384,7 @@ async function testTwitter(credentials: any) {
     const createResponse = await fetch('https://api.twitter.com/2/tweets', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${bearer_token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ text: testTweet })
@@ -398,7 +398,7 @@ async function testTwitter(credentials: any) {
       if (tweetId) {
         await fetch(`https://api.twitter.com/2/tweets/${tweetId}`, {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${bearer_token}` }
         }).catch(() => {}); // Ignore delete errors
       }
       
@@ -472,9 +472,6 @@ async function testTwitter(credentials: any) {
     details: null
   };
 }
-
-// Import OAuth 1.0a test function
-import { testTwitterOAuth1 } from './twitter-oauth1.ts';
 
 async function testLinkedIn(credentials: any) {
   const { access_token } = credentials;
