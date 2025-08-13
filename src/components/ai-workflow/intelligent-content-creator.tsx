@@ -13,9 +13,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkflow, type ContentPiece } from "@/contexts/workflow-context";
 import { buildContentPrompt } from "@/lib/ai-prompt-builder";
 
+interface ContentPlan {
+  id: string;
+  platform: string;
+  contentType: string;
+  theme: string;
+  description: string;
+  week: number;
+  day: string;
+}
+
 interface IntelligentContentCreatorProps {
-  contentPlans: any[];
-  onContentApproved: (content: any[]) => void;
+  contentPlans: ContentPlan[];
+  onContentApproved: (content: ContentPiece[]) => void;
 }
 
 export function IntelligentContentCreator({ contentPlans, onContentApproved }: IntelligentContentCreatorProps) {

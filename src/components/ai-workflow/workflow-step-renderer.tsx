@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 interface WorkflowStepRendererProps {
   currentStep: number;
   onStepChange: (stepIndex: number) => void;
-  onBusinessInfoUpdate: (info: any) => void;
+  onBusinessInfoUpdate: (info: Record<string, unknown>) => void;
 }
 
 const stepConfig = [

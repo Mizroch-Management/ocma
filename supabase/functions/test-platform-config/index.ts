@@ -10,7 +10,18 @@ const corsHeaders = {
 interface TestRequest {
   platform: string;
   type: 'social_media' | 'ai_platform';
-  credentials?: any;
+  credentials?: {
+    bearer_token?: string;
+    api_key?: string;
+    api_secret?: string;
+    access_token?: string;
+    access_token_secret?: string;
+    client_id?: string;
+    page_id?: string;
+    user_id?: string;
+    app_id?: string;
+    username?: string;
+  };
   api_key?: string;
 }
 
@@ -32,7 +43,7 @@ serve(async (req) => {
 
     const { platform, type, credentials, api_key }: TestRequest = await req.json();
 
-    let testResult: { success: boolean; message: string; details?: any } = { success: false, message: '', details: null };
+    let testResult: { success: boolean; message: string; details?: Record<string, unknown> | null } = { success: false, message: '', details: null };
 
     if (type === 'ai_platform') {
       testResult = await testAIPlatform(platform, api_key);
@@ -119,12 +130,13 @@ async function testAIPlatform(platform: string, apiKey: string) {
       default:
         return { success: false, message: 'Unsupported AI platform', details: null };
     }
-  } catch (error) {
-    return { success: false, message: `Test failed: ${error.message}`, details: null };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { success: false, message: `Test failed: ${errorMessage}`, details: null };
   }
 }
 
-async function testSocialMediaPlatform(platform: string, credentials: any) {
+async function testSocialMediaPlatform(platform: string, credentials: TestRequest['credentials']) {
   try {
     switch (platform) {
       case 'facebook':
@@ -146,8 +158,9 @@ async function testSocialMediaPlatform(platform: string, credentials: any) {
       default:
         return { success: false, message: 'Unsupported social media platform', details: null };
     }
-  } catch (error) {
-    return { success: false, message: `Test failed: ${error.message}`, details: null };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { success: false, message: `Test failed: ${errorMessage}`, details: null };
   }
 }
 
@@ -325,7 +338,7 @@ async function testRunware(apiKey: string) {
 }
 
 // Social Media Platform Tests
-async function testFacebook(credentials: any) {
+async function testFacebook(credentials: TestRequest['credentials']) {
   const { access_token, page_id } = credentials;
   if (!access_token) {
     return { success: false, message: 'Facebook access token is required', details: null };
@@ -346,7 +359,7 @@ async function testFacebook(credentials: any) {
   }
 }
 
-async function testInstagram(credentials: any) {
+async function testInstagram(credentials: TestRequest['credentials']) {
   const { access_token, user_id } = credentials;
   if (!access_token) {
     return { success: false, message: 'Instagram access token is required', details: null };
@@ -367,7 +380,7 @@ async function testInstagram(credentials: any) {
   }
 }
 
-async function testTwitter(credentials: any) {
+async function testTwitter(credentials: TestRequest['credentials']) {
   // X/Twitter supports both OAuth 2.0 and OAuth 1.0a
   // Try OAuth 2.0 first, then fall back to OAuth 1.0a
   const { bearer_token, api_key, api_secret, access_token, access_token_secret } = credentials;
@@ -376,88 +389,122 @@ async function testTwitter(credentials: any) {
   if (bearer_token) {
     console.log('Testing Twitter with OAuth 2.0 bearer token...');
 
-  // First try to validate the token with a simple tweet creation test
-  // This will verify if the token has tweet.write scope
-  try {
-    // Test with a dry-run approach - create and immediately delete
-    const testTweet = `OCMA test tweet - ${Date.now()}`;
-    const createResponse = await fetch('https://api.twitter.com/2/tweets', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${bearer_token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ text: testTweet })
-    });
-
-    if (createResponse.ok) {
-      const createData = await createResponse.json();
-      const tweetId = createData.data?.id;
-      
-      // Try to delete the test tweet to keep timeline clean
-      if (tweetId) {
-        await fetch(`https://api.twitter.com/2/tweets/${tweetId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${bearer_token}` }
-        }).catch(() => {}); // Ignore delete errors
-      }
-      
-      return { 
-        success: true, 
-        message: 'X (Twitter) OAuth 2.0 credentials verified successfully - posting enabled',
-        details: { 
-          status: 'Connected with tweet.write scope',
-          test_tweet_id: tweetId 
+    // First check if this is a user context token by testing /2/users/me
+    try {
+      const userResponse = await fetch('https://api.twitter.com/2/users/me', {
+        headers: {
+          'Authorization': `Bearer ${bearer_token}`,
+          'Content-Type': 'application/json'
         }
-      };
-    } else if (createResponse.status === 403) {
-      // Token doesn't have tweet.write scope, but might be valid for reading
-      // Token might be App-Only, try OAuth 1.0a if available
-      console.log('OAuth 2.0 failed with 403, trying OAuth 1.0a...');
-      if (api_key && api_secret && access_token && access_token_secret) {
-        return await testTwitterOAuth1(credentials);
-      }
-      return { 
-        success: false, 
-        message: 'X (Twitter) OAuth 2.0 token is App-Only (cannot post). Please use OAuth 1.0a credentials or get a User Context OAuth 2.0 token.',
-        details: null
-      };
-    } else if (createResponse.status === 401) {
-      // Invalid token, try OAuth 1.0a if available
-      console.log('OAuth 2.0 failed with 401, trying OAuth 1.0a...');
-      if (api_key && api_secret && access_token && access_token_secret) {
-        return await testTwitterOAuth1(credentials);
-      }
-      return { 
-        success: false, 
-        message: 'X (Twitter) OAuth 2.0 token is invalid or expired. Please provide valid OAuth 1.0a credentials.',
-        details: null
-      };
-    } else {
-      const errorText = await createResponse.text();
-      let errorMessage = 'Failed to verify X (Twitter) credentials';
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.detail || errorJson.title || errorJson.message || errorMessage;
-        
-        // If it's an authentication type error, try OAuth 1.0a
-        if (errorJson.type === 'https://api.twitter.com/2/problems/unsupported-authentication' && 
-            api_key && api_secret && access_token && access_token_secret) {
-          console.log('Unsupported auth type for OAuth 2.0, trying OAuth 1.0a...');
+      });
+
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        // This is a user context token, test tweet creation
+        const testTweet = `OCMA test tweet - ${Date.now()}`;
+        const createResponse = await fetch('https://api.twitter.com/2/tweets', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${bearer_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text: testTweet })
+        });
+
+        if (createResponse.ok) {
+          const createData = await createResponse.json();
+          const tweetId = createData.data?.id;
+          
+          // Try to delete the test tweet to keep timeline clean
+          if (tweetId) {
+            await fetch(`https://api.twitter.com/2/tweets/${tweetId}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${bearer_token}` }
+            }).catch(() => {}); // Ignore delete errors
+          }
+          
+          return { 
+            success: true, 
+            message: `X (Twitter) OAuth 2.0 User Context verified for @${userData.data?.username || 'user'} - posting enabled`,
+            details: { 
+              status: 'Connected with tweet.write scope',
+              username: userData.data?.username,
+              auth_type: 'OAuth 2.0 User Context',
+              test_tweet_id: tweetId 
+            }
+          };
+        } else if (createResponse.status === 403) {
+          // Token doesn't have tweet.write scope, but might be valid for reading
+          return { 
+            success: false, 
+            message: `X (Twitter) OAuth 2.0 User Context token for @${userData.data?.username || 'user'} lacks tweet.write scope. Please ensure your app has proper permissions.`,
+            details: {
+              username: userData.data?.username,
+              auth_type: 'OAuth 2.0 User Context (read-only)',
+              error: 'Missing tweet.write scope'
+            }
+          };
+        } else if (createResponse.status === 401) {
+          // Invalid or expired token
+          return { 
+            success: false, 
+            message: `X (Twitter) OAuth 2.0 User Context token for @${userData.data?.username || 'user'} is invalid or expired. Please refresh your token.`,
+            details: {
+              username: userData.data?.username,
+              auth_type: 'OAuth 2.0 User Context',
+              error: 'Token expired or invalid'
+            }
+          };
+        } else {
+          const errorText = await createResponse.text();
+          let errorMessage = 'Failed to verify X (Twitter) credentials';
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.detail || errorJson.title || errorJson.message || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+          return { 
+            success: false, 
+            message: `X (Twitter) OAuth 2.0 User Context API error: ${errorMessage}`, 
+            details: {
+              username: userData.data?.username,
+              auth_type: 'OAuth 2.0 User Context',
+              error: errorMessage
+            }
+          };
+        }
+      } else {
+        // This might be an App-Only token, try OAuth 1.0a if available
+        console.log('Bearer token failed user context check, trying OAuth 1.0a...');
+        if (api_key && api_secret && access_token && access_token_secret) {
           return await testTwitterOAuth1(credentials);
         }
-      } catch {
-        errorMessage = errorText || errorMessage;
+        return { 
+          success: false, 
+          message: 'X (Twitter) OAuth 2.0 token appears to be App-Only (cannot access user context). Please use OAuth 1.0a credentials or get a User Context OAuth 2.0 token.',
+          details: {
+            auth_type: 'OAuth 2.0 App-Only',
+            error: 'No user context access'
+          }
+        };
       }
-      return { success: false, message: `X (Twitter) API error: ${errorMessage}`, details: null };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      // Try OAuth 1.0a as fallback if available
+      if (api_key && api_secret && access_token && access_token_secret) {
+        console.log('OAuth 2.0 connection failed, trying OAuth 1.0a...');
+        return await testTwitterOAuth1(credentials);
+      }
+      return { 
+        success: false, 
+        message: `X (Twitter) OAuth 2.0 connection error: ${errorMessage}`,
+        details: {
+          auth_type: 'OAuth 2.0',
+          error: errorMessage
+        }
+      };
     }
-  } catch (error: any) {
-    return { 
-      success: false, 
-      message: `X (Twitter) connection error: ${error.message || 'Unknown error occurred'}`,
-      details: null
-    };
-  }
   }
   
   // No OAuth 2.0 token, try OAuth 1.0a
@@ -473,7 +520,7 @@ async function testTwitter(credentials: any) {
   };
 }
 
-async function testLinkedIn(credentials: any) {
+async function testLinkedIn(credentials: TestRequest['credentials']) {
   const { access_token } = credentials;
   if (!access_token) {
     return { success: false, message: 'LinkedIn access token is required', details: null };
@@ -498,7 +545,7 @@ async function testLinkedIn(credentials: any) {
   }
 }
 
-async function testYouTube(credentials: any) {
+async function testYouTube(credentials: TestRequest['credentials']) {
   const { api_key } = credentials;
   if (!api_key) {
     return { success: false, message: 'YouTube API key is required', details: null };
@@ -519,7 +566,7 @@ async function testYouTube(credentials: any) {
   }
 }
 
-async function testTikTok(credentials: any) {
+async function testTikTok(credentials: TestRequest['credentials']) {
   // TikTok API testing would require more complex OAuth flow
   // For now, just validate required fields are present
   const { app_id, access_token } = credentials;
@@ -534,7 +581,7 @@ async function testTikTok(credentials: any) {
   };
 }
 
-async function testPinterest(credentials: any) {
+async function testPinterest(credentials: TestRequest['credentials']) {
   const { access_token } = credentials;
   if (!access_token) {
     return { success: false, message: 'Pinterest access token is required', details: null };
@@ -559,7 +606,7 @@ async function testPinterest(credentials: any) {
   }
 }
 
-async function testSnapchat(credentials: any) {
+async function testSnapchat(credentials: TestRequest['credentials']) {
   // Snapchat API testing requires more complex setup
   // For now, just validate required fields are present
   const { client_id, access_token } = credentials;

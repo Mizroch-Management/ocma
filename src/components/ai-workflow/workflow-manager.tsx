@@ -30,11 +30,11 @@ interface WorkflowSummary {
   title: string;
   status: string;
   current_step: number;
-  business_info_data: any;
+  business_info_data: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
-  progress_data: any;
-  metadata: any;
+  progress_data: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
 }
 
 interface WorkflowManagerProps {

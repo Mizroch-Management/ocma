@@ -1,5 +1,5 @@
 // lib/social/clients.ts
-type AnyJson = Record<string, any>;
+type AnyJson = Record<string, unknown>;
 
 export type SocialAccount = {
   id: string;
@@ -186,7 +186,7 @@ export async function testPostability(account: SocialAccount, live = false) {
       default:
         baseResult.details.note = 'Unsupported platform in tester.';
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     baseResult.ok = false;
     baseResult.details.error = String(err?.message || err);
   }

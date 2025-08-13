@@ -17,8 +17,16 @@ import { buildStrategyPrompt } from "@/lib/ai-prompt-builder";
 import { AIPlatformToolsSelector } from "./ai-platform-tools-selector";
 import { log } from '@/utils/logger';
 
+interface StrategyData {
+  platforms: string[];
+  content_themes: string[];
+  recommendations: AIStrategyStep[];
+  competitive_analysis?: string[];
+  target_audience_insights?: string[];
+}
+
 interface AIStrategyConsultantProps {
-  onStrategyApproved: (strategy: any) => void;
+  onStrategyApproved: (strategy: StrategyData) => void;
   businessInfo: BusinessInfo;
 }
 

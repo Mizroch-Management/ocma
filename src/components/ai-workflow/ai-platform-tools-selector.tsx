@@ -13,7 +13,7 @@ export interface AITool {
   id: string;
   name: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   requiresPremium?: boolean;
   enhancesQuality?: boolean;
 }

@@ -34,7 +34,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: unknown) => {
         // Retry network errors but not 4xx client errors
         if (error?.status >= 400 && error?.status < 500) {
           return false;
@@ -44,7 +44,7 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // 5 minutes
     },
     mutations: {
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: unknown) => {
         // Only retry 5xx server errors and network errors
         if (error?.status >= 500 || !error?.status) {
           return failureCount < 1;
