@@ -17,47 +17,82 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Type definitions for workflow step components
+interface BusinessInfoProps {
+  onInfoSubmitted: (info: Record<string, unknown>) => void;
+}
+
+interface StrategyConsultantProps {
+  businessInfo?: Record<string, unknown>;
+  onStrategyApproved: (strategy: Record<string, unknown>) => void;
+}
+
+interface ContentPlannerProps {
+  strategy?: Record<string, unknown>;
+  onPlanApproved: (plans: Record<string, unknown>[]) => void;
+}
+
+interface ContentCreatorProps {
+  contentPlans?: Record<string, unknown>[];
+  onContentApproved: (content: Record<string, unknown>[]) => void;
+}
+
+type WorkflowStepComponent = 
+  | React.ComponentType<BusinessInfoProps>
+  | React.ComponentType<StrategyConsultantProps>
+  | React.ComponentType<ContentPlannerProps>
+  | React.ComponentType<ContentCreatorProps>
+  | React.ComponentType<Record<string, never>>;
+
 interface WorkflowStepRendererProps {
   currentStep: number;
   onStepChange: (stepIndex: number) => void;
   onBusinessInfoUpdate: (info: Record<string, unknown>) => void;
 }
 
-const stepConfig = [
+interface StepConfig {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  component: WorkflowStepComponent;
+}
+
+const stepConfig: StepConfig[] = [
   {
     id: 'business-info',
     title: 'Business Information Setup',
     description: 'Tell us about your business to personalize your marketing strategy',
     icon: Building2,
-    component: BusinessInfoCollector
+    component: BusinessInfoCollector as WorkflowStepComponent
   },
   {
     id: 'strategy',
     title: 'AI Strategy Development',
     description: 'Our AI analyzes your business and creates a comprehensive marketing strategy',
     icon: Brain,
-    component: AIStrategyConsultant
+    component: AIStrategyConsultant as WorkflowStepComponent
   },
   {
     id: 'planning',
     title: 'Smart Content Planning',
     description: 'Generate a detailed content calendar with platform-specific strategies',
     icon: Calendar,
-    component: SmartContentPlanner
+    component: SmartContentPlanner as WorkflowStepComponent
   },
   {
     id: 'creation',
     title: 'Intelligent Content Creation',
     description: 'Create engaging, platform-optimized content based on your strategy',
     icon: Wand2,
-    component: IntelligentContentCreator
+    component: IntelligentContentCreator as WorkflowStepComponent
   },
   {
     id: 'scheduling',
     title: 'Automated Scheduling',
     description: 'Set up automated posting schedules and integration dashboards',
     icon: Clock,
-    component: WorkflowIntegrationDashboard
+    component: WorkflowIntegrationDashboard as WorkflowStepComponent
   }
 ];
 
@@ -159,9 +194,8 @@ export function WorkflowStepRenderer({
       {/* Step Content */}
       <div className="min-h-[400px]">
         {(() => {
-          // Use any type for StepComponent to allow different prop types
-          const StepComponentAny = StepComponent as any;
-          const componentProps: any = { key: `step-${validStep}` };
+          const StepComponentTyped = StepComponent as React.ComponentType<Record<string, unknown>>;
+          const componentProps: Record<string, unknown> = { key: `step-${validStep}` };
           
           // Add props based on the current step
           switch (validStep) {
@@ -170,19 +204,19 @@ export function WorkflowStepRenderer({
               break;
             case 1: // AI Strategy Consultant
               componentProps.businessInfo = state.businessInfo;
-              componentProps.onStrategyApproved = (strategy: any) => {
+              componentProps.onStrategyApproved = (strategy: Record<string, unknown>) => {
                 dispatch({ type: 'SET_APPROVED_STRATEGY', payload: strategy });
               };
               break;
             case 2: // Smart Content Planner
               componentProps.strategy = state.approvedStrategy;
-              componentProps.onPlanApproved = (plans: any[]) => {
+              componentProps.onPlanApproved = (plans: Record<string, unknown>[]) => {
                 dispatch({ type: 'SET_APPROVED_PLANS', payload: plans });
               };
               break;
             case 3: // Intelligent Content Creator
               componentProps.contentPlans = state.approvedPlans;
-              componentProps.onContentApproved = (content: any[]) => {
+              componentProps.onContentApproved = (content: Record<string, unknown>[]) => {
                 dispatch({ type: 'SET_APPROVED_CONTENT', payload: content });
               };
               break;
@@ -191,7 +225,7 @@ export function WorkflowStepRenderer({
               break;
           }
           
-          return <StepComponentAny {...componentProps} />;
+          return <StepComponentTyped {...componentProps} />;
         })()}
       </div>
 

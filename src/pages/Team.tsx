@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useOrganization } from "@/hooks/use-organization";
@@ -40,9 +40,9 @@ export default function Team() {
     if (currentOrganization) {
       fetchOrganizationMembers();
     }
-  }, [currentOrganization, user]);
+  }, [currentOrganization, user, fetchOrganizationMembers]);
 
-  const fetchOrganizationMembers = async () => {
+  const fetchOrganizationMembers = useCallback(async () => {
     if (!currentOrganization) return;
     
     log.debug('Fetching organization members', {
@@ -125,7 +125,8 @@ export default function Team() {
         organizationId: currentOrganization.id
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       log.error('Failed to fetch organization members', error, undefined, {
         component: 'Team',
         action: 'fetch_members_error',
@@ -133,13 +134,13 @@ export default function Team() {
       });
       toast({
         title: "Error loading team members",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentOrganization, user, toast]);
 
   const updateUserRole = async (userId: string, newRole: 'owner' | 'admin' | 'member') => {
     if (!currentOrganization) return;
@@ -159,10 +160,11 @@ export default function Team() {
       });
 
       fetchOrganizationMembers();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Error updating role",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -186,10 +188,11 @@ export default function Team() {
       });
 
       fetchOrganizationMembers();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Error removing user",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -212,10 +215,11 @@ export default function Team() {
       });
 
       fetchOrganizationMembers();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Error approving member",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -238,10 +242,11 @@ export default function Team() {
       });
 
       fetchOrganizationMembers();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Error rejecting member",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }

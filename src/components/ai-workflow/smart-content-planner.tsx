@@ -13,8 +13,12 @@ import { useWorkflow, type WorkflowContentPlan, type BusinessInfo, type AIStrate
 import { buildPlanningPrompt } from "@/lib/ai-prompt-builder";
 
 interface SmartContentPlannerProps {
-  strategy: any;
-  onPlanApproved: (plans: any[]) => void;
+  strategy: {
+    name?: string;
+    title?: string;
+    [key: string]: unknown;
+  } | null;
+  onPlanApproved: (plans: Array<Record<string, unknown>>) => void;
 }
 
 export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPlannerProps) {
@@ -565,7 +569,7 @@ export function SmartContentPlanner({ strategy, onPlanApproved }: SmartContentPl
               </div>
             </div>
           ) : (
-            <Tabs value={planningPhase} onValueChange={setPlanningPhase as any}>
+            <Tabs value={planningPhase} onValueChange={(value: string) => setPlanningPhase(value as 'overview' | 'weekly')}>
               <TabsList>
                 <TabsTrigger value="overview">Monthly Overview</TabsTrigger>
                 <TabsTrigger value="weekly" disabled={monthlyOverview.status !== 'approved'}>

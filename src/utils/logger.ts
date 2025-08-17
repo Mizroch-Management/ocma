@@ -24,7 +24,7 @@ export interface LogContext {
   component?: string;
   action?: string;
   timestamp?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface LogEntry {
@@ -32,7 +32,7 @@ export interface LogEntry {
   message: string;
   context?: LogContext;
   error?: Error;
-  data?: any;
+  data?: unknown;
   timestamp: string;
 }
 
@@ -59,7 +59,7 @@ class Logger {
   /**
    * Update specific context values
    */
-  updateContext(key: keyof LogContext, value: any): void {
+  updateContext(key: keyof LogContext, value: unknown): void {
     this.context[key] = value;
   }
 
@@ -73,28 +73,28 @@ class Logger {
   /**
    * Log error level messages
    */
-  error(message: string, error?: Error, data?: any, context?: Partial<LogContext>): void {
+  error(message: string, error?: Error, data?: unknown, context?: Partial<LogContext>): void {
     this.log(LogLevel.ERROR, message, error, data, context);
   }
 
   /**
    * Log warning level messages
    */
-  warn(message: string, data?: any, context?: Partial<LogContext>): void {
+  warn(message: string, data?: unknown, context?: Partial<LogContext>): void {
     this.log(LogLevel.WARN, message, undefined, data, context);
   }
 
   /**
    * Log info level messages
    */
-  info(message: string, data?: any, context?: Partial<LogContext>): void {
+  info(message: string, data?: unknown, context?: Partial<LogContext>): void {
     this.log(LogLevel.INFO, message, undefined, data, context);
   }
 
   /**
    * Log debug level messages (only in development)
    */
-  debug(message: string, data?: any, context?: Partial<LogContext>): void {
+  debug(message: string, data?: unknown, context?: Partial<LogContext>): void {
     this.log(LogLevel.DEBUG, message, undefined, data, context);
   }
 
@@ -118,11 +118,11 @@ class Logger {
   /**
    * API request/response logging
    */
-  apiRequest(method: string, url: string, data?: any, context?: Partial<LogContext>): void {
+  apiRequest(method: string, url: string, data?: unknown, context?: Partial<LogContext>): void {
     this.info(`API Request: ${method} ${url}`, { requestData: data }, context);
   }
 
-  apiResponse(method: string, url: string, status: number, data?: any, duration?: number, context?: Partial<LogContext>): void {
+  apiResponse(method: string, url: string, status: number, data?: unknown, duration?: number, context?: Partial<LogContext>): void {
     const level = status >= 400 ? LogLevel.ERROR : LogLevel.INFO;
     const message = `API Response: ${method} ${url} - ${status}`;
     
@@ -132,14 +132,14 @@ class Logger {
   /**
    * User action logging
    */
-  userAction(action: string, data?: any, context?: Partial<LogContext>): void {
+  userAction(action: string, data?: unknown, context?: Partial<LogContext>): void {
     this.info(`User Action: ${action}`, data, context);
   }
 
   /**
    * Component lifecycle logging
    */
-  componentMount(component: string, props?: any): void {
+  componentMount(component: string, props?: unknown): void {
     this.debug(`Component Mounted: ${component}`, { props }, {
       component,
       action: 'component_mount'
@@ -156,14 +156,14 @@ class Logger {
   /**
    * Workflow step logging
    */
-  workflowStep(step: string, data?: any, context?: Partial<LogContext>): void {
+  workflowStep(step: string, data?: unknown, context?: Partial<LogContext>): void {
     this.info(`Workflow Step: ${step}`, data, context);
   }
 
   /**
    * Core logging method
    */
-  private log(level: LogLevel, message: string, error?: Error, data?: any, context?: Partial<LogContext>): void {
+  private log(level: LogLevel, message: string, error?: Error, data?: unknown, context?: Partial<LogContext>): void {
     if (!this.shouldLog(level)) {
       return;
     }
@@ -254,16 +254,16 @@ export { logger };
 
 // Convenience functions for common use cases
 export const log = {
-  error: (message: string, error?: Error, data?: any, context?: Partial<LogContext>) => 
+  error: (message: string, error?: Error, data?: unknown, context?: Partial<LogContext>) => 
     logger.error(message, error, data, context),
   
-  warn: (message: string, data?: any, context?: Partial<LogContext>) => 
+  warn: (message: string, data?: unknown, context?: Partial<LogContext>) => 
     logger.warn(message, data, context),
   
-  info: (message: string, data?: any, context?: Partial<LogContext>) => 
+  info: (message: string, data?: unknown, context?: Partial<LogContext>) => 
     logger.info(message, data, context),
   
-  debug: (message: string, data?: any, context?: Partial<LogContext>) => 
+  debug: (message: string, data?: unknown, context?: Partial<LogContext>) => 
     logger.debug(message, data, context),
   
   time: (label: string, context?: Partial<LogContext>) => 
@@ -272,22 +272,22 @@ export const log = {
   timeEnd: (label: string, context?: Partial<LogContext>) => 
     logger.timeEnd(label, context),
   
-  apiRequest: (method: string, url: string, data?: any, context?: Partial<LogContext>) => 
+  apiRequest: (method: string, url: string, data?: unknown, context?: Partial<LogContext>) => 
     logger.apiRequest(method, url, data, context),
   
-  apiResponse: (method: string, url: string, status: number, data?: any, duration?: number, context?: Partial<LogContext>) => 
+  apiResponse: (method: string, url: string, status: number, data?: unknown, duration?: number, context?: Partial<LogContext>) => 
     logger.apiResponse(method, url, status, data, duration, context),
   
-  userAction: (action: string, data?: any, context?: Partial<LogContext>) => 
+  userAction: (action: string, data?: unknown, context?: Partial<LogContext>) => 
     logger.userAction(action, data, context),
   
-  workflowStep: (step: string, data?: any, context?: Partial<LogContext>) => 
+  workflowStep: (step: string, data?: unknown, context?: Partial<LogContext>) => 
     logger.workflowStep(step, data, context),
   
   setContext: (context: Partial<LogContext>) => 
     logger.setContext(context),
   
-  updateContext: (key: keyof LogContext, value: any) => 
+  updateContext: (key: keyof LogContext, value: unknown) => 
     logger.updateContext(key, value),
   
   clearContext: () => 

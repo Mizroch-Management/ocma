@@ -25,7 +25,7 @@ export interface ApiKeyOptions {
  * Centralized API key retrieval with comprehensive fallback logic
  */
 export async function getApiKey(
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   options: ApiKeyOptions
 ): Promise<ApiKeyResult> {
   const { organizationId, platform, allowGlobalFallback = true, allowEnvironmentFallback = true } = options;
@@ -87,7 +87,7 @@ export async function getApiKey(
  * Get organization-specific API key
  */
 async function getOrganizationApiKey(
-  supabase: any, 
+  supabase: ReturnType<typeof createClient>, 
   organizationId: string, 
   platform: string
 ): Promise<ApiKeyResult> {
@@ -139,7 +139,7 @@ async function getOrganizationApiKey(
 /**
  * Get global API key (fallback when organization key not found)
  */
-async function getGlobalApiKey(supabase: any, platform: string): Promise<ApiKeyResult> {
+async function getGlobalApiKey(supabase: ReturnType<typeof createClient>, platform: string): Promise<ApiKeyResult> {
   try {
     const { data, error } = await supabase
       .from('system_settings')
@@ -246,7 +246,7 @@ function isValidApiKeyFormat(platform: string, apiKey: string): boolean {
  * Get multiple API keys at once (for functions that need multiple platforms)
  */
 export async function getMultipleApiKeys(
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   organizationId: string,
   platforms: string[]
 ): Promise<Record<string, ApiKeyResult>> {

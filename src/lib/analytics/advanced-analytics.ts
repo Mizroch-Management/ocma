@@ -37,7 +37,7 @@ export interface ReportConfig {
 export interface ReportFilter {
   field: string;
   operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'in' | 'between';
-  value: any;
+  value: unknown;
   label?: string;
 }
 
@@ -421,7 +421,7 @@ export class AdvancedAnalyticsManager {
     return data || [];
   }
 
-  private applyFilter(query: any, filter: ReportFilter): any {
+  private applyFilter(query: Record<string, unknown>, filter: ReportFilter): Record<string, unknown> {
     switch (filter.operator) {
       case 'equals':
         return query.eq(filter.field, filter.value);
@@ -440,7 +440,7 @@ export class AdvancedAnalyticsManager {
     }
   }
 
-  private processReportData(rawData: any[], config: ReportConfig): AnalyticsData {
+  private processReportData(rawData: Record<string, unknown>[], config: ReportConfig): AnalyticsData {
     // Group data based on configuration
     const grouped = this.groupData(rawData, config.groupBy, config.timeRange.period);
     

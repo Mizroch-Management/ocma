@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +44,7 @@ export function OrganizationOnboarding() {
   };
 
   // Load all organizations when join tab is selected
-  const loadAllOrganizations = async () => {
+  const loadAllOrganizations = useCallback(async () => {
     setIsLoadingOrgs(true);
     try {
       const { data, error } = await fetchAllOrganizations();
@@ -62,10 +62,10 @@ export function OrganizationOnboarding() {
     } finally {
       setIsLoadingOrgs(false);
     }
-  };
+  }, [fetchAllOrganizations]);
 
   // Filter organizations based on search query
-  const filterOrganizations = (query: string) => {
+  const filterOrganizations = useCallback((query: string) => {
     if (!query.trim()) {
       setFilteredOrganizations(allOrganizations);
     } else {
@@ -75,7 +75,7 @@ export function OrganizationOnboarding() {
       );
       setFilteredOrganizations(filtered);
     }
-  };
+  }, [allOrganizations]);
 
   const handleJoinRequest = async (organizationId: string) => {
     setIsLoading(true);
@@ -95,12 +95,12 @@ export function OrganizationOnboarding() {
     if (activeTab === 'join') {
       loadAllOrganizations();
     }
-  }, [activeTab]);
+  }, [activeTab, loadAllOrganizations]);
 
   // Filter organizations when search query changes
   useEffect(() => {
     filterOrganizations(searchQuery);
-  }, [searchQuery, allOrganizations]);
+  }, [searchQuery, allOrganizations, filterOrganizations]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-subtle px-4">

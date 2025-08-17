@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -122,7 +122,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
     if (state.draftData?.selectedAIPlatform) {
       setSelectedPlatform(state.draftData.selectedAIPlatform);
     }
-  }, [state.draftData]);
+  }, [state.draftData, selectedPlatform]);
   
   // Check if we need to auto-start generation for steps that were interrupted
   useEffect(() => {
@@ -137,7 +137,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
         setTimeout(() => generateStepContent(currentStep), 1000);
       }
     }
-  }, [steps, selectedPlatform, currentStep]);
+  }, [steps, selectedPlatform, currentStep, generateStepContent]);
 
   // Auto-save when steps change
   useEffect(() => {
@@ -151,7 +151,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
     });
   }, [steps, currentStep, selectedPlatform, dispatch]);
 
-  const generateStepContent = async (stepIndex: number, customPrompt?: string) => {
+  const generateStepContent = useCallback(async (stepIndex: number, customPrompt?: string) => {
     const step = steps[stepIndex];
     
     // Get approved steps for context
@@ -233,7 +233,7 @@ export function AIStrategyConsultant({ onStrategyApproved, businessInfo }: AIStr
         variant: "destructive"
       });
     }
-  };
+  }, [steps, businessInfo, selectedPlatform, getPlatformTools, currentOrganization?.id, toast, setSteps, currentStep]);
 
   const updateUserPrompt = (stepIndex: number, prompt: string) => {
     setSteps(prev => prev.map((s, i) => 

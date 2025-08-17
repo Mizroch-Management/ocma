@@ -3,6 +3,35 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { SocialAPIClient, prepareCredentials } from '../_shared/social-api-client.ts';
 
+interface PlatformOptimization {
+  content?: string;
+  hashtags?: string[];
+  mentions?: string[];
+  timing?: string;
+  [key: string]: unknown;
+}
+
+interface ContentItem {
+  id: string;
+  title: string;
+  content: string;
+  scheduled_platforms?: string[];
+  platforms?: string[];
+  platform_optimizations?: Record<string, PlatformOptimization>;
+  media_urls?: string[];
+  link?: string;
+}
+
+// Use the proper Supabase client type from the imported createClient
+type SupabaseClient = ReturnType<typeof createClient>;
+
+interface PublishResult {
+  success: boolean;
+  postId?: string;
+  error?: string;
+  metrics?: Record<string, string | number | boolean>;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -102,7 +131,8 @@ serve(async (req) => {
             console.log(`Failed to publish to ${platform}: ${publishResult.error}`);
             failedPublications++;
           }
-        } catch (error) {
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
           console.error(`Error publishing to ${platform}:`, error);
           
           // Log error
@@ -112,7 +142,7 @@ serve(async (req) => {
               content_id: content.id,
               platform: platform,
               status: 'failed',
-              error_message: error.message,
+              error_message: errorMessage,
               metrics: {}
             });
           
@@ -156,10 +186,11 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error('Error in publish-scheduled-content function:', error);
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: errorMessage,
       details: 'Failed to publish scheduled content'
     }), {
       status: 500,
@@ -169,7 +200,7 @@ serve(async (req) => {
 });
 
 // Publish to different platforms using real APIs
-async function publishToPlatform(platform: string, content: any, supabase: any) {
+async function publishToPlatform(platform: string, content: ContentItem, supabase: SupabaseClient): Promise<PublishResult> {
   console.log(`Publishing to ${platform} for content ${content.id}`);
   
   try {
@@ -208,32 +239,42 @@ async function publishToPlatform(platform: string, content: any, supabase: any) 
     const mediaUrls = content.media_urls || [];
 
     switch (platform.toLowerCase()) {
-      case 'facebook':
+      case 'facebook': {
         return await apiClient.publishToFacebook(postContent, mediaUrls);
-      case 'instagram':
+      }
+      case 'instagram': {
         // Instagram requires at least one media item
         const instagramMediaUrl = mediaUrls[0] || 'https://via.placeholder.com/1080x1080.png?text=OCMA+Post';
         return await apiClient.publishToInstagram(postContent, instagramMediaUrl);
-      case 'twitter':
+      }
+      case 'twitter': {
         return await apiClient.publishToTwitter(postContent, mediaUrls);
-      case 'linkedin':
+      }
+      case 'linkedin': {
         return await apiClient.publishToLinkedIn(postContent, mediaUrls);
-      case 'youtube':
+      }
+      case 'youtube': {
         return await apiClient.publishToYouTube(postContent);
-      case 'tiktok':
+      }
+      case 'tiktok': {
         return await publishToTikTok(credentials, postContent, content);
-      case 'pinterest':
+      }
+      case 'pinterest': {
         return await publishToPinterest(credentials, postContent, content);
-      case 'snapchat':
+      }
+      case 'snapchat': {
         return await publishToSnapchat(credentials, postContent, content);
-      default:
+      }
+      default: {
         throw new Error(`Platform ${platform} not supported`);
+      }
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error(`Error publishing to ${platform}:`, error);
     return {
       success: false,
-      error: error.message
+      error: errorMessage
     };
   }
 }
@@ -241,21 +282,44 @@ async function publishToPlatform(platform: string, content: any, supabase: any) 
 // These platform functions remain as they don't have full implementations yet
 
 // TikTok Publishing
-async function publishToTikTok(credentials: any, content: string, postData: any) {
+interface TikTokCredentials {
+  access_token?: string;
+  open_id?: string;
+  [key: string]: unknown;
+}
+
+async function publishToTikTok(credentials: TikTokCredentials, content: string, postData: ContentItem): Promise<PublishResult> {
   try {
     // Note: TikTok requires video content, text-only posts are not supported
     // This is a placeholder implementation
     throw new Error('TikTok publishing requires video content - text-only posts not supported');
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return {
       success: false,
-      error: error.message
+      error: errorMessage
     };
   }
 }
 
 // Pinterest Publishing
-async function publishToPinterest(credentials: any, content: string, postData: any) {
+interface PinterestCredentials {
+  access_token?: string;
+  business_id?: string;
+  [key: string]: unknown;
+}
+
+interface PinterestApiResponse {
+  id: string;
+  [key: string]: unknown;
+}
+
+interface PinterestErrorResponse {
+  message?: string;
+  [key: string]: unknown;
+}
+
+async function publishToPinterest(credentials: PinterestCredentials, content: string, postData: ContentItem): Promise<PublishResult> {
   try {
     const response = await fetch('https://api.pinterest.com/v5/pins', {
       method: 'POST',
@@ -272,11 +336,11 @@ async function publishToPinterest(credentials: any, content: string, postData: a
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error: PinterestErrorResponse = await response.json();
       throw new Error(error.message || 'Failed to publish to Pinterest');
     }
 
-    const result = await response.json();
+    const result: PinterestApiResponse = await response.json();
     return {
       success: true,
       postId: result.id,
@@ -285,24 +349,32 @@ async function publishToPinterest(credentials: any, content: string, postData: a
         published_at: new Date().toISOString()
       }
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return {
       success: false,
-      error: error.message
+      error: errorMessage
     };
   }
 }
 
 // Snapchat Publishing
-async function publishToSnapchat(credentials: any, content: string, postData: any) {
+interface SnapchatCredentials {
+  access_token?: string;
+  ad_account_id?: string;
+  [key: string]: unknown;
+}
+
+async function publishToSnapchat(credentials: SnapchatCredentials, content: string, postData: ContentItem): Promise<PublishResult> {
   try {
     // Note: Snapchat Ads API is primarily for advertising, not organic content
     // This would require the Marketing API and specific ad account setup
     throw new Error('Snapchat organic content publishing not available through public API');
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return {
       success: false,
-      error: error.message
+      error: errorMessage
     };
   }
 }

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/use-organization";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,19 +15,14 @@ import { log } from "@/utils/logger";
 export default function ContentCreation() {
   const [selectedStrategy, setSelectedStrategy] = useState("");
   const [selectedWeek, setSelectedWeek] = useState("");
-  const [generatedContent, setGeneratedContent] = useState<any[]>([]);
+  const [generatedContent, setGeneratedContent] = useState<Record<string, unknown>[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [platforms, setPlatforms] = useState<any[]>([]);
+  const [platforms, setPlatforms] = useState<Record<string, unknown>[]>([]);
   const [loadingPlatforms, setLoadingPlatforms] = useState(true);
   const { state: workflowState } = useWorkflow();
   const { currentOrganization } = useOrganization();
 
-  // Fetch platform integrations status
-  useEffect(() => {
-    fetchPlatformStatus();
-  }, [currentOrganization]);
-
-  const fetchPlatformStatus = async () => {
+  const fetchPlatformStatus = useCallback(async () => {
     if (!currentOrganization) return;
     
     try {
@@ -82,7 +77,12 @@ export default function ContentCreation() {
     } finally {
       setLoadingPlatforms(false);
     }
-  };
+  }, [currentOrganization]);
+
+  // Fetch platform integrations status
+  useEffect(() => {
+    fetchPlatformStatus();
+  }, [fetchPlatformStatus]);
 
   // Combine manual strategies with AI strategy
   const strategies = [

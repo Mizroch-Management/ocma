@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { log } from '@/utils/logger';
 
@@ -28,11 +28,7 @@ export function useAIPlatforms() {
     runware: { name: "Runware", description: "Fast image generation API", supportsTools: false }
   };
 
-  useEffect(() => {
-    fetchPlatforms();
-  }, []);
-
-  const fetchPlatforms = async () => {
+  const fetchPlatforms = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('system_settings')
@@ -66,7 +62,11 @@ export function useAIPlatforms() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPlatforms();
+  }, [fetchPlatforms]);
 
   const getConfiguredPlatforms = () => platforms.filter(p => p.isConfigured);
   const getPlatformsWithTools = () => platforms.filter(p => p.supportsTools && p.isConfigured);

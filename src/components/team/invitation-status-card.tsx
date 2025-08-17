@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Clock, CheckCircle, XCircle } from "lucide-react";
@@ -25,9 +25,9 @@ export function InvitationStatusCard() {
     if (currentOrganization) {
       fetchInvitations();
     }
-  }, [currentOrganization]);
+  }, [currentOrganization, fetchInvitations]);
 
-  const fetchInvitations = async () => {
+  const fetchInvitations = useCallback(async () => {
     if (!currentOrganization) return;
 
     try {
@@ -45,7 +45,7 @@ export function InvitationStatusCard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentOrganization]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

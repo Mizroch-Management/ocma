@@ -122,7 +122,7 @@ function getDateFilter(timeRange: string): string {
   }
 }
 
-function createCsvContent(contentData: any[], publicationData: any[]): string {
+function createCsvContent(contentData: Record<string, unknown>[], publicationData: Record<string, unknown>[]): string {
   const headers = [
     'Date',
     'Content Title',

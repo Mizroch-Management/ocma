@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +42,7 @@ import {
 interface SystemSetting {
   id: string;
   setting_key: string;
-  setting_value: any;
+  setting_value: Record<string, unknown>;
   category: string;
   description: string;
 }
@@ -163,18 +163,9 @@ export default function Settings() {
       supportsTools: platform.supportsTools
     };
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, { name: string; description: string; supportsTools: boolean }>);
 
-  useEffect(() => {
-    console.log('Settings useEffect - currentOrganization changed:', currentOrganization);
-    if (currentOrganization) {
-      fetchSettings();
-    } else {
-      console.warn('No organization selected - Settings will not load');
-    }
-  }, [currentOrganization]);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     if (!currentOrganization) {
       console.warn('fetchSettings called without organization');
       return;
@@ -200,9 +191,18 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentOrganization, toast]);
 
-  const updateSetting = async (settingKey: string, newValue: any) => {
+  useEffect(() => {
+    console.log('Settings useEffect - currentOrganization changed:', currentOrganization);
+    if (currentOrganization) {
+      fetchSettings();
+    } else {
+      console.warn('No organization selected - Settings will not load');
+    }
+  }, [fetchSettings, currentOrganization]);
+
+  const updateSetting = async (settingKey: string, newValue: Record<string, unknown>) => {
     console.log('=== UPDATE SETTING DEBUG ===');
     console.log('Setting Key:', settingKey);
     console.log('New Value:', newValue);

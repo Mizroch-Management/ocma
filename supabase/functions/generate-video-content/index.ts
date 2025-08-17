@@ -44,7 +44,22 @@ serve(async (req) => {
   }
 });
 
-async function generateWithRunware(prompt: string, style: string, dimensions: string, settings: any) {
+interface VideoSettings {
+  width?: number;
+  height?: number;
+  model?: string;
+  quality?: string;
+}
+
+interface VideoResult {
+  videoUrl: string;
+  platform: string;
+  cost: number;
+  isPlaceholder?: boolean;
+  message?: string;
+}
+
+async function generateWithRunware(prompt: string, style: string, dimensions: string, settings: VideoSettings): Promise<VideoResult> {
   // Get API key from database
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -102,8 +117,15 @@ async function generateWithRunware(prompt: string, style: string, dimensions: st
     throw new Error('Runware API error');
   }
 
-  const data = await response.json();
-  const imageData = data.data?.find((item: any) => item.taskType === 'imageInference');
+  interface RunwareResponse {
+    data?: Array<{
+      taskType: string;
+      imageURL?: string;
+    }>;
+  }
+  
+  const data: RunwareResponse = await response.json();
+  const imageData = data.data?.find(item => item.taskType === 'imageInference');
   
   return {
     videoUrl: imageData?.imageURL, // Placeholder - would be actual video URL
@@ -114,7 +136,7 @@ async function generateWithRunware(prompt: string, style: string, dimensions: st
   };
 }
 
-async function generateWithStabilityVideo(prompt: string, style: string, dimensions: string, settings: any) {
+async function generateWithStabilityVideo(prompt: string, style: string, dimensions: string, settings: VideoSettings): Promise<VideoResult> {
   // Placeholder for Stability AI Video generation
   // This would use their actual video generation API when available
   

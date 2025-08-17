@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,9 +57,9 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
     if (currentOrganization) {
       loadWorkflows();
     }
-  }, [currentOrganization]);
+  }, [currentOrganization, loadWorkflows]);
 
-  const loadWorkflows = async () => {
+  const loadWorkflows = useCallback(async () => {
     if (!currentOrganization) return;
     
     try {
@@ -82,7 +82,7 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentOrganization, toast]);
 
   const createNewWorkflow = async () => {
     if (!newWorkflowTitle.trim() || !user || !currentOrganization) return;

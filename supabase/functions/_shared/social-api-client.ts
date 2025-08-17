@@ -38,7 +38,7 @@ export interface PostResult {
   postId?: string;
   url?: string;
   error?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 export class SocialAPIClient {
@@ -94,10 +94,10 @@ export class SocialAPIClient {
         postId: result.id,
         url: `https://facebook.com/${result.id}`
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
@@ -166,10 +166,10 @@ export class SocialAPIClient {
         postId: publishResult.id,
         url: `https://instagram.com/p/${publishResult.id}`
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
@@ -184,10 +184,10 @@ export class SocialAPIClient {
       
       // Fallback to OAuth 1.0a
       return await this.publishToTwitterOAuth1(content, mediaUrls);
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
@@ -307,10 +307,10 @@ export class SocialAPIClient {
         postId: postId || 'success',
         url: postId ? `https://www.linkedin.com/feed/update/${postId}` : undefined
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
@@ -340,7 +340,10 @@ export class SocialAPIClient {
           const data = await response.json();
           return data.id || null;
         }
-      } catch {}
+      } catch (error) {
+        // Silently handle errors for optional credential validation
+        console.debug('Credential validation failed:', error);
+      }
     }
     return null;
   }
@@ -376,17 +379,17 @@ export class SocialAPIClient {
       // This would require YouTube Creator API access which has limited availability
       throw new Error('YouTube community posts require Creator API access (limited availability). Consider uploading a video instead.');
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
 }
 
 // Helper function to validate and prepare credentials
-export function prepareCredentials(platformCredentials: any, platform: string): SocialCredentials {
+export function prepareCredentials(platformCredentials: Record<string, unknown>, platform: string): SocialCredentials {
   const prepared: SocialCredentials = {};
   
   switch (platform.toLowerCase()) {

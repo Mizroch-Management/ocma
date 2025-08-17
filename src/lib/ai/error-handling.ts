@@ -25,7 +25,7 @@ export interface AIError {
   retryable: boolean;
   retryAfter?: number; // seconds
   fallbackSuggestion?: string;
-  originalError?: any;
+  originalError?: unknown;
 }
 
 export interface RetryConfig {
@@ -67,7 +67,7 @@ export class AIErrorHandler {
   private retryConfig: RetryConfig;
   private fallbackConfig: FallbackConfig;
   private retryCount: Map<string, number> = new Map();
-  private responseCache: Map<string, { response: any; timestamp: number }> = new Map();
+  private responseCache: Map<string, { response: unknown; timestamp: number }> = new Map();
 
   constructor(
     retryConfig: Partial<RetryConfig> = {},
@@ -78,7 +78,7 @@ export class AIErrorHandler {
   }
 
   // Classify error type based on error details
-  classifyError(error: any): AIError {
+  classifyError(error: unknown): AIError {
     const statusCode = error?.response?.status || error?.status;
     const message = error?.message || error?.response?.data?.error?.message || 'Unknown error';
     const errorCode = error?.response?.data?.error?.code || error?.code;
@@ -284,7 +284,7 @@ export class AIErrorHandler {
   }
 
   // Get cached response if available and not expired
-  private getCachedResponse(operationId: string): any | null {
+  private getCachedResponse(operationId: string): unknown | null {
     const cached = this.responseCache.get(operationId);
     if (!cached) return null;
 
@@ -298,7 +298,7 @@ export class AIErrorHandler {
   }
 
   // Cache a successful response
-  private cacheResponse(operationId: string, response: any): void {
+  private cacheResponse(operationId: string, response: unknown): void {
     this.responseCache.set(operationId, {
       response,
       timestamp: Date.now()

@@ -11,6 +11,26 @@ import { Badge } from '@/components/ui/badge';
 import { Building2, Plus, Check, Clock, Users, Search, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface OrganizationData {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+}
+
+interface MemberProfile {
+  full_name?: string;
+  email?: string;
+}
+
+interface OrganizationMember {
+  id: string;
+  role: string;
+  status: string;
+  created_at: string;
+  profiles?: MemberProfile;
+}
+
 export function OrganizationSelector() {
   const {
     currentOrganization,
@@ -40,8 +60,8 @@ export function OrganizationSelector() {
   
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [allOrganizations, setAllOrganizations] = useState<any[]>([]);
-  const [filteredOrganizations, setFilteredOrganizations] = useState<any[]>([]);
+  const [allOrganizations, setAllOrganizations] = useState<OrganizationData[]>([]);
+  const [filteredOrganizations, setFilteredOrganizations] = useState<OrganizationData[]>([]);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
   const [joining, setJoining] = useState(false);
 
@@ -127,7 +147,7 @@ export function OrganizationSelector() {
       fetchPendingMembers(currentOrganization.id);
       fetchOrganizationMembers(currentOrganization.id);
     }
-  }, [currentOrganization?.id]);
+  }, [currentOrganization, fetchOrganizationMembers, fetchPendingMembers]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -400,9 +420,9 @@ export function OrganizationSelector() {
                     {organizationMembers.filter(m => m.status === 'active').map((member) => (
                       <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
-                          <div className="font-medium">{(member as any).profiles?.full_name || 'Unknown User'}</div>
+                          <div className="font-medium">{(member as OrganizationMember).profiles?.full_name || 'Unknown User'}</div>
                           <div className="text-sm text-muted-foreground">
-                            {(member as any).profiles?.email}
+                            {(member as OrganizationMember).profiles?.email}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             Role: {member.role}
@@ -411,7 +431,7 @@ export function OrganizationSelector() {
                         <div className="flex items-center space-x-2">
                           <Select
                             value={member.role}
-                            onValueChange={(newRole) => updateMemberRole(member.id, newRole as any)}
+                            onValueChange={(newRole) => updateMemberRole(member.id, newRole as 'member' | 'admin' | 'owner')}
                           >
                             <SelectTrigger className="w-32">
                               <SelectValue />
@@ -440,9 +460,9 @@ export function OrganizationSelector() {
                     {pendingMembers.map((member) => (
                       <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
-                          <div className="font-medium">{(member as any).profiles?.full_name || 'Unknown User'}</div>
+                          <div className="font-medium">{(member as OrganizationMember).profiles?.full_name || 'Unknown User'}</div>
                           <div className="text-sm text-muted-foreground">
-                            {(member as any).profiles?.email}
+                            {(member as OrganizationMember).profiles?.email}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             Requested on {new Date(member.created_at).toLocaleDateString()}

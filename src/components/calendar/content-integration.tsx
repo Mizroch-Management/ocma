@@ -22,7 +22,7 @@ interface ContentPiece {
     };
   };
   hashtags?: string[];
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 // This service handles the integration between Calendar and Social Engagement

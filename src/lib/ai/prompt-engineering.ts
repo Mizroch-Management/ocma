@@ -265,7 +265,7 @@ export class PromptEngineer {
   }
 
   // Template interpolation with Handlebars-like syntax
-  private interpolateTemplate(template: string, context: any): string {
+  private interpolateTemplate(template: string, context: Record<string, unknown>): string {
     // Handle conditional blocks {{#if variable}}...{{/if}}
     template = template.replace(/\{\{#if\s+(.+?)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, condition, content) => {
       const value = this.getNestedValue(context, condition);
@@ -285,7 +285,7 @@ export class PromptEngineer {
   }
 
   // Get nested object value by path
-  private getNestedValue(obj: any, path: string): any {
+  private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
     return path.split('.').reduce((current, key) => current?.[key], obj);
   }
 

@@ -69,7 +69,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const ok = results.every(r => r.ok);
 
     res.status(ok ? 200 : 207).json({ ok, mode, live, count: results.length, results });
-  } catch (err: any) {
-    res.status(500).json({ ok: false, error: String(err?.message || err) });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ ok: false, error: errorMessage });
   }
 }

@@ -20,10 +20,10 @@ export interface UseErrorHandlerReturn extends ErrorState {
   setError: (error: Error | null) => void;
   clearError: () => void;
   retry: () => void;
-  withErrorHandling: <T extends any[], R>(
+  withErrorHandling: <T extends unknown[], R>(
     fn: (...args: T) => R | Promise<R>
   ) => (...args: T) => Promise<R>;
-  withAsyncErrorHandling: <T extends any[], R>(
+  withAsyncErrorHandling: <T extends unknown[], R>(
     fn: (...args: T) => Promise<R>
   ) => (...args: T) => Promise<R>;
 }
@@ -138,7 +138,7 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}): UseErrorH
   }, [errorState.retryCount, maxRetries, logErrors, component]);
 
   const withErrorHandling = useCallback(
-    <T extends any[], R>(fn: (...args: T) => R | Promise<R>) =>
+    <T extends unknown[], R>(fn: (...args: T) => R | Promise<R>) =>
       async (...args: T): Promise<R> => {
         try {
           setErrorState(prev => ({ ...prev, isLoading: true, error: null, hasError: false }));
@@ -154,7 +154,7 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}): UseErrorH
   );
 
   const withAsyncErrorHandling = useCallback(
-    <T extends any[], R>(fn: (...args: T) => Promise<R>) =>
+    <T extends unknown[], R>(fn: (...args: T) => Promise<R>) =>
       async (...args: T): Promise<R> => {
         try {
           setErrorState(prev => ({ ...prev, isLoading: true, error: null, hasError: false }));

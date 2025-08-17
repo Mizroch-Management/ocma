@@ -70,10 +70,11 @@ export function InviteMemberDialog({ onInviteSent }: InviteMemberDialogProps) {
       setName("");
       setRole("member");
       onInviteSent();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Error sending invitation",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

@@ -69,8 +69,37 @@ export function ComprehensiveDataRestore({ onNavigateToStep }: ComprehensiveData
       });
 
       // Construct complete workflow state with proper type casting and progress detection
-      const draftData = workflow.draft_data as any;
-      const businessInfo = workflow.business_info_data as any;
+      interface DraftData {
+        strategySteps?: Array<{
+          id: string;
+          title: string;
+          status: string;
+          aiGenerated?: string;
+          [key: string]: unknown;
+        }>;
+        monthlyOverview?: {
+          aiGenerated?: string;
+          [key: string]: unknown;
+        };
+        weeklyPlans?: Array<{
+          id: string;
+          week: number;
+          [key: string]: unknown;
+        }>;
+        contentPieces?: Array<{
+          id: string;
+          [key: string]: unknown;
+        }>;
+        [key: string]: unknown;
+      }
+      
+      interface BusinessInfoData {
+        company?: string;
+        [key: string]: unknown;
+      }
+      
+      const draftData = workflow.draft_data as DraftData | null;
+      const businessInfo = workflow.business_info_data as BusinessInfoData | null;
       
       // Detect actual progress from saved data
       const hasBusinessInfo = !!businessInfo;
@@ -84,7 +113,7 @@ export function ComprehensiveDataRestore({ onNavigateToStep }: ComprehensiveData
 
       // Calculate the correct current step based on actual progress
       let correctCurrentStep = 0;
-      let completedSteps: string[] = [];
+      const completedSteps: string[] = [];
       
       if (hasBusinessInfo) {
         completedSteps.push('business-info');
@@ -118,9 +147,9 @@ export function ComprehensiveDataRestore({ onNavigateToStep }: ComprehensiveData
       const restoredState = {
         businessInfo: businessInfo || null,
         draftData: draftData || null,
-        approvedStrategy: (workflow.strategy_data as any) || null,
-        approvedPlans: (workflow.plans_data as any) || [],
-        approvedContent: (workflow.content_data as any) || [],
+        approvedStrategy: (workflow.strategy_data as Record<string, unknown>) || null,
+        approvedPlans: (workflow.plans_data as Array<Record<string, unknown>>) || [],
+        approvedContent: (workflow.content_data as Array<Record<string, unknown>>) || [],
         progress: {
           currentStep: correctCurrentStep,
           completedSteps,

@@ -65,7 +65,7 @@ export function FileUpload({
     return <File className="h-4 w-4" />;
   };
 
-  const uploadFile = async (file: File): Promise<UploadedFile | null> => {
+  const uploadFile = useCallback(async (file: File): Promise<UploadedFile | null> => {
     const fileId = `${currentOrganization?.id || 'default'}/${Date.now()}_${file.name}`;
     
     try {
@@ -123,7 +123,7 @@ export function FileUpload({
       
       return null;
     }
-  };
+  }, [currentOrganization, toast, bucketName]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const validFiles = acceptedFiles.filter(file => {
@@ -161,7 +161,7 @@ export function FileUpload({
         description: `Successfully uploaded ${successfulUploads.length} file(s)`,
       });
     }
-  }, [uploadedFiles, maxFiles, maxSize, onFilesUploaded, toast]);
+  }, [uploadedFiles, maxFiles, maxSize, onFilesUploaded, toast, uploadFile]);
 
   const removeFile = (fileId: string) => {
     const newFiles = uploadedFiles.filter(f => f.id !== fileId);

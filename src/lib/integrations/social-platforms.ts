@@ -3,6 +3,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/utils/logger';
+import crypto from 'crypto';
 
 export interface PlatformAccount {
   id: string;
@@ -225,7 +226,7 @@ export class InstagramIntegration extends PlatformIntegration {
       }
       
       throw new Error('Failed to create media container');
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         platform: 'instagram',
@@ -334,7 +335,7 @@ export class TwitterIntegration extends PlatformIntegration {
       const tweetIds: string[] = [];
       
       for (const tweetText of tweets) {
-        const body: any = {
+        const body: Record<string, unknown> = {
           text: tweetText
         };
         
@@ -366,7 +367,7 @@ export class TwitterIntegration extends PlatformIntegration {
         platform: 'twitter',
         url: `https://twitter.com/${this.account.accountHandle}/status/${tweetIds[0]}`
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         platform: 'twitter',
@@ -406,10 +407,20 @@ export class TwitterIntegration extends PlatformIntegration {
     const mediaIds: string[] = [];
     
     for (const item of media.slice(0, 4)) { // Twitter allows max 4 media items
-      // Upload media to Twitter
-      // This would require media upload API implementation
-      // Returning mock IDs for now
-      mediaIds.push(`media_${Date.now()}`);
+      // Upload media to Twitter using v1.1 media API
+      const uploadResponse = await fetch('https://upload.twitter.com/1.1/media/upload.json', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.account.accessToken}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        body: await this.createMediaFormData(item)
+      });
+      
+      if (uploadResponse.ok) {
+        const uploadData = await uploadResponse.json();
+        mediaIds.push(uploadData.media_id_string);
+      }
     }
     
     return mediaIds;
@@ -516,7 +527,7 @@ export class LinkedInIntegration extends PlatformIntegration {
     try {
       const authorUrn = `urn:li:person:${this.account.accountId}`;
       
-      const body: any = {
+      const body: Record<string, unknown> = {
         author: authorUrn,
         lifecycleState: 'PUBLISHED',
         specificContent: {
@@ -552,7 +563,7 @@ export class LinkedInIntegration extends PlatformIntegration {
         platform: 'linkedin',
         url: `https://www.linkedin.com/feed/update/${response.id}`
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         platform: 'linkedin',
@@ -630,81 +641,57 @@ export class PlatformManager {
   
   async connectPlatform(
     platform: PlatformAccount['platform'],
-    authCode: string
+    authCode: string,
+    codeVerifier?: string,
+    redirectUri?: string
   ): Promise<PlatformAccount> {
-    // Exchange auth code for access token
-    const tokens = await this.exchangeAuthCode(platform, authCode);
-    
-    // Get account info
-    const accountInfo = await this.getAccountInfo(platform, tokens.accessToken);
-    
-    // Create platform account
-    const account: PlatformAccount = {
-      id: this.generateId(),
-      platform,
-      accountId: accountInfo.id,
-      accountName: accountInfo.name,
-      accountHandle: accountInfo.handle,
-      profileImage: accountInfo.profileImage,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      tokenExpiry: tokens.expiresAt,
-      permissions: accountInfo.permissions || [],
-      isActive: true,
-      isPrimary: false,
-      metrics: accountInfo.metrics,
-      organizationId: await this.getOrganizationId(),
-      connectedBy: await this.getCurrentUserId(),
-      connectedAt: new Date()
-    };
-    
-    // Save to database
-    const { data, error } = await supabase
-      .from('platform_accounts')
-      .insert([account])
-      .select()
-      .single();
-    
-    if (error) throw error;
+    // Exchange auth code for access token and get account info
+    const accountData = await this.exchangeAuthCode(platform, authCode, codeVerifier, redirectUri);
     
     // Initialize integration
-    this.initializeIntegration(data);
+    this.initializeIntegration(accountData);
     
-    log.info('Platform connected', { platform, accountId: data.accountId });
-    return data;
+    log.info('Platform connected', { platform, accountId: accountData.account_id });
+    return accountData;
   }
   
   private async exchangeAuthCode(
     platform: string,
-    authCode: string
+    authCode: string,
+    codeVerifier?: string,
+    redirectUri?: string
   ): Promise<any> {
-    // Platform-specific OAuth token exchange
-    // Implementation would vary by platform
-    return {
-      accessToken: 'mock_access_token',
-      refreshToken: 'mock_refresh_token',
-      expiresAt: new Date(Date.now() + 3600000)
-    };
+    // Use the real OAuth API endpoint
+    const response = await fetch('/api/social/connect', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await this.getAuthToken()}`
+      },
+      body: JSON.stringify({
+        platform,
+        authCode,
+        codeVerifier,
+        redirectUri
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'OAuth exchange failed');
+    }
+    
+    const data = await response.json();
+    return data.account;
   }
   
   private async getAccountInfo(
     platform: string,
     accessToken: string
   ): Promise<any> {
-    // Platform-specific account info retrieval
-    return {
-      id: 'account_123',
-      name: 'Test Account',
-      handle: 'testaccount',
-      profileImage: 'https://example.com/profile.jpg',
-      permissions: ['read', 'write'],
-      metrics: {
-        followers: 1000,
-        following: 500,
-        posts: 100,
-        engagement: 5.5
-      }
-    };
+    // This is now handled by the OAuth API endpoint
+    // Return the account data from the successful OAuth response
+    throw new Error('getAccountInfo should not be called directly - use exchangeAuthCode instead');
   }
   
   async disconnectPlatform(accountId: string): Promise<void> {
@@ -791,7 +778,27 @@ export class PlatformManager {
   }
   
   private generateId(): string {
-    return `platform_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return crypto.randomUUID();
+  }
+  
+  private async getAuthToken(): Promise<string> {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || '';
+  }
+  
+  private async createMediaFormData(media: MediaItem): Promise<FormData> {
+    const formData = new FormData();
+    
+    // Fetch the media file
+    const response = await fetch(media.url);
+    const blob = await response.blob();
+    
+    formData.append('media', blob);
+    if (media.alt) {
+      formData.append('alt_text', JSON.stringify({ text: media.alt }));
+    }
+    
+    return formData;
   }
   
   private async getCurrentUserId(): Promise<string> {

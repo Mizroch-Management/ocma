@@ -44,7 +44,22 @@ serve(async (req) => {
   }
 });
 
-async function generateWithElevenLabs(prompt: string, style: string, settings: any) {
+interface AudioSettings {
+  stability?: number;
+  similarity_boost?: number;
+  style?: number;
+  use_speaker_boost?: boolean;
+  voice_id?: string;
+}
+
+interface AudioResult {
+  audioUrl: string;
+  platform: string;
+  cost: number;
+  voiceUsed: string;
+}
+
+async function generateWithElevenLabs(prompt: string, style: string, settings: AudioSettings): Promise<AudioResult> {
   // Get API key from database
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -117,7 +132,7 @@ async function generateWithElevenLabs(prompt: string, style: string, settings: a
   };
 }
 
-async function generateWithOpenAI(prompt: string, style: string, settings: any) {
+async function generateWithOpenAI(prompt: string, style: string, settings: AudioSettings): Promise<AudioResult> {
   // Get API key from database
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',

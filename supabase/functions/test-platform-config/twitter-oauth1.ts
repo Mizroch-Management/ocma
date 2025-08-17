@@ -51,7 +51,20 @@ export function generateOAuth1Header(
   return oauthHeader;
 }
 
-export async function testTwitterOAuth1(credentials: any) {
+interface TwitterCredentials {
+  api_key: string;
+  api_secret: string;
+  access_token: string;
+  access_token_secret: string;
+}
+
+interface TestResult {
+  success: boolean;
+  message: string;
+  details: Record<string, unknown> | null;
+}
+
+export async function testTwitterOAuth1(credentials: TwitterCredentials): Promise<TestResult> {
   const { api_key, api_secret, access_token, access_token_secret } = credentials;
   
   // Check if we have all OAuth 1.0a credentials
@@ -98,10 +111,11 @@ export async function testTwitterOAuth1(credentials: any) {
         details: { error, status: response.status }
       };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return {
       success: false,
-      message: `OAuth 1.0a test error: ${error.message}`,
+      message: `OAuth 1.0a test error: ${errorMessage}`,
       details: null
     };
   }

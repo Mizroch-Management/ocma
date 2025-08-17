@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from './use-organization';
 import { log } from '@/utils/logger';
@@ -48,7 +48,7 @@ export function useAudienceAnalytics(timeRange: string = '30days') {
     }
   };
 
-  const fetchAudienceAnalytics = async () => {
+  const fetchAudienceAnalytics = useCallback(async () => {
     if (!currentOrganization) return;
     
     try {
@@ -77,10 +77,12 @@ export function useAudienceAnalytics(timeRange: string = '30days') {
       
       publicationLogs?.forEach(log => {
         const date = new Date(log.created_at).toISOString().split('T')[0];
-        const metrics = log.metrics as any;
+        const metrics = log.metrics as Record<string, unknown>;
         
         // Simulate follower growth based on engagement
-        const engagementGrowth = Math.floor((metrics?.likes || 0) * 0.1 + (metrics?.shares || 0) * 0.2);
+        const likes = typeof metrics?.likes === 'number' ? metrics.likes : 0;
+        const shares = typeof metrics?.shares === 'number' ? metrics.shares : 0;
+        const engagementGrowth = Math.floor(likes * 0.1 + shares * 0.2);
         cumulativeFollowers += engagementGrowth;
         
         if (!dailyMap.has(date)) {
@@ -138,8 +140,11 @@ export function useAudienceAnalytics(timeRange: string = '30days') {
       // Calculate engagement metrics
       const totalFollowers = lastFollowerCount;
       const totalEngagement = publicationLogs?.reduce((sum, log) => {
-        const metrics = log.metrics as any;
-        return sum + (metrics?.likes || 0) + (metrics?.shares || 0) + (metrics?.comments || 0);
+        const metrics = log.metrics as Record<string, unknown>;
+        const likes = typeof metrics?.likes === 'number' ? metrics.likes : 0;
+        const shares = typeof metrics?.shares === 'number' ? metrics.shares : 0;
+        const comments = typeof metrics?.comments === 'number' ? metrics.comments : 0;
+        return sum + likes + shares + comments;
       }, 0) || 0;
 
       const totalPosts = publicationLogs?.length || 1;
@@ -172,13 +177,13 @@ export function useAudienceAnalytics(timeRange: string = '30days') {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentOrganization, timeRange]);
 
   useEffect(() => {
     if (currentOrganization) {
       fetchAudienceAnalytics();
     }
-  }, [timeRange, currentOrganization]);
+  }, [fetchAudienceAnalytics, currentOrganization]);
 
   return { data, loading, error, refetch: fetchAudienceAnalytics };
 }

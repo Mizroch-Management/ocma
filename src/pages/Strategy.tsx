@@ -19,12 +19,21 @@ import {
   CheckCircle
 } from "lucide-react";
 
+interface Strategy {
+  id: string;
+  title: string;
+  objectives: string[];
+  status: string;
+  progress: number;
+  isAIGenerated: boolean;
+}
+
 export default function Strategy() {
   const { state: workflowState } = useWorkflow();
   const [selectedStrategy, setSelectedStrategy] = useState("current");
 
   // Real strategies would come from the database
-  const existingStrategies: any[] = [];
+  const existingStrategies: Strategy[] = [];
 
   // Combine existing and AI strategies
   const allStrategies = [

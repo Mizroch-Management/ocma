@@ -9,11 +9,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Copy, Wand2, Instagram, Facebook, Twitter, Linkedin, Youtube } from "lucide-react";
 
+interface PlatformOptimization {
+  content?: string;
+  hashtags?: string[];
+  cta?: string;
+}
+
+interface ContentItem {
+  title?: string;
+  content?: string;
+  type?: string;
+  aiTool?: string;
+  platforms?: string[];
+  platformOptimizations?: Record<string, PlatformOptimization>;
+  variations?: string[];
+  suggestions?: string[];
+}
+
 interface ContentEditorDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  content: any;
-  onSave: (updatedContent: any) => void;
+  content: ContentItem | null;
+  onSave: (updatedContent: ContentItem) => void;
 }
 
 const platforms = [
@@ -26,7 +43,7 @@ const platforms = [
 
 export function ContentEditorDialog({ isOpen, onOpenChange, content, onSave }: ContentEditorDialogProps) {
   const { toast } = useToast();
-  const [editedContent, setEditedContent] = useState(content);
+  const [editedContent, setEditedContent] = useState<ContentItem>(content || {});
 
   const handleSave = () => {
     onSave(editedContent);

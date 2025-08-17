@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +75,24 @@ interface AISuggestion {
   isAIGenerated: boolean;
 }
 
+interface SavedVisual {
+  id: string;
+  title: string;
+  content: string;
+  content_type: 'image' | 'video';
+  created_at: string;
+  metadata: {
+    style?: string;
+    dimensions?: string;
+    platform?: string;
+    aiPlatform?: string;
+    generation_time?: number;
+    cost?: number;
+    isAIEnhanced?: boolean;
+  };
+  ai_tool?: string;
+}
+
 export default function VisualCreator() {
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("");
@@ -84,7 +102,7 @@ export default function VisualCreator() {
   const [selectedAIPlatform, setSelectedAIPlatform] = useState("");
   const [selectedMediaType, setSelectedMediaType] = useState<'image' | 'video'>('image');
   const [generatedVisuals, setGeneratedVisuals] = useState<GeneratedVisual[]>([]);
-  const [savedVisuals, setSavedVisuals] = useState<any[]>([]);
+  const [savedVisuals, setSavedVisuals] = useState<SavedVisual[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
@@ -99,7 +117,7 @@ export default function VisualCreator() {
   const { toast } = useToast();
 
   // AI Platform configurations for different content types
-  const aiPlatformsByType = {
+  const aiPlatformsByType = useMemo(() => ({
     image: [
       { key: "openai", name: "OpenAI DALL-E", quality: "high", speed: "medium", cost: "$$", description: "Premium image generation with excellent prompt understanding" },
       { key: "stability_ai", name: "Stability AI", quality: "high", speed: "fast", cost: "$", description: "Open-source Stable Diffusion models" },
@@ -112,7 +130,7 @@ export default function VisualCreator() {
       { key: "runware", name: "Runware Video", quality: "high", speed: "slow", cost: "$$$", description: "AI video generation and editing" },
       { key: "stability_ai", name: "Stability Video", quality: "high", speed: "slow", cost: "$$$", description: "Stable Video Diffusion" }
     ]
-  };
+  }), []);
   
   // Get configured platforms for debugging
   const configuredPlatforms = getConfiguredPlatforms();
@@ -162,7 +180,7 @@ export default function VisualCreator() {
     ]
   };
 
-  const socialPlatforms = [
+  const socialPlatforms = useMemo(() => [
     { id: "instagram", name: "Instagram", icon: "📸", supports: ["image", "video"] },
     { id: "facebook", name: "Facebook", icon: "👥", supports: ["image", "video"] },
     { id: "linkedin", name: "LinkedIn", icon: "💼", supports: ["image", "video"] },
@@ -171,7 +189,7 @@ export default function VisualCreator() {
     { id: "youtube", name: "YouTube", icon: "🎬", supports: ["video"] },
     { id: "pinterest", name: "Pinterest", icon: "📌", supports: ["image"] },
     { id: "snapchat", name: "Snapchat", icon: "👻", supports: ["image", "video"] }
-  ];
+  ], []);
 
   // Load AI-powered suggestions
   const loadAISuggestions = useCallback(async () => {
@@ -194,11 +212,18 @@ export default function VisualCreator() {
 
       if (error) throw error;
 
-      setAISuggestions(data.suggestions.map((s: any) => ({
+      setAISuggestions(data.suggestions.map((s: {
+        text: string;
+        style: string;
+        reasoning: string;
+        planId: string | null;
+        platforms: string[];
+      }) => ({
         ...s,
         isAIGenerated: true
       })));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       log.error('Failed to load AI suggestions', error, undefined, {
         component: 'VisualCreator',
         action: 'load_suggestions',
@@ -218,7 +243,7 @@ export default function VisualCreator() {
     } finally {
       setIsLoadingSuggestions(false);
     }
-  }, [selectedMediaType, workflowState, currentOrganization]);
+  }, [selectedMediaType, workflowState, currentOrganization, socialPlatforms]);
 
   // Load saved visual content
   const loadSavedContent = useCallback(async () => {
@@ -238,7 +263,7 @@ export default function VisualCreator() {
 
       if (error) throw error;
       setSavedVisuals(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error('Failed to load saved content', error, undefined, {
         component: 'VisualCreator',
         action: 'load_content',
@@ -280,7 +305,8 @@ export default function VisualCreator() {
       });
 
       loadSavedContent();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       log.error('Failed to save visual content', error, undefined, {
         component: 'VisualCreator',
         action: 'save_content',
@@ -288,7 +314,7 @@ export default function VisualCreator() {
       });
       toast({
         title: "Save Failed",
-        description: error.message || "Failed to save content. Please try again.",
+        description: errorMessage || "Failed to save content. Please try again.",
         variant: "destructive",
       });
     }
@@ -340,7 +366,7 @@ export default function VisualCreator() {
       .sort((a, b) => b.score - a.score);
 
     setRecommendations(recs);
-  }, [getConfiguredPlatforms]);
+  }, [aiPlatformsByType, getConfiguredPlatforms]);
 
   // Generate AI-enhanced prompts based on workflow context
   const getAIEnhancedPrompt = () => {
@@ -430,7 +456,8 @@ export default function VisualCreator() {
         description: `${selectedMediaType.charAt(0).toUpperCase() + selectedMediaType.slice(1)} generated in ${(generationTime / 1000).toFixed(1)}s using ${aiPlatformsByType[selectedMediaType].find(p => p.key === selectedAIPlatform)?.name}`,
       });
       
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       log.error('Visual generation failed', error, { prompt, platform }, {
         component: 'VisualCreator',
         action: 'generate_visual',
@@ -438,7 +465,7 @@ export default function VisualCreator() {
       });
       toast({
         title: "Generation Failed",
-        description: error.message || "Failed to generate content. Please try again.",
+        description: errorMessage || "Failed to generate content. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -509,7 +536,7 @@ export default function VisualCreator() {
         </Alert>
       )}
 
-      <Tabs value={selectedMediaType} onValueChange={(value: any) => setSelectedMediaType(value)} className="space-y-6">
+      <Tabs value={selectedMediaType} onValueChange={(value: string) => setSelectedMediaType(value as 'image' | 'video')} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="image" className="flex items-center gap-2">
             <Camera className="h-4 w-4" />

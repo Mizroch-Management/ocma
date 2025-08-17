@@ -1,7 +1,7 @@
 import { AppError, ErrorSeverity } from './error-types';
 
 export interface LogContext {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -160,7 +160,7 @@ export class ErrorLogger {
     };
   }
 
-  private storeLocalLog(logEntry: any): void {
+  private storeLocalLog(logEntry: Record<string, unknown>): void {
     try {
       const logs = this.getLocalLogs();
       logs.push(logEntry);
@@ -174,7 +174,7 @@ export class ErrorLogger {
     }
   }
 
-  private getLocalLogs(): any[] {
+  private getLocalLogs(): Record<string, unknown>[] {
     try {
       const stored = localStorage.getItem('ocma_logs');
       return stored ? JSON.parse(stored) : [];
@@ -183,7 +183,7 @@ export class ErrorLogger {
     }
   }
 
-  private sendToExternalService(logEntry: any): void {
+  private sendToExternalService(logEntry: Record<string, unknown>): void {
     // In a real application, you would send logs to services like:
     // - Sentry
     // - LogRocket
@@ -211,7 +211,7 @@ export class ErrorLogger {
   /**
    * Get recent logs for debugging (development only)
    */
-  getRecentLogs(): any[] {
+  getRecentLogs(): Record<string, unknown>[] {
     if (!this.isDevelopment) {
       return [];
     }

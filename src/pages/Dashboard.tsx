@@ -93,9 +93,9 @@ function Dashboard() {
 
       // Calculate total reach from publication logs metrics
       const totalReach = publicationLogs?.reduce((sum, log) => {
-        const metrics = log.metrics as any;
-        const reach = metrics?.initial_reach || 0;
-        return sum + (typeof reach === 'number' ? reach : 0);
+        const metrics = log.metrics as Record<string, unknown>;
+        const reach = typeof metrics?.initial_reach === 'number' ? metrics.initial_reach : 0;
+        return sum + reach;
       }, 0) || 0;
 
       setDashboardData({

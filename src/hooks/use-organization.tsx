@@ -12,8 +12,8 @@ interface Organization {
   status: string;
   created_at: string;
   updated_at: string;
-  metadata?: any;
-  settings?: any;
+  metadata?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
 }
 
 interface OrganizationMember {
@@ -35,18 +35,18 @@ interface OrganizationContextType {
   isAppOwner: boolean | null;
   loading: boolean;
   setCurrentOrganization: (org: Organization | null) => void;
-  createOrganization: (name: string, description?: string) => Promise<{ error: any }>;
-  joinOrganization: (organizationId: string) => Promise<{ error: any }>;
-  requestJoinOrganization: (organizationId: string) => Promise<{ error: any }>;
-  approveOrganization: (organizationId: string) => Promise<{ error: any }>;
-  approveMember: (memberId: string) => Promise<{ error: any }>;
-  rejectMember: (memberId: string) => Promise<{ error: any }>;
-  updateMemberRole: (memberId: string, role: 'owner' | 'admin' | 'member') => Promise<{ error: any }>;
+  createOrganization: (name: string, description?: string) => Promise<{ error: Error | null }>;
+  joinOrganization: (organizationId: string) => Promise<{ error: Error | null }>;
+  requestJoinOrganization: (organizationId: string) => Promise<{ error: Error | null }>;
+  approveOrganization: (organizationId: string) => Promise<{ error: Error | null }>;
+  approveMember: (memberId: string) => Promise<{ error: Error | null }>;
+  rejectMember: (memberId: string) => Promise<{ error: Error | null }>;
+  updateMemberRole: (memberId: string, role: 'owner' | 'admin' | 'member') => Promise<{ error: Error | null }>;
   fetchUserOrganizations: () => Promise<void>;
   fetchOrganizationMembers: (organizationId: string) => Promise<void>;
   fetchPendingMembers: (organizationId: string) => Promise<void>;
-  searchOrganizations: (query: string) => Promise<{ data: Organization[] | null; error: any }>;
-  fetchAllOrganizations: () => Promise<{ data: Organization[] | null; error: any }>;
+  searchOrganizations: (query: string) => Promise<{ data: Organization[] | null; error: Error | null }>;
+  fetchAllOrganizations: () => Promise<{ data: Organization[] | null; error: Error | null }>;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
@@ -155,7 +155,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       } else {
         console.log('Current organization already set:', currentOrganization?.name);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Failed to fetch organizations:', error);
       console.error('Error details:', {
         code: error?.code,
@@ -186,7 +186,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         
       if (error) throw error;
       setOrganizationMembers(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("org error");
       toast.error('Failed to load organization members');
     }
@@ -209,7 +209,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         
       if (error) throw error;
       setPendingMembers(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("org error");
       toast.error('Failed to load pending members');
     }
@@ -288,7 +288,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       }
       
       return { error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Organization creation error:', error);
       console.error('Error details:', {
         code: error?.code,
@@ -326,7 +326,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       await fetchUserOrganizations();
       toast.success('Successfully joined organization');
       return { error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.message || 'Failed to join organization');
       return { error };
     }
@@ -348,7 +348,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       
       toast.success('Join request sent! Waiting for organization owner approval.');
       return { error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.message || 'Failed to send join request');
       return { error };
     }
@@ -365,7 +365,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         .limit(10);
         
       return { data, error };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return { data: null, error };
     }
   };
@@ -389,7 +389,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       }
       
       return { error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.message || 'Failed to approve member');
       return { error };
     }
@@ -413,7 +413,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       }
       
       return { error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.message || 'Failed to reject member');
       return { error };
     }
@@ -437,7 +437,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       }
       
       return { error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.message || 'Failed to update member role');
       return { error };
     }
@@ -453,7 +453,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         .order('name');
         
       return { data, error };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return { data: null, error };
     }
   };
@@ -471,7 +471,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       await fetchUserOrganizations();
       toast.success('Organization approved successfully');
       return { error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.message || 'Failed to approve organization');
       return { error };
     }

@@ -86,7 +86,7 @@ export const sanitizeJson = (jsonString: string): object | null => {
 };
 
 // Recursively remove dangerous properties from objects
-const removeDeepProperty = (obj: any, propsToRemove: string[]): any => {
+const removeDeepProperty = (obj: unknown, propsToRemove: string[]): unknown => {
   if (obj === null || typeof obj !== 'object') {
     return obj;
   }
@@ -95,7 +95,7 @@ const removeDeepProperty = (obj: any, propsToRemove: string[]): any => {
     return obj.map(item => removeDeepProperty(item, propsToRemove));
   }
   
-  const cleaned: any = {};
+  const cleaned: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (!propsToRemove.includes(key)) {
       cleaned[key] = removeDeepProperty(value, propsToRemove);

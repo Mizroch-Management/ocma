@@ -314,7 +314,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
     
     loadWorkflowData();
-  }, [loadWorkflow, user, currentOrganization]);
+  }, [loadWorkflow, user, currentOrganization, organizationLoading]);
 
   // Save to database whenever state changes (only if user is logged in)
   useEffect(() => {

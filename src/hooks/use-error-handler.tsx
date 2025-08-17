@@ -36,7 +36,7 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
   });
 
   // Handle JavaScript errors
-  const handleError = useCallback((error: Error | AppError, context?: Record<string, any>) => {
+  const handleError = useCallback((error: Error | AppError, context?: Record<string, unknown>) => {
     let appError: AppError;
 
     if (error instanceof Error) {
@@ -81,7 +81,7 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
   }, [category, component, showToast, logError]);
 
   // Handle API/Network errors
-  const handleApiError = useCallback(async (response: Response, context?: Record<string, any>) => {
+  const handleApiError = useCallback(async (response: Response, context?: Record<string, unknown>) => {
     const endpoint = response.url;
     const status = response.status;
     const method = context?.method || 'GET';
@@ -142,7 +142,7 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
   }, [handleError, component]);
 
   // Handle validation errors
-  const handleValidationError = useCallback((fields: Record<string, string[]>, context?: Record<string, any>) => {
+  const handleValidationError = useCallback((fields: Record<string, string[]>, context?: Record<string, unknown>) => {
     const appError = ErrorFactory.createValidationError(
       'VAL_001',
       'Form validation failed',
@@ -154,7 +154,7 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
   }, [handleError, component]);
 
   // Handle AI service errors
-  const handleAIError = useCallback((provider: string, model?: string, context?: Record<string, any>) => {
+  const handleAIError = useCallback((provider: string, model?: string, context?: Record<string, unknown>) => {
     const appError = ErrorFactory.createAIServiceError(
       'AI_001',
       `AI service error with ${provider}`,
@@ -192,7 +192,7 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
   // Async operation wrapper
   const withErrorHandling = useCallback(async <T>(
     operation: () => Promise<T>,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): Promise<T | null> => {
     try {
       clearError();
@@ -294,7 +294,7 @@ export function useApiErrorHandler(apiName?: string) {
     apiCall: () => Promise<Response>,
     options: {
       successMessage?: string;
-      errorContext?: Record<string, any>;
+      errorContext?: Record<string, unknown>;
     } = {}
   ): Promise<T | null> => {
     try {

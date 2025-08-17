@@ -21,7 +21,7 @@ import {
   BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createPromptEngineer, scorePromptQuality } from "@/lib/ai/prompt-engineering";
+import { aiServices } from "@/lib/ai/services";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface OptimizationResult {
@@ -58,37 +58,51 @@ export function ContentOptimizer({
   const [selectedVariation, setSelectedVariation] = useState(0);
   const [activeTab, setActiveTab] = useState("optimization");
 
-  // Simulate AI optimization (replace with actual API call)
+  // Real AI optimization using actual AI services
   const optimizeContent = useCallback(async () => {
     setIsOptimizing(true);
     
     try {
-      // In production, this would call your AI API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Use real AI services for content optimization
+      const aiResult = await aiServices.optimizeContent(content, platform, [
+        'engagement',
+        'readability', 
+        'platform_algorithm',
+        'trending_keywords'
+      ]);
       
-      // Simulated optimization result
+      // Generate additional insights
+      const analytics = await aiServices.analyzeContentPerformance(content, platform);
+      
       const result: OptimizationResult = {
-        optimizedContent: improveContent(content, platform),
-        score: calculateScore(content),
-        improvements: [
-          "Added emotional hook in opening",
-          "Improved call-to-action clarity",
-          "Optimized for platform algorithm",
-          "Enhanced readability with shorter sentences",
-          "Added trending keywords"
-        ],
-        hashtags: generateHashtags(content, platform),
-        bestPostingTime: getBestPostingTime(platform),
-        engagementPrediction: Math.floor(Math.random() * 30) + 70,
-        variations: generateVariations(content),
-        seoKeywords: ["marketing", "social media", "content strategy", "engagement"],
-        readabilityScore: Math.floor(Math.random() * 20) + 80
+        optimizedContent: aiResult.content,
+        score: aiResult.metrics.platformOptimization,
+        improvements: aiResult.suggestions,
+        hashtags: aiResult.hashtags,
+        bestPostingTime: analytics.bestPostingTime,
+        engagementPrediction: analytics.predictions.engagement,
+        variations: aiResult.variations,
+        seoKeywords: aiResult.keywords,
+        readabilityScore: aiResult.metrics.readabilityScore
       };
       
       setOptimizationResult(result);
       onOptimized?.(result);
     } catch (error) {
       console.error('Optimization failed:', error);
+      // Fallback to basic optimization if AI fails
+      const fallbackResult: OptimizationResult = {
+        optimizedContent: improveContent(content, platform),
+        score: calculateScore(content),
+        improvements: ["Basic optimization applied - connect AI services for advanced features"],
+        hashtags: generateHashtags(content, platform),
+        bestPostingTime: getBestPostingTime(platform),
+        engagementPrediction: 60,
+        variations: generateVariations(content),
+        seoKeywords: extractKeywords(content),
+        readabilityScore: 75
+      };
+      setOptimizationResult(fallbackResult);
     } finally {
       setIsOptimizing(false);
     }
@@ -162,6 +176,17 @@ export function ContentOptimizer({
       `Did you know? ${content}`, // Question opening
       `${content}\n\nWhat are your thoughts?` // With engagement question
     ];
+  };
+
+  const extractKeywords = (content: string): string[] => {
+    // Simple keyword extraction - in production, use NLP
+    const words = content.toLowerCase().split(/\s+/);
+    const commonWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by']);
+    const keywords = words
+      .filter(word => word.length > 3 && !commonWords.has(word))
+      .filter((word, index, self) => self.indexOf(word) === index)
+      .slice(0, 5);
+    return keywords;
   };
 
   const copyToClipboard = (text: string) => {

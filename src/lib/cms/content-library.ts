@@ -72,7 +72,7 @@ export interface TemplateVariable {
   name: string;
   type: 'text' | 'number' | 'date' | 'select' | 'boolean';
   required: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   options?: string[]; // For select type
   validation?: {
     min?: number;
@@ -115,8 +115,8 @@ export interface ContentVersion {
   version: number;
   changes: {
     field: string;
-    oldValue: any;
-    newValue: any;
+    oldValue: unknown;
+    newValue: unknown;
   }[];
   author: string;
   timestamp: Date;
@@ -827,7 +827,7 @@ ${item.content}
         const headers = lines[0].split(',');
         items = lines.slice(1).map(line => {
           const values = line.split(',');
-          const item: any = {};
+          const item: Record<string, unknown> = {};
           headers.forEach((header, index) => {
             item[header] = values[index];
           });

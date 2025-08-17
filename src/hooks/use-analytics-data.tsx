@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from './use-organization';
 import { log } from '@/utils/logger';
@@ -52,7 +52,7 @@ export function useAnalyticsData(timeRange: string = '30days') {
     }
   };
 
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
     if (!currentOrganization) return;
     
     try {
@@ -188,13 +188,13 @@ export function useAnalyticsData(timeRange: string = '30days') {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentOrganization, timeRange]);
 
   useEffect(() => {
     if (currentOrganization) {
       fetchAnalyticsData();
     }
-  }, [timeRange, currentOrganization]);
+  }, [fetchAnalyticsData, currentOrganization]);
 
   return { data, loading, error, refetch: fetchAnalyticsData };
 }

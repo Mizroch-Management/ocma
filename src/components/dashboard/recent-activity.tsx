@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,35 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { useOrganization } from "@/hooks/use-organization";
+
+interface UserProfile {
+  full_name: string;
+}
+
+interface ContentData {
+  id: string;
+  title: string;
+  content_type: string;
+  created_at: string;
+  updated_at: string;
+  is_scheduled: boolean;
+  scheduled_platforms?: string[];
+  profiles: UserProfile;
+}
+
+interface GeneratedContent {
+  title: string;
+  profiles: UserProfile;
+}
+
+interface PublicationData {
+  id: string;
+  status: 'success' | 'failed' | 'pending';
+  platform: string;
+  error_message?: string;
+  created_at: string;
+  generated_content: GeneratedContent;
+}
 
 interface ActivityItem {
   id: string;
@@ -109,9 +138,9 @@ export function RecentActivity() {
     if (currentOrganization) {
       loadRecentActivity();
     }
-  }, [currentOrganization]);
+  }, [currentOrganization, loadRecentActivity]);
 
-  const loadRecentActivity = async () => {
+  const loadRecentActivity = useCallback(async () => {
     if (!currentOrganization) return;
     
     setIsLoading(true);
@@ -156,8 +185,8 @@ export function RecentActivity() {
 
       // Add content activities
       if (contentData) {
-        contentData.forEach(content => {
-          const userFullName = (content.profiles as any)?.full_name || 'Unknown User';
+        contentData.forEach((content: ContentData) => {
+          const userFullName = content.profiles?.full_name || 'Unknown User';
           const initials = userFullName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
           
           // Content creation activity
@@ -195,9 +224,9 @@ export function RecentActivity() {
 
       // Add publication activities
       if (publicationData) {
-        publicationData.forEach(log => {
-          const contentTitle = (log.generated_content as any)?.title || 'Unknown Content';
-          const userFullName = (log.generated_content as any)?.profiles?.full_name || 'System';
+        publicationData.forEach((log: PublicationData) => {
+          const contentTitle = log.generated_content?.title || 'Unknown Content';
+          const userFullName = log.generated_content?.profiles?.full_name || 'System';
           const initials = userFullName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
           
           recentActivities.push({
@@ -235,7 +264,7 @@ export function RecentActivity() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentOrganization]);
 
   // Helper function to parse relative time strings for sorting
   const parseRelativeTime = (timeStr: string): number => {

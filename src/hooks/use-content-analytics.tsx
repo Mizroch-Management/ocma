@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/utils/logger';
 
@@ -48,7 +48,7 @@ export function useContentAnalytics(timeRange: string = '30days') {
     }
   };
 
-  const fetchContentAnalytics = async () => {
+  const fetchContentAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -80,13 +80,17 @@ export function useContentAnalytics(timeRange: string = '30days') {
       const topPerformingContent = contentData
         ?.map(content => {
           const totalEngagement = content.publication_logs.reduce((sum, log) => {
-            const metrics = log.metrics as any;
-            return sum + (metrics?.likes || 0) + (metrics?.shares || 0) + (metrics?.comments || 0);
+            const metrics = log.metrics as Record<string, unknown>;
+            const likes = typeof metrics?.likes === 'number' ? metrics.likes : 0;
+            const shares = typeof metrics?.shares === 'number' ? metrics.shares : 0;
+            const comments = typeof metrics?.comments === 'number' ? metrics.comments : 0;
+            return sum + likes + shares + comments;
           }, 0);
 
           const totalViews = content.publication_logs.reduce((sum, log) => {
-            const metrics = log.metrics as any;
-            return sum + (metrics?.views || 0);
+            const metrics = log.metrics as Record<string, unknown>;
+            const views = typeof metrics?.views === 'number' ? metrics.views : 0;
+            return sum + views;
           }, 0);
 
           const platform = content.publication_logs[0]?.platform || 'Unknown';
@@ -97,8 +101,16 @@ export function useContentAnalytics(timeRange: string = '30days') {
             platform: platform.charAt(0).toUpperCase() + platform.slice(1),
             engagement: totalEngagement,
             views: totalViews,
-            likes: content.publication_logs.reduce((sum, log) => sum + ((log.metrics as any)?.likes || 0), 0),
-            shares: content.publication_logs.reduce((sum, log) => sum + ((log.metrics as any)?.shares || 0), 0),
+            likes: content.publication_logs.reduce((sum, log) => {
+              const metrics = log.metrics as Record<string, unknown>;
+              const likes = typeof metrics?.likes === 'number' ? metrics.likes : 0;
+              return sum + likes;
+            }, 0),
+            shares: content.publication_logs.reduce((sum, log) => {
+              const metrics = log.metrics as Record<string, unknown>;
+              const shares = typeof metrics?.shares === 'number' ? metrics.shares : 0;
+              return sum + shares;
+            }, 0),
             created_at: content.created_at
           };
         })
@@ -111,8 +123,11 @@ export function useContentAnalytics(timeRange: string = '30days') {
       contentData?.forEach(content => {
         const type = content.content_type;
         const engagement = content.publication_logs.reduce((sum, log) => {
-          const metrics = log.metrics as any;
-          return sum + (metrics?.likes || 0) + (metrics?.shares || 0) + (metrics?.comments || 0);
+          const metrics = log.metrics as Record<string, unknown>;
+          const likes = typeof metrics?.likes === 'number' ? metrics.likes : 0;
+          const shares = typeof metrics?.shares === 'number' ? metrics.shares : 0;
+          const comments = typeof metrics?.comments === 'number' ? metrics.comments : 0;
+          return sum + likes + shares + comments;
         }, 0);
 
         if (!contentTypeMap.has(type)) {
@@ -141,8 +156,11 @@ export function useContentAnalytics(timeRange: string = '30days') {
           ?.filter(content => content.created_at.startsWith(dateStr))
           .reduce((sum, content) => {
             return sum + content.publication_logs.reduce((logSum, log) => {
-              const metrics = log.metrics as any;
-              return logSum + (metrics?.likes || 0) + (metrics?.shares || 0) + (metrics?.comments || 0);
+              const metrics = log.metrics as Record<string, unknown>;
+              const likes = typeof metrics?.likes === 'number' ? metrics.likes : 0;
+              const shares = typeof metrics?.shares === 'number' ? metrics.shares : 0;
+              const comments = typeof metrics?.comments === 'number' ? metrics.comments : 0;
+              return logSum + likes + shares + comments;
             }, 0);
           }, 0) || 0;
 
@@ -150,8 +168,9 @@ export function useContentAnalytics(timeRange: string = '30days') {
           ?.filter(content => content.created_at.startsWith(dateStr))
           .reduce((sum, content) => {
             return sum + content.publication_logs.reduce((logSum, log) => {
-              const metrics = log.metrics as any;
-              return logSum + (metrics?.views || 0);
+              const metrics = log.metrics as Record<string, unknown>;
+              const views = typeof metrics?.views === 'number' ? metrics.views : 0;
+              return logSum + views;
             }, 0);
           }, 0) || 0;
 
@@ -174,11 +193,11 @@ export function useContentAnalytics(timeRange: string = '30days') {
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange]);
 
   useEffect(() => {
     fetchContentAnalytics();
-  }, [timeRange]);
+  }, [fetchContentAnalytics]);
 
   return { data, loading, error, refetch: fetchContentAnalytics };
 }

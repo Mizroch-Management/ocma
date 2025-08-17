@@ -48,7 +48,7 @@ serve(async (req) => {
     console.log('[Generate Content] API key retrieved successfully from:', apiKeyResult.source);
 
     // Build the content generation prompt based on parameters
-    let systemPrompt = `You are an expert content marketing strategist and copywriter. Generate high-quality, engaging content based on the user's requirements.`;
+    const systemPrompt = `You are an expert content marketing strategist and copywriter. Generate high-quality, engaging content based on the user's requirements.`;
     
     let userPrompt = `Generate ${contentType} content`;
     
@@ -133,10 +133,10 @@ Format your response with clear section headers using "###" but ensure the conte
       }
     } catch (e) {
       // Parse the text-based response with section headers
-      const sections: any = {};
+      const sections: Record<string, string> = {};
       const lines = generatedText.split('\n');
       let currentSection = '';
-      let currentContent: string[] = [];
+      const currentContent: string[] = [];
       
       for (const line of lines) {
         if (line.startsWith('### ') || line.match(/^\d+\.\s+(TITLE|MAIN CONTENT|VARIATION|SUGGESTIONS|HASHTAGS|PLATFORM)/)) {

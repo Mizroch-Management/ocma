@@ -142,7 +142,7 @@ export function useSocialEngagement() {
     }
   };
 
-  const discoverInfluencers = async (platform: string, criteria: any) => {
+  const discoverInfluencers = async (platform: string, criteria: Record<string, unknown>) => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('social-engagement-monitor', {

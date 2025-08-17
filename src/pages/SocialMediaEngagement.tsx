@@ -74,17 +74,17 @@ export default function SocialMediaEngagement() {
   const [selectedPlatform, setSelectedPlatform] = useState("");
   const [engagementType, setEngagementType] = useState("");
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
-  const [selectedThread, setSelectedThread] = useState<any>(null);
+  const [selectedThread, setSelectedThread] = useState<Record<string, unknown> | null>(null);
   const [aiResponseData, setAiResponseData] = useState<AIResponse | null>(null);
   const [responseStyle, setResponseStyle] = useState("professional");
   const [industryNiche, setIndustryNiche] = useState("");
   const [minFollowers, setMinFollowers] = useState("");
   const [hashtagInput, setHashtagInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const strategicTrendingHashtags: any[] = []; // Remove fake hashtag data
+  const [searchResults, setSearchResults] = useState<Record<string, unknown>[]>([]);
+  const strategicTrendingHashtags: Record<string, unknown>[] = []; // Remove fake hashtag data
 
-  const trackedHashtags: any[] = []; // Remove fake tracked hashtags data
+  const trackedHashtags: Record<string, unknown>[] = []; // Remove fake tracked hashtags data
 
   const platforms = [
     { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
@@ -140,7 +140,7 @@ export default function SocialMediaEngagement() {
     }
   };
 
-  const handleGenerateAIResponse = async (mention: any) => {
+  const handleGenerateAIResponse = async (mention: Record<string, unknown>) => {
     setSelectedThread(mention);
     
     const response = await generateAIResponse(
@@ -175,7 +175,7 @@ export default function SocialMediaEngagement() {
     await trackHashtags(platform, hashtags);
   };
 
-  const handleEngageWithInfluencer = (influencer: any) => {
+  const handleEngageWithInfluencer = (influencer: Record<string, unknown>) => {
     toast({
       title: "AI Engagement Strategy Applied",
       description: `Following AI recommendation for ${influencer.name}: ${influencer.suggestedApproach}`,

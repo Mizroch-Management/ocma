@@ -194,8 +194,8 @@ export class AIUsageTracker {
       successRate: number;
       avgDuration: number;
     };
-    breakdown?: any[];
-    timeline?: any[];
+    breakdown?: Record<string, unknown>[];
+    timeline?: Record<string, unknown>[];
   }> {
     const start = startDate || this.getPeriodStartDate('monthly');
     const end = endDate || new Date();
@@ -309,7 +309,7 @@ export class AIUsageTracker {
   }
   
   // Group usage by specified field
-  private groupUsageBy(usage: AIUsageMetrics[], groupBy: string): any[] {
+  private groupUsageBy(usage: AIUsageMetrics[], groupBy: string): Record<string, unknown>[] {
     const groups = new Map<string, any>();
     
     for (const item of usage) {
@@ -349,8 +349,8 @@ export class AIUsageTracker {
   }
   
   // Generate usage timeline
-  private generateTimeline(usage: AIUsageMetrics[]): any[] {
-    const timeline: any[] = [];
+  private generateTimeline(usage: AIUsageMetrics[]): Record<string, unknown>[] {
+    const timeline: Record<string, unknown>[] = [];
     const dailyUsage = new Map<string, any>();
     
     for (const item of usage) {
@@ -440,7 +440,7 @@ export class AIUsageTracker {
       const stored = localStorage.getItem('ai_usage_history');
       if (stored) {
         const parsed = JSON.parse(stored);
-        this.usage = parsed.map((u: any) => ({
+        this.usage = parsed.map((u: Record<string, unknown>) => ({
           ...u,
           timestamp: new Date(u.timestamp)
         }));

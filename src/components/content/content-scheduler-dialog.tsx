@@ -30,11 +30,45 @@ import {
 } from "lucide-react";
 import { format, addDays, addHours, addMinutes } from "date-fns";
 
+interface PlatformOptimization {
+  content?: string;
+  hashtags?: string[];
+  cta?: string;
+}
+
+interface ContentItem {
+  id?: string;
+  title?: string;
+  content?: string;
+  hashtags?: string[];
+  platforms?: string[];
+  platformOptimizations?: Record<string, PlatformOptimization>;
+  type?: string;
+  aiTool?: string;
+  variations?: string[];
+  suggestions?: string[];
+}
+
+interface ScheduledContent extends ContentItem {
+  scheduledDate: Date;
+  timezone: string;
+  status: string;
+  isScheduled: boolean;
+  scheduledPlatforms: string[];
+  publication_status: string;
+}
+
+interface QuickScheduleOption {
+  label: string;
+  value: string;
+  date: Date;
+}
+
 interface ContentSchedulerDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  content: any;
-  onSchedule: (scheduledContent: any) => void;
+  content: ContentItem | null;
+  onSchedule: (scheduledContent: ScheduledContent) => void;
 }
 
 const platforms = [
@@ -58,7 +92,7 @@ const timezones = [
   { value: 'Australia/Sydney', label: 'Sydney (GMT+11)' },
 ];
 
-const quickScheduleOptions = [
+const quickScheduleOptions: QuickScheduleOption[] = [
   { label: "Now", value: "now", date: new Date() },
   { label: "In 1 hour", value: "1h", date: addHours(new Date(), 1) },
   { label: "Tomorrow 9 AM", value: "tomorrow", date: addHours(addDays(new Date(), 1), 9) },
@@ -162,7 +196,7 @@ export function ContentSchedulerDialog({ isOpen, onOpenChange, content, onSchedu
 
       console.log('Content updated successfully:', updatedContent);
 
-      const scheduledContent = {
+      const scheduledContent: ScheduledContent = {
         ...content,
         ...editedContent,
         scheduledDate,
@@ -200,7 +234,7 @@ export function ContentSchedulerDialog({ isOpen, onOpenChange, content, onSchedu
     }
   };
 
-  const handleQuickSchedule = (option: any) => {
+  const handleQuickSchedule = (option: QuickScheduleOption) => {
     setScheduledDate(option.date);
     toast({
       title: "Quick Schedule Applied",

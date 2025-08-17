@@ -50,14 +50,14 @@ export function WorkflowDataManager({ currentStep, onStepChange }: WorkflowDataM
 
       return () => clearTimeout(autoSaveTimer);
     }
-  }, [state, currentWorkflowId]);
+  }, [state, currentWorkflowId, handleAutoSave]);
 
   // Load workflow on mount
   useEffect(() => {
     if (currentWorkflowId && !state.businessInfo) {
       handleLoadWorkflow();
     }
-  }, [currentWorkflowId]);
+  }, [currentWorkflowId, handleLoadWorkflow, state.businessInfo]);
 
   const handleAutoSave = useCallback(async () => {
     if (!currentWorkflowId) return;
@@ -91,7 +91,7 @@ export function WorkflowDataManager({ currentStep, onStepChange }: WorkflowDataM
     }
   };
 
-  const handleLoadWorkflow = async () => {
+  const handleLoadWorkflow = useCallback(async () => {
     if (!currentWorkflowId) return;
 
     setIsLoading(true);
@@ -112,7 +112,7 @@ export function WorkflowDataManager({ currentStep, onStepChange }: WorkflowDataM
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentWorkflowId, loadWorkflow, toast, setShowWorkflowManager]);
 
   const handleBusinessInfoUpdate = (businessInfo: BusinessInfo) => {
     dispatch({ type: 'SET_BUSINESS_INFO', payload: businessInfo });

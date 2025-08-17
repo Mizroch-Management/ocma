@@ -423,14 +423,14 @@ export function WorkflowDataViewer({ onNavigateToStep }: WorkflowDataViewerProps
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-3">
-                        <div><strong>Strategic Goals:</strong> {(state.approvedStrategy as any).strategicGoals ? Array.isArray((state.approvedStrategy as any).strategicGoals) ? (state.approvedStrategy as any).strategicGoals.join(', ') : (state.approvedStrategy as any).strategicGoals : state.approvedStrategy.objectives}</div>
-                        <div><strong>Target Audience:</strong> {(state.approvedStrategy as any).targetAudience ? typeof (state.approvedStrategy as any).targetAudience === 'object' ? `${(state.approvedStrategy as any).targetAudience.primary}, ${(state.approvedStrategy as any).targetAudience.secondary}` : (state.approvedStrategy as any).targetAudience : state.approvedStrategy.targetMarkets}</div>
-                        <div><strong>Content Pillars:</strong> {(state.approvedStrategy as any).contentPillars ? Array.isArray((state.approvedStrategy as any).contentPillars) ? (state.approvedStrategy as any).contentPillars.join(', ') : (state.approvedStrategy as any).contentPillars : 'Not specified'}</div>
+                        <div><strong>Strategic Goals:</strong> {(state.approvedStrategy as Record<string, unknown>).strategicGoals ? Array.isArray((state.approvedStrategy as Record<string, unknown>).strategicGoals) ? ((state.approvedStrategy as Record<string, unknown>).strategicGoals as string[]).join(', ') : (state.approvedStrategy as Record<string, unknown>).strategicGoals : state.approvedStrategy.objectives}</div>
+                        <div><strong>Target Audience:</strong> {(state.approvedStrategy as Record<string, unknown>).targetAudience ? typeof (state.approvedStrategy as Record<string, unknown>).targetAudience === 'object' ? `${((state.approvedStrategy as Record<string, unknown>).targetAudience as Record<string, unknown>).primary}, ${((state.approvedStrategy as Record<string, unknown>).targetAudience as Record<string, unknown>).secondary}` : (state.approvedStrategy as Record<string, unknown>).targetAudience : state.approvedStrategy.targetMarkets}</div>
+                        <div><strong>Content Pillars:</strong> {(state.approvedStrategy as Record<string, unknown>).contentPillars ? Array.isArray((state.approvedStrategy as Record<string, unknown>).contentPillars) ? ((state.approvedStrategy as Record<string, unknown>).contentPillars as string[]).join(', ') : (state.approvedStrategy as Record<string, unknown>).contentPillars : 'Not specified'}</div>
                       </div>
                       <div className="space-y-3">
-                        <div><strong>Brand Message:</strong> {(state.approvedStrategy as any).brandMessage || state.approvedStrategy.toneOfVoice}</div>
-                        <div><strong>Key Metrics:</strong> {(state.approvedStrategy as any).keyMetrics ? Array.isArray((state.approvedStrategy as any).keyMetrics) ? (state.approvedStrategy as any).keyMetrics.join(', ') : (state.approvedStrategy as any).keyMetrics : state.approvedStrategy.keyMetrics}</div>
-                        <div><strong>Competitive Advantage:</strong> {(state.approvedStrategy as any).competitiveAdvantage || 'Not specified'}</div>
+                        <div><strong>Brand Message:</strong> {(state.approvedStrategy as Record<string, unknown>).brandMessage || state.approvedStrategy.toneOfVoice}</div>
+                        <div><strong>Key Metrics:</strong> {(state.approvedStrategy as Record<string, unknown>).keyMetrics ? Array.isArray((state.approvedStrategy as Record<string, unknown>).keyMetrics) ? ((state.approvedStrategy as Record<string, unknown>).keyMetrics as string[]).join(', ') : (state.approvedStrategy as Record<string, unknown>).keyMetrics : state.approvedStrategy.keyMetrics}</div>
+                        <div><strong>Competitive Advantage:</strong> {(state.approvedStrategy as Record<string, unknown>).competitiveAdvantage || 'Not specified'}</div>
                       </div>
                     </div>
                   </CardContent>
@@ -499,7 +499,7 @@ export function WorkflowDataViewer({ onNavigateToStep }: WorkflowDataViewerProps
                             {plan.contentTypes.map((type, idx) => (
                               <div key={idx} className="bg-muted p-2 rounded text-sm">
                                 <div><strong>{type.type}</strong> ({type.count} pieces)</div>
-                                <div>Platforms: {type.platforms && Array.isArray(type.platforms) ? type.platforms.join(', ') : 'No platforms specified'}</div>
+                                <div>Platforms: {type.platforms && Array.isArray(type.platforms) ? (type.platforms as string[]).join(', ') : 'No platforms specified'}</div>
                                 <div>{type.description}</div>
                               </div>
                             ))}
@@ -514,7 +514,7 @@ export function WorkflowDataViewer({ onNavigateToStep }: WorkflowDataViewerProps
                             {plan.platforms.map((platform, idx) => (
                               <div key={idx} className="bg-blue-50 p-2 rounded text-sm">
                                 <div><strong>{platform.name}</strong></div>
-                                <div>Schedule: {platform.postingSchedule && Array.isArray(platform.postingSchedule) ? platform.postingSchedule.join(', ') : 'No schedule specified'}</div>
+                                <div>Schedule: {platform.postingSchedule && Array.isArray(platform.postingSchedule) ? (platform.postingSchedule as string[]).join(', ') : 'No schedule specified'}</div>
                                 <div>Focus: {platform.contentFocus}</div>
                               </div>
                             ))}

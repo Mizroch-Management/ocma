@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -147,9 +147,9 @@ export function AIPlatformToolsSelector({
     if (currentOrganization && selectedPlatform) {
       loadPlatformTools();
     }
-  }, [currentOrganization, selectedPlatform]);
+  }, [currentOrganization, selectedPlatform, loadPlatformTools]);
 
-  const loadPlatformTools = async () => {
+  const loadPlatformTools = useCallback(async () => {
     if (!currentOrganization || !selectedPlatform) return;
 
     try {
@@ -188,7 +188,7 @@ export function AIPlatformToolsSelector({
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentOrganization, selectedPlatform, onToolsUpdate, toast]);
 
   const updateToolSelection = async (toolId: string, enabled: boolean) => {
     if (!currentOrganization || !selectedPlatform) return;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
@@ -59,10 +59,10 @@ export default function ContentGenerator() {
   const [selectedAITool, setSelectedAITool] = useState("");
   const [contentPrompt, setContentPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState<any[]>([]);
+  const [generatedContent, setGeneratedContent] = useState<Record<string, unknown>[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [editingContent, setEditingContent] = useState<any>(null);
-  const [schedulingContent, setSchedulingContent] = useState<any>(null);
+  const [editingContent, setEditingContent] = useState<Record<string, unknown> | null>(null);
+  const [schedulingContent, setSchedulingContent] = useState<Record<string, unknown> | null>(null);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
@@ -115,12 +115,7 @@ export default function ContentGenerator() {
     { name: "Motivational Quote", prompt: "Create an inspiring motivational post about...", category: "Inspirational" }
   ];
 
-  // Load saved content on component mount
-  useEffect(() => {
-    loadSavedContent();
-  }, []);
-
-  const loadSavedContent = async () => {
+  const loadSavedContent = useCallback(async () => {
     setIsLoadingContent(true);
     try {
       let query = supabase
@@ -180,9 +175,14 @@ export default function ContentGenerator() {
     } finally {
       setIsLoadingContent(false);
     }
-  };
+  }, [currentOrganization?.id]);
 
-  const saveContentToDatabase = async (content: any) => {
+  // Load saved content on component mount
+  useEffect(() => {
+    loadSavedContent();
+  }, [loadSavedContent]);
+
+  const saveContentToDatabase = async (content: Record<string, unknown>) => {
     try {
       // Get current user
       const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -463,21 +463,21 @@ export default function ContentGenerator() {
     );
   };
 
-  const handleEditContent = (content: any) => {
+  const handleEditContent = (content: Record<string, unknown>) => {
     setEditingContent(content);
   };
 
-  const handleSaveContent = (updatedContent: any) => {
+  const handleSaveContent = (updatedContent: Record<string, unknown>) => {
     setGeneratedContent(prev => 
-      prev.map(item => item.id === updatedContent.id ? updatedContent : item)
+      prev.map(item => (item.id === updatedContent.id ? updatedContent : item))
     );
   };
 
-  const handleScheduleContent = (content: any) => {
+  const handleScheduleContent = (content: Record<string, unknown>) => {
     setSchedulingContent(content);
   };
 
-  const handleSaveSchedule = async (scheduledContent: any) => {
+  const handleSaveSchedule = async (scheduledContent: Record<string, unknown>) => {
     try {
       // Update the content in the database with schedule information
       const { error } = await supabase

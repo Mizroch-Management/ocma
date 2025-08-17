@@ -49,10 +49,11 @@ serve(async (req) => {
         } 
       }
     )
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error('AI response generation error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { 
         status: 400,
         headers: { 
@@ -64,7 +65,25 @@ serve(async (req) => {
   }
 })
 
-async function generateAIResponse(params: any) {
+interface AIResponseParams {
+  original_content: string;
+  context: Record<string, unknown>;
+  response_style: string;
+  platform: string;
+  user_profile: Record<string, unknown>;
+  conversation_history: ConversationHistoryItem[];
+  supabase: ReturnType<typeof createClient>;
+  organizationId?: string;
+}
+
+interface ConversationHistoryItem {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+async function generateAIResponse(params: AIResponseParams) {
   const { original_content, context, response_style, platform, user_profile, conversation_history, supabase, organizationId } = params;
 
   // Get OpenAI API key using centralized management system
@@ -130,7 +149,7 @@ async function generateAIResponse(params: any) {
   };
 }
 
-function buildSystemPrompt(style: string, platform: string, context: any) {
+function buildSystemPrompt(style: string, platform: string, context: Record<string, unknown>) {
   const basePrompt = `You are an expert social media engagement specialist. Generate thoughtful, engaging responses that build relationships and provide value.
 
 Platform: ${platform}
@@ -155,7 +174,7 @@ Response Requirements:
   return basePrompt;
 }
 
-function buildUserPrompt(original_content: string, user_profile: any, conversation_history: any[]) {
+function buildUserPrompt(original_content: string, user_profile: Record<string, unknown>, conversation_history: ConversationHistoryItem[]) {
   let prompt = `Original message to respond to: "${original_content}"`;
   
   if (user_profile && Object.keys(user_profile).length > 0) {
@@ -206,7 +225,7 @@ async function generateResponseVariations(baseResponse: string, style: string, p
         response: result.choices[0].message.content,
         character_count: result.choices[0].message.content.length
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error generating ${variantStyle} variation:`, error);
     }
   }
@@ -214,7 +233,14 @@ async function generateResponseVariations(baseResponse: string, style: string, p
   return variations;
 }
 
-function calculateOptimalTiming(platform: string, userProfile: any) {
+interface UserProfile {
+  timezone?: string;
+  location?: string;
+  preferences?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+function calculateOptimalTiming(platform: string, userProfile: UserProfile) {
   // AI-powered optimal timing based on platform and user data
   const timingMap = {
     'twitter': {
