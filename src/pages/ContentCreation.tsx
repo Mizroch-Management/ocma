@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useWorkflow } from "@/contexts/workflow-context";
+import { useStrategies } from "@/contexts/strategy-context";
 import { Wand2, Target, Calendar, TrendingUp, Copy, Edit, Save, Sparkles, ImageIcon, ExternalLink } from "lucide-react";
 import { log } from "@/utils/logger";
 
@@ -21,6 +22,7 @@ export default function ContentCreation() {
   const [loadingPlatforms, setLoadingPlatforms] = useState(true);
   const { state: workflowState } = useWorkflow();
   const { currentOrganization } = useOrganization();
+  const { getAllStrategies, loading: strategiesLoading } = useStrategies();
 
   const fetchPlatformStatus = useCallback(async () => {
     if (!currentOrganization) return;
@@ -84,18 +86,13 @@ export default function ContentCreation() {
     fetchPlatformStatus();
   }, [fetchPlatformStatus]);
 
-  // Combine manual strategies with AI strategy
-  const strategies = [
-    { id: "1", name: "Q1 Brand Awareness", description: "Focus on increasing brand visibility", isAIGenerated: false },
-    { id: "2", name: "Product Launch Campaign", description: "Launching new product line", isAIGenerated: false },
-    { id: "3", name: "Holiday Marketing", description: "Seasonal promotional content", isAIGenerated: false },
-    ...(workflowState.approvedStrategy ? [{
-      id: workflowState.approvedStrategy.id,
-      name: workflowState.approvedStrategy.title,
-      description: workflowState.approvedStrategy.objectives,
-      isAIGenerated: true
-    }] : [])
-  ];
+  // Get all strategies from context (includes database and AI-generated)
+  const strategies = getAllStrategies().map(strategy => ({
+    id: strategy.id,
+    name: strategy.title,
+    description: strategy.objectives || strategy.description,
+    isAIGenerated: strategy.is_ai_generated || false
+  }));
 
   // Use AI workflow plans if available
   const weeklyPipelines = workflowState.approvedPlans.length > 0 

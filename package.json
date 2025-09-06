@@ -89,8 +89,6 @@
     "ioredis": "^5.5.3",
     "axios": "^1.7.9",
     "twitter-api-v2": "^1.17.3",
-    "instagram-basic-display-api": "^1.0.8",
-    "linkedin-api": "^3.2.0",
     "crypto-js": "^4.2.0",
     "@types/crypto-js": "^4.2.2"
   },

@@ -57,7 +57,7 @@ export function QuickActions() {
       title: "Create New Post",
       description: "Start crafting your next social media post",
       icon: <Plus className="h-5 w-5" />,
-      href: "/drafts/new",
+      href: "/content-creation",
       variant: "primary" as const
     },
     {
@@ -85,10 +85,10 @@ export function QuickActions() {
       href: "/analytics"
     },
     {
-      title: "AI Content Ideas",
-      description: "Get personalized content suggestions",
+      title: "AI Workflow",
+      description: "Use AI to generate complete content strategies",
       icon: <Zap className="h-5 w-5" />,
-      href: "/ai-suggestions"
+      href: "/ai-workflow"
     }
   ];
 

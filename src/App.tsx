@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ResponsiveLayout } from "./components/layout/responsive-layout";
 import { WorkflowProvider } from "./contexts/workflow-context";
+import { StrategyProvider } from "./contexts/strategy-context";
 import { AuthProvider } from "./hooks/use-auth";
 import { OrganizationProvider } from "./hooks/use-organization";
 import { SimpleErrorBoundary } from "./lib/simple-error-boundary";
@@ -62,10 +63,11 @@ const App = () => (
         <AuthProvider>
           <OrganizationProvider>
             <WorkflowProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
+              <StrategyProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/" element={<ResponsiveLayout />}>
@@ -134,6 +136,7 @@ const App = () => (
                 </Routes>
               </BrowserRouter>
             </TooltipProvider>
+          </StrategyProvider>
           </WorkflowProvider>
         </OrganizationProvider>
       </AuthProvider>
