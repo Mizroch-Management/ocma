@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import {
+  authenticateRequest,
+  ensureOrganizationRole,
+} from "../_shared/auth.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -14,6 +18,7 @@ interface TeamInvitationRequest {
   name: string;
   role: string;
   invitationToken: string;
+  organizationId: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -23,7 +28,45 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, name, role, invitationToken }: TeamInvitationRequest = await req.json();
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ("errorResponse" in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+
+    const {
+      email,
+      name,
+      role,
+      invitationToken,
+      organizationId,
+    }: TeamInvitationRequest = await req.json();
+
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: "organizationId is required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const hasPrivilegedRole = await ensureOrganizationRole(user.id, organizationId, [
+      "owner",
+      "admin",
+    ]);
+
+    if (!hasPrivilegedRole) {
+      return new Response(
+        JSON.stringify({ error: "Insufficient permissions to invite members." }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     const invitationUrl = `${req.headers.get('origin') || 'https://your-app.lovable.app'}/team/accept?token=${invitationToken}`;
 

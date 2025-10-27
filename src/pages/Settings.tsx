@@ -351,7 +351,10 @@ export default function Settings() {
     
     try {
       const { data, error } = await supabase.functions.invoke('fetch-linkedin-id', {
-        body: { access_token: accessToken }
+        body: {
+          access_token: accessToken,
+          organizationId: currentOrganization?.id,
+        }
       });
       
       if (error) throw error;
@@ -400,14 +403,16 @@ export default function Settings() {
         requestBody = {
           platform,
           type,
-          api_key: apiKeySetting?.api_key || ''
+          api_key: apiKeySetting?.api_key || '',
+          organizationId: currentOrganization?.id,
         };
       } else {
         const platformConfig = getSetting(`${platform}_integration`) as PlatformConfig;
         requestBody = {
           platform,
           type,
-          credentials: platformConfig?.credentials || {}
+          credentials: platformConfig?.credentials || {},
+          organizationId: currentOrganization?.id,
         };
       }
 

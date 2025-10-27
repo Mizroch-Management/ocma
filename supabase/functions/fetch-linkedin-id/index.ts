@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  authenticateRequest,
+  ensureOrganizationRole,
+} from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,10 +15,28 @@ serve(async (req) => {
   }
 
   try {
-    const { access_token } = await req.json();
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+
+    const { access_token, organizationId } = await req.json();
     
     if (!access_token) {
       throw new Error('LinkedIn access token is required');
+    }
+    if (!organizationId) {
+      throw new Error('organizationId is required');
+    }
+    
+    const hasRole = await ensureOrganizationRole(user.id, organizationId, ['owner', 'admin']);
+    if (!hasRole) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Insufficient permissions to fetch LinkedIn IDs.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
     // Try the userinfo endpoint first (most reliable)

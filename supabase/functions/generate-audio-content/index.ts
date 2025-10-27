@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import {
+  authenticateRequest,
+  ensureOrganizationAccess,
+  supabaseAdmin,
+} from '../_shared/auth.ts';
+import { getApiKey } from '../_shared/api-key-manager.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,17 +17,39 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, style, platform, settings } = await req.json();
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+
+    const { prompt, style, platform, settings, organizationId } = await req.json();
+
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: 'organizationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const hasAccess = await ensureOrganizationAccess(user.id, organizationId);
+    if (!hasAccess) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have access to this organization.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log('Generating audio content:', { prompt, style, platform });
 
     let result;
     switch (platform) {
       case 'elevenlabs':
-        result = await generateWithElevenLabs(prompt, style, settings);
+        result = await generateWithElevenLabs(prompt, style, settings, organizationId);
         break;
       case 'openai':
-        result = await generateWithOpenAI(prompt, style, settings);
+        result = await generateWithOpenAI(prompt, style, settings, organizationId);
         break;
       default:
         throw new Error(`Audio generation not supported for platform: ${platform}`);
@@ -59,32 +86,19 @@ interface AudioResult {
   voiceUsed: string;
 }
 
-async function generateWithElevenLabs(prompt: string, style: string, settings: AudioSettings): Promise<AudioResult> {
-  // Get API key from database
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-  
-  const { data: apiKeyData, error } = await supabase
-    .from('system_settings')
-    .select('setting_value')
-    .eq('setting_key', 'elevenlabs_api_key')
-    .eq('category', 'ai_platforms')
-    .maybeSingle();
-    
-  console.log('ElevenLabs API key query result:', { apiKeyData, error });
-    
-  if (error) {
-    console.error('Database error:', error);
-    throw new Error(`Database error: ${error.message}`);
+async function generateWithElevenLabs(prompt: string, style: string, settings: AudioSettings, organizationId: string): Promise<AudioResult> {
+  const apiKeyResult = await getApiKey(supabaseAdmin, {
+    organizationId,
+    platform: 'elevenlabs',
+    allowGlobalFallback: true,
+    allowEnvironmentFallback: true,
+  });
+
+  if (!apiKeyResult.success || !apiKeyResult.apiKey) {
+    throw new Error(apiKeyResult.error || 'ElevenLabs API key not configured in system settings');
   }
-  
-  const apiKey = apiKeyData?.setting_value?.api_key;
-  if (!apiKey) {
-    console.error('No ElevenLabs API key found in database');
-    throw new Error('ElevenLabs API key not configured in system settings');
-  }
+
+  const apiKey = apiKeyResult.apiKey;
 
   // Voice selection based on style
   const voiceMap: { [key: string]: string } = {
@@ -132,32 +146,19 @@ async function generateWithElevenLabs(prompt: string, style: string, settings: A
   };
 }
 
-async function generateWithOpenAI(prompt: string, style: string, settings: AudioSettings): Promise<AudioResult> {
-  // Get API key from database
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-  
-  const { data: apiKeyData, error } = await supabase
-    .from('system_settings')
-    .select('setting_value')
-    .eq('setting_key', 'openai_api_key')
-    .eq('category', 'ai_platforms')
-    .maybeSingle();
-    
-  console.log('OpenAI API key query result for TTS:', { apiKeyData, error });
-    
-  if (error) {
-    console.error('Database error:', error);
-    throw new Error(`Database error: ${error.message}`);
+async function generateWithOpenAI(prompt: string, style: string, settings: AudioSettings, organizationId: string): Promise<AudioResult> {
+  const apiKeyResult = await getApiKey(supabaseAdmin, {
+    organizationId,
+    platform: 'openai',
+    allowGlobalFallback: true,
+    allowEnvironmentFallback: true,
+  });
+
+  if (!apiKeyResult.success || !apiKeyResult.apiKey) {
+    throw new Error(apiKeyResult.error || 'OpenAI API key not configured in system settings');
   }
-  
-  const apiKey = apiKeyData?.setting_value?.api_key;
-  if (!apiKey) {
-    console.error('No OpenAI API key found in database');
-    throw new Error('OpenAI API key not configured in system settings');
-  }
+
+  const apiKey = apiKeyResult.apiKey;
 
   // Voice selection based on style
   const voiceMap: { [key: string]: string } = {

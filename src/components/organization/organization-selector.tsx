@@ -64,6 +64,7 @@ export function OrganizationSelector() {
   const [filteredOrganizations, setFilteredOrganizations] = useState<OrganizationData[]>([]);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [switchingOrg, setSwitchingOrg] = useState(false);
 
   const handleCreateOrganization = async () => {
     if (!newOrgName.trim()) return;
@@ -375,9 +376,25 @@ export function OrganizationSelector() {
                 <Label htmlFor="current-org">Current Organization</Label>
                 <Select
                   value={currentOrganization?.id || ''}
-                  onValueChange={(value) => {
-                    const org = userOrganizations.find(o => o.id === value);
-                    setCurrentOrganization(org || null);
+                  disabled={switchingOrg}
+                  onValueChange={async (value) => {
+                    const org = userOrganizations.find(o => o.id === value) || null;
+                    setSwitchingOrg(true);
+                    try {
+                      await setCurrentOrganization(org);
+                      if (org) {
+                        await Promise.all([
+                          fetchOrganizationMembers(org.id),
+                          fetchPendingMembers(org.id),
+                        ]);
+                        toast.success(`Switched to ${org.name}`);
+                      }
+                    } catch (error) {
+                      console.error('Failed to switch organization:', error);
+                      toast.error('Unable to switch organization. Please try again.');
+                    } finally {
+                      setSwitchingOrg(false);
+                    }
                   }}
                 >
                   <SelectTrigger>

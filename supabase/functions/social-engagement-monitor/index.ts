@@ -1,15 +1,110 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getApiKey } from '../_shared/api-key-manager.ts'
+import {
+  authenticateRequest,
+  ensureOrganizationAccess,
+  supabaseAdmin,
+} from '../_shared/auth.ts';
 
-// Use the proper Supabase client type from the imported createClient
-type SupabaseClient = ReturnType<typeof createClient>;
+type PriorityLevel = 'low' | 'medium' | 'high';
+type SentimentLevel = 'positive' | 'negative' | 'neutral';
+
+interface MentionAuthor {
+  id?: string;
+  username?: string;
+  name?: string;
+  avatar?: string;
+}
+
+interface MentionRecord {
+  id: string;
+  content: string;
+  author: MentionAuthor;
+  url?: string;
+  priority: PriorityLevel;
+  sentiment: SentimentLevel;
+  created_at: string;
+  responded: boolean;
+}
+
+interface InfluencerRecord {
+  id: string;
+  name: string;
+  handle: string;
+  platform: string;
+  followers: number;
+  engagement_rate: number;
+  niche?: string;
+  ai_score?: number;
+  reason?: string;
+  suggested_approach?: string;
+  recent_content?: string;
+  collaboration_potential?: PriorityLevel;
+  estimated_reach?: number;
+  audience_overlap?: number;
+}
+
+interface HashtagMetricRecord {
+  hashtag: string;
+  post_count: number;
+  engagement_rate: number;
+  trending_score: number;
+  tracked_at?: string;
+}
+
+interface PlatformAccountCredentials {
+  accessToken?: string;
+  refreshToken?: string;
+  clientId?: string;
+  clientSecret?: string;
+}
+
+interface TwitterPublicMetrics {
+  like_count?: number;
+  retweet_count?: number;
+  reply_count?: number;
+  quote_count?: number;
+}
+
+interface TwitterTweet {
+  id: string;
+  text: string;
+  created_at: string;
+  author_id: string;
+  public_metrics?: TwitterPublicMetrics;
+}
+
+interface TwitterUserMetrics {
+  followers_count?: number;
+  following_count?: number;
+  tweet_count?: number;
+  listed_count?: number;
+  like_count?: number;
+}
+
+interface TwitterUser {
+  id: string;
+  username?: string;
+  name?: string;
+  profile_image_url?: string;
+  description?: string;
+  public_metrics?: TwitterUserMetrics;
+}
+
+interface TwitterTweetSearchResponse {
+  data?: TwitterTweet[];
+  includes?: { users?: TwitterUser[] };
+}
+
+interface TwitterUserSearchResponse {
+  data?: TwitterUser[];
+}
 
 interface MonitorRequest {
   platform: string;
   action: string;
-  data: Record<string, unknown> | SentimentData | HashtagData;
-  organizationId?: string;
+  data: MentionData | SentimentData | HashtagData | InfluencerDiscoveryData | EngagementOpportunityData;
+  organizationId: string;
 }
 
 interface SentimentData {
@@ -32,29 +127,46 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
 
-    const { platform, action, data, organizationId } = await req.json()
+    const { user } = authResult;
+
+    const { platform, action, data, organizationId }: MonitorRequest = await req.json();
+
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: 'organizationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const hasAccess = await ensureOrganizationAccess(user.id, organizationId);
+    if (!hasAccess) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have access to this organization.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     let result;
     switch (action) {
       case 'monitor_mentions':
-        result = await monitorMentions(platform, data, supabase);
+        result = await monitorMentions(platform, data as MentionData, organizationId);
         break;
       case 'analyze_sentiment':
-        result = await analyzeSentiment(data, supabase, organizationId);
+        result = await analyzeSentiment(data as SentimentData, organizationId);
         break;
       case 'discover_influencers':
-        result = await discoverInfluencers(platform, data, supabase);
+        result = await discoverInfluencers(platform, data as InfluencerDiscoveryData, organizationId);
         break;
       case 'get_engagement_opportunities':
-        result = await getEngagementOpportunities(platform, data, supabase);
+        result = await getEngagementOpportunities(platform, data as EngagementOpportunityData);
         break;
       case 'track_hashtags':
-        result = await trackHashtags(platform, data, supabase);
+        result = await trackHashtags(platform, data as HashtagData, organizationId);
         break;
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -92,11 +204,11 @@ interface MentionData {
   [key: string]: unknown;
 }
 
-async function monitorMentions(platform: string, data: MentionData, supabase: SupabaseClient) {
+async function monitorMentions(platform: string, data: MentionData, organizationId: string) {
   console.log(`Monitoring mentions for platform: ${platform}`);
   
   // Get platform API credentials
-  const platformCredentials = await getPlatformCredentials(platform, supabase);
+  const platformCredentials = await getPlatformCredentials(platform, organizationId);
   if (!platformCredentials) {
     return {
       mentions: [],
@@ -108,7 +220,7 @@ async function monitorMentions(platform: string, data: MentionData, supabase: Su
   }
 
   try {
-    let mentions = [];
+    let mentions: MentionRecord[] = [];
     
     switch (platform) {
       case 'twitter':
@@ -127,14 +239,14 @@ async function monitorMentions(platform: string, data: MentionData, supabase: Su
         throw new Error(`Platform ${platform} not supported`);
     }
 
-    const highPriorityCount = mentions.filter((m: any) => m.priority === 'high').length;
-    const pendingResponses = mentions.filter((m: any) => !m.responded).length;
+    const highPriorityCount = mentions.filter((m) => m.priority === 'high').length;
+    const pendingResponses = mentions.filter((m) => !m.responded).length;
 
     // Store mentions in database for tracking
     if (mentions.length > 0) {
-      await supabase
+      await supabaseAdmin
         .from('social_mentions')
-        .upsert(mentions.map((mention: any) => ({
+        .upsert(mentions.map((mention) => ({
           platform,
           mention_id: mention.id,
           content: mention.content,
@@ -143,8 +255,10 @@ async function monitorMentions(platform: string, data: MentionData, supabase: Su
           priority: mention.priority,
           sentiment: mention.sentiment,
           created_at: mention.created_at,
-          fetched_at: new Date().toISOString()
-        })), { onConflict: 'platform,mention_id' });
+          responded: mention.responded,
+          fetched_at: new Date().toISOString(),
+          organization_id: organizationId
+        })), { onConflict: 'organization_id,platform,mention_id' });
     }
 
     return {
@@ -154,21 +268,22 @@ async function monitorMentions(platform: string, data: MentionData, supabase: Su
       pending_responses: pendingResponses
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error(`Error monitoring ${platform} mentions:`, error);
     return {
       mentions: [],
       total_count: 0,
       high_priority_count: 0,
       pending_responses: 0,
-      error: `Failed to fetch mentions: ${error.message}`
+      error: `Failed to fetch mentions: ${errorMessage}`
     };
   }
 }
 
-async function analyzeSentiment(data: SentimentData, supabase: SupabaseClient, organizationId?: string) {
+async function analyzeSentiment(data: SentimentData, organizationId: string) {
   console.log('[Social Engagement - Sentiment] Getting OpenAI API key for organization:', organizationId);
   
-  const apiKeyResult = await getApiKey(supabase, {
+  const apiKeyResult = await getApiKey(supabaseAdmin, {
     organizationId,
     platform: 'openai',
     allowGlobalFallback: true,
@@ -223,10 +338,10 @@ interface InfluencerDiscoveryData {
   [key: string]: unknown;
 }
 
-async function discoverInfluencers(platform: string, data: InfluencerDiscoveryData, supabase: SupabaseClient) {
+async function discoverInfluencers(platform: string, data: InfluencerDiscoveryData, organizationId: string) {
   console.log(`Discovering influencers for platform: ${platform}`, data);
   
-  const platformCredentials = await getPlatformCredentials(platform, supabase);
+  const platformCredentials = await getPlatformCredentials(platform, organizationId);
   if (!platformCredentials) {
     return {
       influencers: [],
@@ -238,7 +353,7 @@ async function discoverInfluencers(platform: string, data: InfluencerDiscoveryDa
   }
 
   try {
-    let influencers = [];
+    let influencers: InfluencerRecord[] = [];
     
     switch (platform) {
       case 'twitter':
@@ -254,7 +369,7 @@ async function discoverInfluencers(platform: string, data: InfluencerDiscoveryDa
         throw new Error(`Influencer discovery not supported for ${platform}`);
     }
 
-    const highPriority = influencers.filter((i: any) => i.engagement_rate > 5).length;
+    const highPriority = influencers.filter((influencer) => influencer.engagement_rate > 5).length;
 
     return {
       influencers,
@@ -263,13 +378,14 @@ async function discoverInfluencers(platform: string, data: InfluencerDiscoveryDa
       search_criteria: data
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error(`Error discovering ${platform} influencers:`, error);
     return {
       influencers: [],
       total_found: 0,
       high_priority: 0,
       search_criteria: data,
-      error: `Failed to discover influencers: ${error.message}`
+      error: `Failed to discover influencers: ${errorMessage}`
     };
   }
 }
@@ -295,11 +411,11 @@ async function getEngagementOpportunities(platform: string, data: EngagementOppo
   };
 }
 
-async function trackHashtags(platform: string, data: HashtagData, supabase: SupabaseClient) {
+async function trackHashtags(platform: string, data: HashtagData, organizationId: string) {
   const { hashtags } = data;
   console.log(`Tracking hashtags for platform: ${platform}`, hashtags);
   
-  const platformCredentials = await getPlatformCredentials(platform, supabase);
+  const platformCredentials = await getPlatformCredentials(platform, organizationId);
   if (!platformCredentials) {
     return {
       hashtag_data: [],
@@ -310,10 +426,10 @@ async function trackHashtags(platform: string, data: HashtagData, supabase: Supa
   }
 
   try {
-    const hashtagData = [];
+    const hashtagData: HashtagMetricRecord[] = [];
     
     for (const hashtag of hashtags) {
-      let metrics;
+      let metrics: HashtagMetricRecord;
       
       switch (platform) {
         case 'twitter':
@@ -331,14 +447,16 @@ async function trackHashtags(platform: string, data: HashtagData, supabase: Supa
       
       hashtagData.push({
         hashtag,
-        ...metrics,
+        post_count: metrics.post_count,
+        engagement_rate: metrics.engagement_rate,
+        trending_score: metrics.trending_score,
         tracked_at: new Date().toISOString()
       });
     }
 
     // Store hashtag metrics
     if (hashtagData.length > 0) {
-      await supabase
+      await supabaseAdmin
         .from('hashtag_metrics')
         .upsert(hashtagData.map(data => ({
           platform,
@@ -346,8 +464,9 @@ async function trackHashtags(platform: string, data: HashtagData, supabase: Supa
           post_count: data.post_count,
           engagement_rate: data.engagement_rate,
           trending_score: data.trending_score,
-          tracked_at: data.tracked_at
-        })), { onConflict: 'platform,hashtag,tracked_at' });
+          tracked_at: data.tracked_at,
+          organization_id: organizationId
+        })), { onConflict: 'platform,hashtag,organization_id,tracked_at' });
     }
 
     return {
@@ -356,24 +475,27 @@ async function trackHashtags(platform: string, data: HashtagData, supabase: Supa
       requested_hashtags: hashtags
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error(`Error tracking ${platform} hashtags:`, error);
     return {
       hashtag_data: [],
       tracking_since: new Date().toISOString(),
-      error: `Failed to track hashtags: ${error.message}`,
+      error: `Failed to track hashtags: ${errorMessage}`,
       requested_hashtags: hashtags
     };
   }
 }
 
 // Platform API credential management
-async function getPlatformCredentials(platform: string, supabase: SupabaseClient) {
-  const { data, error } = await supabase
+async function getPlatformCredentials(platform: string, organizationId: string) {
+  const { data, error } = await supabaseAdmin
     .from('api_keys')
     .select('*')
     .eq('platform', platform)
+    .eq('organization_id', organizationId)
     .eq('is_active', true)
-    .single();
+    .limit(1)
+    .maybeSingle();
     
   if (error || !data) {
     console.log(`No API credentials found for ${platform}`);
@@ -389,11 +511,10 @@ async function getPlatformCredentials(platform: string, supabase: SupabaseClient
 }
 
 // Twitter API functions
-async function getTwitterMentions(credentials: any, data: MentionData) {
-  const { keywords = [], timeRange = '24h' } = data;
-  
+async function getTwitterMentions(credentials: PlatformAccountCredentials, data: MentionData): Promise<MentionRecord[]> {
+  const { keywords = [] } = data;
   const searchQuery = keywords.length > 0 ? keywords.join(' OR ') : '@your_handle';
-  
+
   const response = await fetch(`https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(searchQuery)}&tweet.fields=created_at,author_id,public_metrics&expansions=author_id&user.fields=username,name,profile_image_url`, {
     headers: {
       'Authorization': `Bearer ${credentials.accessToken}`
@@ -404,12 +525,12 @@ async function getTwitterMentions(credentials: any, data: MentionData) {
     throw new Error(`Twitter API error: ${response.statusText}`);
   }
   
-  const result = await response.json();
-  const tweets = result.data || [];
-  const users = result.includes?.users || [];
+  const result = (await response.json()) as TwitterTweetSearchResponse;
+  const tweets = result.data ?? [];
+  const users = result.includes?.users ?? [];
   
-  return tweets.map((tweet: any) => {
-    const author = users.find((u: any) => u.id === tweet.author_id);
+  return tweets.map((tweet): MentionRecord => {
+    const author = users.find((u) => u.id === tweet.author_id);
     return {
       id: tweet.id,
       content: tweet.text,
@@ -417,36 +538,36 @@ async function getTwitterMentions(credentials: any, data: MentionData) {
         id: author?.id,
         username: author?.username,
         name: author?.name,
-        avatar: author?.profile_image_url
+        avatar: author?.profile_image_url,
       },
-      url: `https://twitter.com/${author?.username}/status/${tweet.id}`,
-      priority: tweet.public_metrics?.like_count > 10 ? 'high' : 'medium',
-      sentiment: 'neutral', // Would integrate with sentiment analysis
+      url: author?.username ? `https://twitter.com/${author.username}/status/${tweet.id}` : undefined,
+      priority: (tweet.public_metrics?.like_count ?? 0) > 10 ? 'high' : 'medium',
+      sentiment: 'neutral',
       created_at: tweet.created_at,
-      responded: false
+      responded: false,
     };
   });
 }
 
-async function getInstagramMentions(credentials: any, data: MentionData) {
+async function getInstagramMentions(_credentials: PlatformAccountCredentials, _data: MentionData): Promise<MentionRecord[]> {
   // Instagram Basic Display API doesn't support mention monitoring
   // Would need Instagram Business API with advanced features
   return [];
 }
 
-async function getLinkedInMentions(credentials: any, data: MentionData) {
+async function getLinkedInMentions(_credentials: PlatformAccountCredentials, _data: MentionData): Promise<MentionRecord[]> {
   // LinkedIn API has limited mention monitoring capabilities
   // Would need to implement custom solution
   return [];
 }
 
-async function getFacebookMentions(credentials: any, data: MentionData) {
+async function getFacebookMentions(_credentials: PlatformAccountCredentials, _data: MentionData): Promise<MentionRecord[]> {
   // Facebook API requires page-level access for mentions
   return [];
 }
 
 // Influencer discovery functions
-async function searchTwitterInfluencers(credentials: any, data: InfluencerDiscoveryData) {
+async function searchTwitterInfluencers(credentials: PlatformAccountCredentials, data: InfluencerDiscoveryData): Promise<InfluencerRecord[]> {
   const { niche = '', followerRange } = data;
   
   // Search for users in specific niche
@@ -462,43 +583,48 @@ async function searchTwitterInfluencers(credentials: any, data: InfluencerDiscov
     throw new Error(`Twitter API error: ${response.statusText}`);
   }
   
-  const result = await response.json();
-  const users = result.data || [];
+  const result = (await response.json()) as TwitterUserSearchResponse;
+  const users = result.data ?? [];
   
   return users
-    .filter((user: any) => {
+    .filter((user) => {
       if (followerRange) {
-        const followers = user.public_metrics?.followers_count || 0;
+        const followers = user.public_metrics?.followers_count ?? 0;
         return followers >= followerRange.min && followers <= followerRange.max;
       }
       return true;
     })
-    .map((user: any) => ({
+    .map((user): InfluencerRecord => ({
       id: user.id,
-      username: user.username,
-      name: user.name,
-      bio: user.description,
-      avatar: user.profile_image_url,
-      followers: user.public_metrics?.followers_count || 0,
-      following: user.public_metrics?.following_count || 0,
+      name: user.name ?? user.username ?? 'Unknown',
+      handle: user.username ? `@${user.username}` : user.name ?? 'unknown',
+      platform: 'twitter',
+      followers: user.public_metrics?.followers_count ?? 0,
       engagement_rate: calculateEngagementRate(user.public_metrics),
-      platform: 'twitter'
+      niche: typeof niche === 'string' ? niche : undefined,
+      ai_score: undefined,
+      reason: undefined,
+      suggested_approach: undefined,
+      recent_content: undefined,
+      collaboration_potential: 'medium',
+      estimated_reach: user.public_metrics?.followers_count ?? 0,
+      audience_overlap: 0,
     }));
 }
 
-async function searchInstagramInfluencers(credentials: any, data: InfluencerDiscoveryData) {
+async function searchInstagramInfluencers(_credentials: PlatformAccountCredentials, _data: InfluencerDiscoveryData): Promise<InfluencerRecord[]> {
   // Instagram Basic Display API doesn't support user search
   // Would need Instagram Business API or third-party service
   return [];
 }
 
-async function searchLinkedInInfluencers(credentials: any, data: InfluencerDiscoveryData) {
+async function searchLinkedInInfluencers(_credentials: PlatformAccountCredentials, _data: InfluencerDiscoveryData): Promise<InfluencerRecord[]> {
   // LinkedIn API has limited user search capabilities
   return [];
 }
 
 // Hashtag tracking functions
-async function getTwitterHashtagMetrics(credentials: any, hashtag: string) {
+async function getTwitterHashtagMetrics(credentials: PlatformAccountCredentials, hashtag: string): Promise<HashtagMetricRecord> {
   const response = await fetch(`https://api.twitter.com/2/tweets/search/recent?query=%23${encodeURIComponent(hashtag)}&tweet.fields=created_at,public_metrics`, {
     headers: {
       'Authorization': `Bearer ${credentials.accessToken}`
@@ -509,12 +635,12 @@ async function getTwitterHashtagMetrics(credentials: any, hashtag: string) {
     throw new Error(`Twitter API error: ${response.statusText}`);
   }
   
-  const result = await response.json();
-  const tweets = result.data || [];
+  const result = (await response.json()) as { data?: TwitterTweet[] };
+  const tweets = result.data ?? [];
   
-  const totalEngagement = tweets.reduce((sum: number, tweet: any) => {
-    const metrics = tweet.public_metrics || {};
-    return sum + (metrics.like_count || 0) + (metrics.retweet_count || 0) + (metrics.reply_count || 0);
+  const totalEngagement = tweets.reduce((sum: number, tweet) => {
+    const metrics = tweet.public_metrics ?? {};
+    return sum + (metrics.like_count ?? 0) + (metrics.retweet_count ?? 0) + (metrics.reply_count ?? 0);
   }, 0);
   
   return {
@@ -524,7 +650,7 @@ async function getTwitterHashtagMetrics(credentials: any, hashtag: string) {
   };
 }
 
-async function getInstagramHashtagMetrics(credentials: any, hashtag: string) {
+async function getInstagramHashtagMetrics(_credentials: PlatformAccountCredentials, _hashtag: string): Promise<HashtagMetricRecord> {
   // Instagram Basic Display API doesn't support hashtag search
   // Would need Instagram Business API
   return {
@@ -534,7 +660,7 @@ async function getInstagramHashtagMetrics(credentials: any, hashtag: string) {
   };
 }
 
-async function getTikTokHashtagMetrics(credentials: any, hashtag: string) {
+async function getTikTokHashtagMetrics(_credentials: PlatformAccountCredentials, _hashtag: string): Promise<HashtagMetricRecord> {
   // TikTok API has limited hashtag analytics
   return {
     post_count: 0,
@@ -544,18 +670,16 @@ async function getTikTokHashtagMetrics(credentials: any, hashtag: string) {
 }
 
 // Utility functions
-function calculateEngagementRate(metrics: any): number {
+function calculateEngagementRate(metrics?: TwitterUserMetrics): number {
   if (!metrics) return 0;
   
-  const followers = metrics.followers_count || 1;
-  const tweets = metrics.tweet_count || 1;
-  const likes = metrics.like_count || 0;
-  
-  // Simple engagement rate calculation
-  return ((likes / tweets) / followers) * 100;
+  const followers = metrics.followers_count ?? 1;
+  const tweets = metrics.tweet_count ?? 1;
+
+  return (tweets / followers) * 100;
 }
 
-function calculateTrendingScore(tweets: any[]): number {
+function calculateTrendingScore(tweets: TwitterTweet[]): number {
   if (tweets.length === 0) return 0;
   
   // Calculate trending score based on recency and engagement
@@ -565,8 +689,8 @@ function calculateTrendingScore(tweets: any[]): number {
     const hoursAgo = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
     const recencyScore = Math.max(0, 24 - hoursAgo) / 24; // Newer tweets score higher
     
-    const metrics = tweet.public_metrics || {};
-    const engagementScore = (metrics.like_count || 0) + (metrics.retweet_count || 0) * 2;
+    const metrics = tweet.public_metrics ?? {};
+    const engagementScore = (metrics.like_count ?? 0) + (metrics.retweet_count ?? 0) * 2;
     
     return sum + (recencyScore * engagementScore);
   }, 0);

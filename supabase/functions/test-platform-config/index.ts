@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { testTwitterOAuth1 } from './twitter-oauth1.ts';
+import {
+  authenticateRequest,
+  ensureOrganizationRole,
+  supabaseAdmin,
+} from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +27,7 @@ interface TestRequest {
     username?: string;
   };
   api_key?: string;
+  organizationId: string;
 }
 
 serve(async (req) => {
@@ -31,17 +36,29 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    );
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
 
-    const { platform, type, credentials, api_key }: TestRequest = await req.json();
+    const { user } = authResult;
+
+    const { platform, type, credentials, api_key, organizationId }: TestRequest = await req.json();
+
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'organizationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const hasRole = await ensureOrganizationRole(user.id, organizationId, ['owner', 'admin']);
+    if (!hasRole) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'Insufficient permissions to test configuration.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     let testResult: { success: boolean; message: string; details?: Record<string, unknown> | null } = { success: false, message: '', details: null };
 
@@ -54,10 +71,11 @@ serve(async (req) => {
     // Update database with test result
     if (testResult.success) {
       const settingKey = type === 'ai_platform' ? `${platform}_api_key` : `${platform}_integration`;
-      const currentSetting = await supabaseClient
+      const currentSetting = await supabaseAdmin
         .from('system_settings')
         .select('setting_value')
         .eq('setting_key', settingKey)
+        .eq('organization_id', organizationId)
         .single();
 
       if (currentSetting.data) {
@@ -79,10 +97,11 @@ serve(async (req) => {
           };
         }
 
-        await supabaseClient
+        await supabaseAdmin
           .from('system_settings')
           .update({ setting_value: updatedValue })
-          .eq('setting_key', settingKey);
+          .eq('setting_key', settingKey)
+          .eq('organization_id', organizationId);
       }
     }
 

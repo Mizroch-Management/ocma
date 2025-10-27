@@ -34,7 +34,7 @@ interface OrganizationContextType {
   pendingMembers: OrganizationMember[];
   isAppOwner: boolean | null;
   loading: boolean;
-  setCurrentOrganization: (org: Organization | null) => void;
+  setCurrentOrganization: (org: Organization | null) => Promise<void>;
   createOrganization: (name: string, description?: string) => Promise<{ error: Error | null }>;
   joinOrganization: (organizationId: string) => Promise<{ error: Error | null }>;
   requestJoinOrganization: (organizationId: string) => Promise<{ error: Error | null }>;
@@ -53,12 +53,51 @@ const OrganizationContext = createContext<OrganizationContextType | undefined>(u
 
 export function OrganizationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
+  const [currentOrganization, setCurrentOrganizationState] = useState<Organization | null>(null);
   const [userOrganizations, setUserOrganizations] = useState<Organization[]>([]);
   const [organizationMembers, setOrganizationMembers] = useState<OrganizationMember[]>([]);
   const [pendingMembers, setPendingMembers] = useState<OrganizationMember[]>([]);
   const [isAppOwner, setIsAppOwner] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialOrgId, setInitialOrgId] = useState<string | null>(null);
+  const persistCurrentOrganization = async (org: Organization | null) => {
+    const nextId = org?.id ?? null;
+
+    // Avoid unnecessary updates
+    if (currentOrganization?.id === nextId && initialOrgId === nextId) {
+      return;
+    }
+
+    setCurrentOrganizationState(org);
+
+    if (!user) {
+      setInitialOrgId(nextId);
+      return;
+    }
+
+    if (nextId === initialOrgId) {
+      setInitialOrgId(nextId);
+      return;
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ current_organization_id: nextId })
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Failed to persist current organization selection:', error);
+      toast.error('Failed to update selected organization');
+      return;
+    }
+
+    setInitialOrgId(nextId);
+  };
+  const logDebug = (...args: unknown[]) => {
+    if (import.meta.env.DEV) {
+      console.debug(...args);
+    }
+  };
 
   // Check if user is app owner
   useEffect(() => {
@@ -71,15 +110,17 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('email')
+          .select('email, current_organization_id')
           .eq('user_id', user.id)
           .single();
           
         const appOwnerEmail = import.meta.env.VITE_APP_OWNER_EMAIL || 'elimizroch@gmail.com';
         setIsAppOwner(profile?.email === appOwnerEmail);
+        setInitialOrgId(profile?.current_organization_id ?? null);
       } catch (error) {
         console.error('Error checking app owner status:', error);
         setIsAppOwner(false);
+        setInitialOrgId(null);
       }
     };
     
@@ -88,20 +129,20 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
   // Fetch user's organizations
   const fetchUserOrganizations = async () => {
-    console.log('=== FETCH USER ORGANIZATIONS ===');
-    console.log('User:', user?.email);
-    console.log('User ID:', user?.id);
-    console.log('Is App Owner:', isAppOwner);
+    logDebug('=== FETCH USER ORGANIZATIONS ===');
+    logDebug('User present:', Boolean(user));
+    logDebug('User ID:', user?.id);
+    logDebug('Is App Owner:', isAppOwner);
     
     if (!user) {
-      console.log('No user - skipping fetch');
+      logDebug('No user - skipping fetch');
       setLoading(false);
       return;
     }
     
     // Wait for isAppOwner to be determined
     if (isAppOwner === null) {
-      console.log('App owner status not determined yet');
+      logDebug('App owner status not determined yet');
       return;
     }
     
@@ -111,20 +152,20 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       let organizations: Organization[] = [];
       
       if (isAppOwner) {
-        console.log('Fetching all organizations (app owner)');
+        logDebug('Fetching all organizations (app owner)');
         // App owner can see all organizations
         const { data: allOrgs, error } = await supabase
           .from('organizations')
           .select('*')
           .order('created_at', { ascending: false });
           
-        console.log('All orgs query result:', { data: allOrgs, error });
+        logDebug('All orgs query result:', { hasData: Boolean(allOrgs), error });
           
         if (error) throw error;
         organizations = allOrgs || [];
-        console.log(`Found ${organizations.length} organizations (app owner view)`);
+        logDebug(`Found ${organizations.length} organizations (app owner view)`);
       } else {
-        console.log('Fetching user organizations (regular user)');
+        logDebug('Fetching user organizations (regular user)');
         // Regular users see only their organizations
         const { data: memberData, error: memberError } = await supabase
           .from('organization_members')
@@ -134,26 +175,27 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
           .eq('user_id', user.id)
           .eq('status', 'active');
           
-        console.log('Member orgs query result:', { data: memberData, error: memberError });
+        logDebug('Member orgs query result:', { hasData: Boolean(memberData), error: memberError });
           
         if (memberError) throw memberError;
         
         organizations = memberData?.map(m => m.organizations).filter(Boolean) || [];
-        console.log(`Found ${organizations.length} organizations (member view)`);
+        logDebug(`Found ${organizations.length} organizations (member view)`);
       }
       
       setUserOrganizations(organizations as Organization[]);
-      console.log('User organizations state updated:', organizations.map(o => o.name));
-      
-      // Set current organization if not set
-      if (!currentOrganization && organizations.length > 0) {
-        console.log('Setting current organization to:', organizations[0].name);
-        setCurrentOrganization(organizations[0]);
-      } else if (organizations.length === 0) {
-        console.log('No organizations found - clearing current organization');
-        setCurrentOrganization(null);
+      logDebug('User organizations state updated');
+
+      const preferredOrg =
+        organizations.find(org => org.id === initialOrgId) ||
+        organizations.find(org => org.status === 'active') ||
+        organizations[0] ||
+        null;
+
+      if (preferredOrg) {
+        await persistCurrentOrganization(preferredOrg as Organization);
       } else {
-        console.log('Current organization already set:', currentOrganization?.name);
+        await persistCurrentOrganization(null);
       }
     } catch (error: unknown) {
       console.error('❌ Failed to fetch organizations:', error);
@@ -164,7 +206,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       });
       toast.error('Failed to load organizations');
     } finally {
-      console.log('Setting loading to false');
+      logDebug('Setting loading to false');
       setLoading(false);
     }
   };
@@ -217,11 +259,10 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
   // Create new organization
   const createOrganization = async (name: string, description?: string) => {
-    console.log('=== CREATE ORGANIZATION DEBUG ===');
-    console.log('Name:', name);
-    console.log('Description:', description);
-    console.log('User ID:', user?.id);
-    console.log('Is App Owner:', isAppOwner);
+    logDebug('=== CREATE ORGANIZATION DEBUG ===');
+    logDebug('Name provided:', Boolean(name));
+    logDebug('User ID:', user?.id);
+    logDebug('Is App Owner:', isAppOwner);
     
     if (!user?.id) {
       console.error('❌ No user ID - cannot create organization');
@@ -232,7 +273,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     try {
       const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       
-      console.log('Inserting organization with slug:', slug);
+      logDebug('Inserting organization with slug');
       
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
@@ -245,7 +286,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         .select()
         .single();
         
-      console.log('Organization insert result:', { data: orgData, error: orgError });
+      logDebug('Organization insert result', { hasData: Boolean(orgData), error: orgError });
         
       if (orgError) {
         console.error('❌ Failed to create organization:', orgError);
@@ -253,7 +294,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       }
       
       // Add user as owner
-      console.log('Adding user as owner of organization:', orgData.id);
+      logDebug('Adding user as owner of organization');
       
       const { data: memberData, error: memberError } = await supabase
         .from('organization_members')
@@ -265,7 +306,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         })
         .select();
         
-      console.log('Member insert result:', { data: memberData, error: memberError });
+      logDebug('Member insert result', { hasData: Boolean(memberData), error: memberError });
         
       if (memberError) {
         console.error('❌ Failed to add user as owner:', memberError);
@@ -274,12 +315,12 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         throw memberError;
       }
       
-      console.log('✅ Organization and membership created successfully');
+      logDebug('Organization and membership created successfully');
       
       await fetchUserOrganizations();
-      setCurrentOrganization(orgData);
+      await setCurrentOrganization(orgData);
       
-      console.log('Current organization set to:', orgData);
+      logDebug('Current organization set to new organization');
       
       if (!isAppOwner) {
         toast.success('Organization created and submitted for approval');
@@ -499,7 +540,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     pendingMembers,
     isAppOwner,
     loading,
-    setCurrentOrganization,
+    setCurrentOrganization: persistCurrentOrganization,
     createOrganization,
     joinOrganization,
     requestJoinOrganization,

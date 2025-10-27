@@ -117,12 +117,13 @@ export const useTeamManagement = () => {
           email,
           name,
           role,
-          invitationToken
+          invitationToken,
+          organizationId: currentOrganization.id,
         }
       });
 
       if (emailError) {
-        log.warn('Failed to send invitation email', { emailError, memberEmail }, { component: 'useTeamManagement', action: 'send_invitation_email' });
+        log.warn('Failed to send invitation email', { emailError, email }, { component: 'useTeamManagement', action: 'send_invitation_email' });
         // Don't throw error for email failure - invitation is still created
       }
 
@@ -130,7 +131,7 @@ export const useTeamManagement = () => {
       return { success: true };
 
     } catch (err) {
-      log.error('Error inviting member', err instanceof Error ? err : new Error(String(err)), { memberEmail, role, organizationId: currentOrganization?.id }, { component: 'useTeamManagement', action: 'invite_member' });
+      log.error('Error inviting member', err instanceof Error ? err : new Error(String(err)), { email, role, organizationId: currentOrganization?.id }, { component: 'useTeamManagement', action: 'invite_member' });
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Failed to invite member' 

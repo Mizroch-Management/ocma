@@ -1,6 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  authenticateRequest,
+  ensureOrganizationAccess,
+  supabaseAdmin,
+} from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,16 +37,35 @@ serve(async (req) => {
   }
 
   try {
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+
     const { content, platforms, media, scheduledTime, organizationId }: PostRequest = await req.json();
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: 'organizationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const hasAccess = await ensureOrganizationAccess(user.id, organizationId);
+    if (!hasAccess) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have access to this organization.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Get connected platform accounts
-    const { data: accounts, error: accountsError } = await supabase
+    const { data: accounts, error: accountsError } = await supabaseAdmin
       .from('platform_accounts')
       .select('*')
+      .eq('user_id', user.id)
       .eq('organization_id', organizationId)
       .eq('is_active', true)
       .in('platform', platforms);
@@ -69,7 +92,7 @@ serve(async (req) => {
         });
 
         // Store post record in database
-        await supabase.from('social_posts').insert({
+        await supabaseAdmin.from('social_posts').insert({
           platform: account.platform,
           platform_post_id: result.postId,
           content,

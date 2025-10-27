@@ -1,6 +1,11 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import {
+  authenticateRequest,
+  ensureOrganizationAccess,
+  supabaseAdmin,
+} from '../_shared/auth.ts';
+import { getApiKey } from '../_shared/api-key-manager.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,44 +19,54 @@ serve(async (req) => {
   }
 
   try {
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+
     const { 
       mediaType, 
       strategy, 
       contentPlans, 
       existingContent,
       targetPlatforms,
-      brandContext 
+      brandContext,
+      organizationId,
     } = await req.json();
 
     if (!mediaType) {
       throw new Error('Media type is required');
     }
 
-    // Get OpenAI API key from database
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-    
-    const { data: apiKeyData, error } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('setting_key', 'openai_api_key')
-      .eq('category', 'ai_platforms')
-      .maybeSingle();
-      
-    console.log('API key query result:', { apiKeyData, error });
-      
-    if (error) {
-      console.error('Database error:', error);
-      throw new Error(`Database error: ${error.message}`);
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: 'organizationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    
-    const openAIApiKey = apiKeyData?.setting_value?.api_key;
-    if (!openAIApiKey) {
-      console.error('No OpenAI API key found in database');
-      throw new Error('OpenAI API key not configured in system settings');
+
+    const hasAccess = await ensureOrganizationAccess(user.id, organizationId);
+    if (!hasAccess) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have access to this organization.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    const apiKeyResult = await getApiKey(supabaseAdmin, {
+      organizationId,
+      platform: 'openai',
+      allowGlobalFallback: true,
+      allowEnvironmentFallback: true,
+    });
+
+    if (!apiKeyResult.success || !apiKeyResult.apiKey) {
+      throw new Error(apiKeyResult.error || 'OpenAI API key not configured');
+    }
+
+    const openAIApiKey = apiKeyResult.apiKey;
 
     // Build context for AI suggestions
     let contextPrompt = `Generate 6 creative and specific ${mediaType} prompts for social media content creation.`;

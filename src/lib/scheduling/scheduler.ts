@@ -12,34 +12,56 @@ export interface ScheduledContent {
   organization_id: string;
 }
 
-// Schedule content for publication
-export async function scheduleContent(
-  content: Partial<ScheduledContent>,
-  organizationId: string
-): Promise<ScheduledContent | null> {
-  try {
-    const { data, error } = await supabase
-      .from('generated_content')
-      .insert({
-        ...content,
-        organization_id: organizationId,
-        is_scheduled: true,
-        publication_status: 'scheduled',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+export interface SchedulePostOptions {
+  content: string;
+  platforms: string[];
+  publishAt: Date | string;
+  timezone?: string;
+  media?: Array<{ url: string; type?: string }>;
+  metadata?: Record<string, unknown>;
+}
 
-    if (error) {
-      log.error('Failed to schedule content', error);
-      throw error;
+export interface SchedulePostResult {
+  jobId: string;
+  scheduledAt: string;
+  status: string;
+}
+
+// Schedule content for publication via Supabase Edge Function
+export async function scheduleContent(
+  options: SchedulePostOptions,
+  organizationId: string
+): Promise<SchedulePostResult | null> {
+  try {
+    const publishDate = options.publishAt instanceof Date ? options.publishAt : new Date(options.publishAt);
+
+    if (Number.isNaN(publishDate.getTime())) {
+      throw new Error('Invalid publishAt value');
     }
 
-    log.info('Content scheduled successfully', { contentId: data.id });
-    return data;
+    const publishAt = publishDate.toISOString();
+
+    const { data, error } = await supabase.functions.invoke('schedule-post', {
+      body: {
+        ...options,
+        publishAt,
+        organizationId,
+      },
+    });
+
+    if (error || !data?.success) {
+      log.error('Failed to schedule content', error || new Error(data?.error));
+      return null;
+    }
+
+    log.info('Content scheduled successfully', { jobId: data.jobId });
+    return {
+      jobId: data.jobId,
+      scheduledAt: data.scheduledAt,
+      status: data.status,
+    };
   } catch (error) {
-    log.error('Error scheduling content', error);
+    log.error('Error scheduling content', error as Error);
     return null;
   }
 }
@@ -103,23 +125,21 @@ export async function getScheduledContent(
 }
 
 // Cancel scheduled content
-export async function cancelScheduledContent(contentId: string): Promise<boolean> {
+export async function cancelScheduledContent(postId: string, organizationId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('generated_content')
-      .update({
-        is_scheduled: false,
-        publication_status: 'draft',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', contentId);
+    const { data, error } = await supabase.functions.invoke('cancel-scheduled-post', {
+      body: {
+        postId,
+        organizationId,
+      }
+    });
 
-    if (error) {
-      log.error('Failed to cancel scheduled content', error);
-      throw error;
+    if (error || !data?.success) {
+      log.error('Failed to cancel scheduled content', error || new Error(data?.error));
+      return false;
     }
 
-    log.info('Scheduled content cancelled', { contentId });
+    log.info('Scheduled content cancelled', { postId });
     return true;
   } catch (error) {
     log.error('Error cancelling scheduled content', error);
@@ -128,15 +148,16 @@ export async function cancelScheduledContent(contentId: string): Promise<boolean
 }
 
 // Trigger immediate publishing (for testing)
-export async function triggerPublishing(): Promise<void> {
+export async function triggerPublishing(organizationId: string): Promise<void> {
   try {
-    const { error } = await supabase.functions.invoke('publish-scheduled-content', {
-      body: {}
+    const { data, error } = await supabase.functions.invoke('publish-scheduled-content', {
+      body: { organizationId }
     });
 
-    if (error) {
-      log.error('Failed to trigger publishing', error);
-      throw error;
+    if (error || data?.error) {
+      const reason = error?.message || data?.error || 'Unknown error';
+      log.error('Failed to trigger publishing', new Error(reason));
+      throw new Error(reason);
     }
 
     log.info('Publishing triggered successfully');

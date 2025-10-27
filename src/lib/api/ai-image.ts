@@ -16,80 +16,59 @@ export interface GeneratedImage {
   metadata?: Record<string, any>;
 }
 
-// Get OpenAI API key for the organization
-async function getOpenAIKey(organizationId: string): Promise<string | null> {
-  try {
-    const { data, error } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('organization_id', organizationId)
-      .eq('setting_key', 'openai_api_key')
-      .single();
-
-    if (error || !data?.setting_value) {
-      log.error('OpenAI API key not found', error);
-      return null;
-    }
-
-    return data.setting_value as string;
-  } catch (error) {
-    log.error('Error fetching OpenAI API key', error);
-    return null;
-  }
-}
-
-// Generate AI image using OpenAI DALL-E 3
+// Generate AI image using the secured edge function
 export async function generateAIImage(
   prompt: string,
   organizationId: string,
   options: Partial<ImageGenerationOptions> = {}
 ): Promise<GeneratedImage | null> {
-  try {
-    // Get API key for the organization
-    const apiKey = await getOpenAIKey(organizationId);
-    
-    if (!apiKey) {
-      throw new Error('OpenAI API key not configured. Please add your API key in Settings.');
-    }
+  if (!organizationId) {
+    throw new Error('An organization must be selected before generating images.');
+  }
 
-    // Call the edge function to generate the image
+  const dimensionMap: Record<string, string> = {
+    '256x256': 'thumbnail',
+    '512x512': 'square',
+    '1024x1024': 'square',
+    '1792x1024': 'landscape',
+    '1024x1792': 'portrait',
+  };
+
+  try {
     const { data, error } = await supabase.functions.invoke('generate-visual-content', {
       body: {
         prompt,
-        size: options.size || '1024x1024',
-        quality: options.quality || 'standard',
         style: options.style || 'vivid',
-        n: options.n || 1,
-        api_key: apiKey
+        dimensions: dimensionMap[options.size || '1024x1024'] || 'square',
+        platform: 'openai',
+        mediaType: 'image',
+        settings: {
+          quality: options.quality || 'standard',
+        },
+        organizationId,
       }
     });
 
-    if (error) {
-      log.error('Failed to generate AI image', error);
-      throw error;
+    if (error || !data?.url) {
+      const message = error?.message || data?.error || 'Failed to generate image';
+      throw new Error(message);
     }
 
-    if (!data?.images || data.images.length === 0) {
-      throw new Error('No images generated');
-    }
-
-    // Return the first generated image
-    const image = data.images[0];
-    
     return {
-      url: image.url,
+      url: data.url,
       prompt,
       created_at: new Date().toISOString(),
       metadata: {
-        size: options.size,
-        quality: options.quality,
-        style: options.style,
-        model: 'dall-e-3'
+        size: options.size || '1024x1024',
+        quality: options.quality || 'standard',
+        style: options.style || 'vivid',
+        platform: data.platform,
+        cost: data.cost,
       }
     };
 
   } catch (error) {
-    log.error('Error generating AI image', error, undefined, {
+    log.error('Error generating AI image', error instanceof Error ? error : new Error(String(error)), undefined, {
       organizationId,
       prompt: prompt.substring(0, 100)
     });

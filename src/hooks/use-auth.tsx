@@ -44,8 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        
+        if (import.meta.env.DEV) {
+          console.debug('Auth state changed', { event, hasSession: Boolean(session) });
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -64,7 +66,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (refreshTime > 0) {
             refreshTimer = setTimeout(async () => {
-              console.log('Auto-refreshing session...');
+              if (import.meta.env.DEV) {
+                console.debug('Auto-refreshing session...');
+              }
               await refreshSession();
             }, refreshTime);
           }
@@ -74,10 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed successfully');
-        } else if (event === 'SIGNED_IN') {
-          console.log('User signed in:', session?.user?.email);
+        } else if (import.meta.env.DEV && event === 'TOKEN_REFRESHED') {
+          console.debug('Token refreshed successfully');
+        } else if (import.meta.env.DEV && event === 'SIGNED_IN') {
+          console.debug('User signed in');
         }
       }
     );

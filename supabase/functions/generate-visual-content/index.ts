@@ -1,7 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { getApiKey } from '../_shared/api-key-manager.ts';
+import {
+  authenticateRequest,
+  ensureOrganizationAccess,
+  supabaseAdmin,
+} from '../_shared/auth.ts';
 
 interface VisualSettings {
   model?: string;
@@ -17,9 +21,6 @@ interface VisualResult {
   cost: number;
 }
 
-// Use the proper Supabase client type from the imported createClient
-type SupabaseClient = ReturnType<typeof createClient>;
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -33,29 +34,45 @@ serve(async (req) => {
   }
 
   try {
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+
     const { prompt, style, dimensions, platform, mediaType, settings, organizationId } = await req.json();
-    
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: 'organizationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const hasAccess = await ensureOrganizationAccess(user.id, organizationId);
+    if (!hasAccess) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have access to this organization.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log('Generating visual content:', { prompt, style, dimensions, platform, mediaType });
 
     let result;
     switch (platform) {
       case 'openai':
-        result = await generateWithOpenAI(prompt, style, dimensions, settings, supabase, organizationId);
+        result = await generateWithOpenAI(prompt, style, dimensions, settings, organizationId);
         break;
       case 'stability_ai':
-        result = await generateWithStabilityAI(prompt, style, dimensions, settings, supabase, organizationId);
+        result = await generateWithStabilityAI(prompt, style, dimensions, settings, organizationId);
         break;
       case 'runware':
-        result = await generateWithRunware(prompt, style, dimensions, settings, supabase, organizationId);
+        result = await generateWithRunware(prompt, style, dimensions, settings, organizationId);
         break;
       case 'huggingface':
-        result = await generateWithHuggingFace(prompt, style, dimensions, settings, supabase, organizationId);
+        result = await generateWithHuggingFace(prompt, style, dimensions, settings, organizationId);
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
@@ -79,10 +96,10 @@ serve(async (req) => {
   }
 });
 
-async function generateWithOpenAI(prompt: string, style: string, dimensions: string, settings: VisualSettings, supabase: SupabaseClient, organizationId?: string): Promise<VisualResult> {
+async function generateWithOpenAI(prompt: string, style: string, dimensions: string, settings: VisualSettings, organizationId: string): Promise<VisualResult> {
   console.log('[Generate Visual - OpenAI] Getting API key for organization:', organizationId);
   
-  const apiKeyResult = await getApiKey(supabase, {
+  const apiKeyResult = await getApiKey(supabaseAdmin, {
     organizationId,
     platform: 'openai',
     allowGlobalFallback: true,
@@ -137,10 +154,10 @@ async function generateWithOpenAI(prompt: string, style: string, dimensions: str
   };
 }
 
-async function generateWithStabilityAI(prompt: string, style: string, dimensions: string, settings: VisualSettings, supabase: SupabaseClient, organizationId?: string): Promise<VisualResult> {
+async function generateWithStabilityAI(prompt: string, style: string, dimensions: string, settings: VisualSettings, organizationId: string): Promise<VisualResult> {
   console.log('[Generate Visual - Stability AI] Getting API key for organization:', organizationId);
   
-  const apiKeyResult = await getApiKey(supabase, {
+  const apiKeyResult = await getApiKey(supabaseAdmin, {
     organizationId,
     platform: 'stability',
     allowGlobalFallback: true,
@@ -196,10 +213,10 @@ async function generateWithStabilityAI(prompt: string, style: string, dimensions
   };
 }
 
-async function generateWithRunware(prompt: string, style: string, dimensions: string, settings: VisualSettings, supabase: SupabaseClient, organizationId?: string): Promise<VisualResult> {
+async function generateWithRunware(prompt: string, style: string, dimensions: string, settings: VisualSettings, organizationId: string): Promise<VisualResult> {
   console.log('[Generate Visual - Runware] Getting API key for organization:', organizationId);
   
-  const apiKeyResult = await getApiKey(supabase, {
+  const apiKeyResult = await getApiKey(supabaseAdmin, {
     organizationId,
     platform: 'runware',
     allowGlobalFallback: true,
@@ -274,10 +291,10 @@ async function generateWithRunware(prompt: string, style: string, dimensions: st
   };
 }
 
-async function generateWithHuggingFace(prompt: string, style: string, dimensions: string, settings: VisualSettings, supabase: SupabaseClient, organizationId?: string): Promise<VisualResult> {
+async function generateWithHuggingFace(prompt: string, style: string, dimensions: string, settings: VisualSettings, organizationId: string): Promise<VisualResult> {
   console.log('[Generate Visual - HuggingFace] Getting API key for organization:', organizationId);
   
-  const apiKeyResult = await getApiKey(supabase, {
+  const apiKeyResult = await getApiKey(supabaseAdmin, {
     organizationId,
     platform: 'huggingface',
     allowGlobalFallback: true,

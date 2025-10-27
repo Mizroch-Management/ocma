@@ -1,13 +1,31 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Social Media Connection Flow', () => {
+const testEmail = process.env.TEST_USER_EMAIL;
+const testPassword = process.env.TEST_USER_PASSWORD;
+const hasTestCredentials = Boolean(testEmail && testPassword);
+
+const describeWithCreds = hasTestCredentials ? test.describe : test.describe.skip;
+
+async function signIn(page) {
+  await page.goto('/auth');
+  const signInTab = page.locator('button:has-text("Sign In")').first();
+  if (await signInTab.isVisible()) {
+    await signInTab.click();
+  }
+
+  const emailInput = page.locator('[data-testid="login/email-input"], input[type="email"]').first();
+  const passwordInput = page.locator('[data-testid="login/password-input"], input[type="password"]').first();
+  const submitButton = page.locator('button[type="submit"]').first();
+
+  await emailInput.fill(testEmail!);
+  await passwordInput.fill(testPassword!);
+  await submitButton.click();
+  await page.waitForURL('**/dashboard', { timeout: 15000 });
+}
+
+describeWithCreds('Social Media Connection Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Login first
-    await page.goto('/auth');
-    await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL || 'test@example.com');
-    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD || 'testpassword');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    await signIn(page);
   });
 
   test('should display connector health dashboard', async ({ page }) => {

@@ -255,6 +255,99 @@ All endpoints use consistent error response format:
 - `429`: Too Many Requests (rate limited)
 - `500`: Internal Server Error
 
+### Scheduling & Automation
+
+OCMA exposes Supabase Edge Functions for queueing and managing scheduled posts. All requests must include a valid Supabase session token in the `Authorization` header and the target `organizationId` in the JSON payload.
+
+#### POST /functions/v1/schedule-post
+
+Queue a post for future publication.
+
+```json
+{
+  "content": "Product launch teaser",
+  "platforms": ["twitter", "linkedin"],
+  "publishAt": "2024-08-30T15:00:00.000Z",
+  "timezone": "America/New_York",
+  "media": [{ "url": "https://cdn.example.com/teaser.png" }],
+  "metadata": { "campaign": "fall-launch" },
+  "organizationId": "org_123"
+}
+```
+
+**Response**
+
+```json
+{
+  "success": true,
+  "jobId": "d3f5c2e4-1b70-4b02-9be3-a2a3b2e83a64",
+  "scheduledAt": "2024-08-30T15:00:00.000Z",
+  "status": "pending"
+}
+```
+
+#### POST /functions/v1/cancel-scheduled-post
+
+Cancel a pending scheduled post.
+
+```json
+{
+  "postId": "d3f5c2e4-1b70-4b02-9be3-a2a3b2e83a64",
+  "organizationId": "org_123"
+}
+```
+
+**Response**
+
+```json
+{ "success": true, "postId": "d3f5c2e4-1b70-4b02-9be3-a2a3b2e83a64" }
+```
+
+#### POST /functions/v1/publish-scheduled-content
+
+Manually trigger publishing for all due posts inside an organization. The function enforces a rate limit of **3 requests per organization per minute**; additional requests receive HTTP 429.
+
+```json
+{
+  "organizationId": "org_123"
+}
+```
+
+**Response**
+
+```json
+{
+  "message": "Content publishing completed",
+  "processed": 4,
+  "successful": 3,
+  "failed": 1,
+  "timestamp": "2024-08-15T12:30:00.000Z"
+}
+```
+
+### Social Engagement Intelligence
+
+The `social-engagement-monitor` function powers mention monitoring, sentiment analysis, influencer discovery, and hashtag tracking. Callers pass an `action` string and optional `data` payload alongside the `organizationId`.
+
+```json
+{
+  "platform": "twitter",
+  "action": "monitor_mentions",
+  "data": {},
+  "organizationId": "org_123"
+}
+```
+
+| Action | Description | Required `data` fields |
+| --- | --- | --- |
+| `monitor_mentions` | Fetches recent mentions for the connected platform | none |
+| `get_engagement_opportunities` | AI generated engagement ideas | none |
+| `discover_influencers` | Searches for influencers (best effort) | optional `niche`, `followerRange` |
+| `track_hashtags` | Returns hashtag metrics | `hashtags: string[]` |
+| `analyze_sentiment` | Sentiment + tone analysis using OpenAI | `content: string` |
+
+> If a platform lacks stored credentials the function returns an empty payload with a helpful `message` instead of failing.
+
 ## Rate Limiting
 
 API endpoints are rate limited:

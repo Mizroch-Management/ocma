@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { aiServices } from "@/lib/ai/services";
 import { SocialMediaClientFactory } from "@/lib/social/api-client";
-import { getJobQueue } from "@/lib/queue/job-queue";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   CalendarClock,
@@ -26,6 +25,7 @@ import {
   Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useOrganization } from "@/hooks/use-organization";
 import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
 import { motion } from "framer-motion";
 
@@ -59,6 +59,8 @@ interface ContentSchedule {
 }
 
 export function IntelligentScheduler() {
+  const { currentOrganization } = useOrganization();
+  const organizationId = currentOrganization?.id;
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedPlatform, setSelectedPlatform] = useState("all");
   const [insights, setInsights] = useState<SchedulingInsight | null>(null);
@@ -97,15 +99,28 @@ export function IntelligentScheduler() {
   // Add the real analysis function
   const analyzeRealSchedulingData = async (platform: string): Promise<SchedulingInsight> => {
     try {
+      if (!organizationId) {
+        throw new Error('Select an organization to analyze scheduling data');
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // Get connected accounts for the platform
-      const { data: accounts } = await supabase
+      let accountsQuery = supabase
         .from('platform_accounts')
         .select('*')
-        .eq('isActive', true)
-        .eq('platform', platform === 'all' ? undefined : platform);
+        .eq('organization_id', organizationId)
+        .eq('is_active', true);
+
+      if (platform !== 'all') {
+        accountsQuery = accountsQuery.eq('platform', platform);
+      }
+
+      const { data: accounts, error: accountsError } = await accountsQuery;
+      if (accountsError) {
+        throw accountsError;
+      }
 
       if (!accounts || accounts.length === 0) {
         throw new Error('No connected accounts found');
@@ -126,11 +141,11 @@ export function IntelligentScheduler() {
 
           const client = SocialMediaClientFactory.createClient(account.platform, credentials);
           client.setTokens({
-            accessToken: account.accessToken,
-            refreshToken: account.refreshToken,
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
             tokenType: 'bearer',
             expiresIn: 3600,
-            expiresAt: new Date(account.tokenExpiry || Date.now() + 3600000)
+            expiresAt: account.token_expiry ? new Date(account.token_expiry) : new Date(Date.now() + 3600000)
           });
 
           // Fetch recent posts to analyze posting patterns
@@ -234,9 +249,13 @@ export function IntelligentScheduler() {
 
   const scheduleContent = async (time: TimeSlot) => {
     try {
-      const jobQueue = getJobQueue();
+      if (!organizationId) {
+        alert('Please select an organization first');
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         alert('Please log in to schedule content');
         return;
@@ -246,29 +265,32 @@ export function IntelligentScheduler() {
       const { data: orgData } = await supabase
         .from('organizations')
         .select('id')
-        .eq('owner_id', user.id)
-        .single();
+        .eq('id', organizationId)
+        .maybeSingle();
 
       if (!orgData) {
-        alert('No organization found');
+        alert('Organization not found');
         return;
       }
 
       const scheduledTime = new Date(`${format(selectedDate, 'yyyy-MM-dd')} ${time.time}`);
-      
-      // Create a real scheduled post job
-      const jobId = await jobQueue.schedulePost({
-        postId: `scheduled_${Date.now()}`,
-        platforms: selectedPlatform === "all" ? ["instagram", "twitter", "linkedin"] : [selectedPlatform],
-        content: "Your optimized content will be posted here", // This would come from content creation
-        publishAt: scheduledTime,
-        timezone: insights?.audienceTimezone || "UTC",
-        organizationId: orgData.id,
-        userId: user.id
+
+      const { data, error } = await supabase.functions.invoke('schedule-post', {
+        body: {
+          content: "Your optimized content will be posted here",
+          platforms: selectedPlatform === "all" ? ["instagram", "twitter", "linkedin"] : [selectedPlatform],
+          publishAt: scheduledTime.toISOString(),
+          timezone: insights?.audienceTimezone || "UTC",
+          organizationId: orgData.id,
+        }
       });
 
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Failed to schedule post');
+      }
+
       const newSchedule: ContentSchedule = {
-        id: jobId,
+        id: data.jobId,
         content: "Scheduled post (job queued)",
         platform: selectedPlatform === "all" ? "multi-platform" : selectedPlatform,
         scheduledTime,
@@ -286,10 +308,23 @@ export function IntelligentScheduler() {
 
   const removeScheduledContent = async (id: string) => {
     try {
-      const jobQueue = getJobQueue();
-      const cancelled = await jobQueue.cancelJob(id);
-      
-      if (cancelled) {
+      if (!organizationId) {
+        alert('Please select an organization first');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('cancel-scheduled-post', {
+        body: {
+          postId: id,
+          organizationId,
+        }
+      });
+
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || 'Failed to cancel scheduled post');
+      }
+
+      if (data.success) {
         setScheduledContent(prev => prev.filter(item => item.id !== id));
         alert('Scheduled post cancelled successfully');
       } else {

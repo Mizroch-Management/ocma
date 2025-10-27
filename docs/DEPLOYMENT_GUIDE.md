@@ -61,9 +61,6 @@ LINKEDIN_CLIENT_SECRET=...
 VITE_SENTRY_DSN=https://...@sentry.io/...
 VITE_POSTHOG_API_KEY=phc_...
 
-# Job Queue
-UPSTASH_QSTASH_TOKEN=...
-UPSTASH_QSTASH_URL=https://qstash.upstash.io
 ```
 
 ## Database Setup
@@ -165,32 +162,24 @@ In Vercel project settings:
 3. Set redirect URL
 4. Copy Client ID and Secret
 
-## Job Queue Setup
+## Scheduling Automation
 
-### Option 1: Upstash QStash (Recommended)
+Redis and third-party queues are no longer required. Scheduled publishing is handled by Supabase Edge Functions:
 
-1. Sign up at [upstash.com](https://upstash.com)
-2. Create QStash instance
-3. Copy token and URL
-4. Configure webhook endpoint: `https://your-domain.vercel.app/api/jobs/process`
+- `schedule-post` – queues content for future publication.
+- `cancel-scheduled-post` – aborts a pending post.
+- `publish-scheduled-content` – manual fallback trigger (rate limited to 3 calls/minute per organization).
 
-### Option 2: Supabase Cron
+> Make sure your Vercel project exposes the Supabase service-role key as a **server-side only** secret so these functions can insert into `scheduled_posts`.
 
-In Supabase SQL Editor:
+### QA Environment Checklist
 
-```sql
-SELECT cron.schedule(
-  'process-jobs',
-  '*/5 * * * *', -- Every 5 minutes
-  $$
-  SELECT net.http_post(
-    'https://your-domain.vercel.app/api/jobs/process',
-    '{}',
-    headers => '{"Content-Type": "application/json"}'::jsonb
-  );
-  $$
-);
-```
+1. Provision the QA Vercel project and Supabase shadow project listed in `environments/qa/README.md`.
+2. Run `npx supabase db push --project-ref <qa-ref>` to apply migrations (including `20250821120000_add_organization_scoping.sql`).
+3. Populate QA secrets using the example in `environments/qa/.env.qa.example`.
+4. Deploy via the `Program QA Deploy` GitHub Action (push to `program/ocma-overhaul`).
+
+Once the environment is ready you can test scheduling end-to-end by hitting the new Edge Functions with a QA session token.
 
 ## Analytics Setup
 

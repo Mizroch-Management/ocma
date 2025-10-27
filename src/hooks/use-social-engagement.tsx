@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/utils/logger';
+import { useOrganization } from '@/hooks/use-organization';
 
 export interface SocialMention {
   id: string;
@@ -76,6 +77,9 @@ export interface AIResponse {
 }
 
 export function useSocialEngagement() {
+  const { currentOrganization } = useOrganization();
+  const organizationId = currentOrganization?.id;
+
   const [mentions, setMentions] = useState<SocialMention[]>([]);
   const [opportunities, setOpportunities] = useState<EngagementOpportunity[]>([]);
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
@@ -83,13 +87,22 @@ export function useSocialEngagement() {
   const [analyzing, setAnalyzing] = useState(false);
 
   const monitorMentions = useCallback(async (platform: string) => {
+    if (!organizationId) {
+      toast({
+        title: "Organization Required",
+        description: "Select an organization to monitor social engagement.",
+        variant: "destructive"
+      });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('social-engagement-monitor', {
         body: {
           platform,
           action: 'monitor_mentions',
-          data: {}
+          data: {},
+          organizationId
         }
       });
 
@@ -110,16 +123,25 @@ export function useSocialEngagement() {
     } finally {
       setLoading(false);
     }
-  }, []); // Empty dependency array since this function doesn't depend on any props or state
+  }, [organizationId, toast]);
 
   const getEngagementOpportunities = async (platform: string) => {
+    if (!organizationId) {
+      toast({
+        title: "Organization Required",
+        description: "Select an organization to analyze opportunities.",
+        variant: "destructive"
+      });
+      return;
+    }
     setAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke('social-engagement-monitor', {
         body: {
           platform,
           action: 'get_engagement_opportunities',
-          data: {}
+          data: {},
+          organizationId
         }
       });
 
@@ -143,13 +165,22 @@ export function useSocialEngagement() {
   };
 
   const discoverInfluencers = async (platform: string, criteria: Record<string, unknown>) => {
+    if (!organizationId) {
+      toast({
+        title: "Organization Required",
+        description: "Select an organization to discover influencers.",
+        variant: "destructive"
+      });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('social-engagement-monitor', {
         body: {
           platform,
           action: 'discover_influencers',
-          data: criteria
+          data: criteria,
+          organizationId
         }
       });
 
@@ -178,6 +209,14 @@ export function useSocialEngagement() {
     responseStyle: string = 'professional',
     platform: string = 'twitter'
   ): Promise<AIResponse | null> => {
+    if (!organizationId) {
+      toast({
+        title: "Organization Required",
+        description: "Select an organization to generate AI responses.",
+        variant: "destructive"
+      });
+      return null;
+    }
     try {
       const { data, error } = await supabase.functions.invoke('ai-response-generator', {
         body: {
@@ -186,7 +225,8 @@ export function useSocialEngagement() {
           response_style: responseStyle,
           platform,
           user_profile: {},
-          conversation_history: []
+          conversation_history: [],
+          organizationId
         }
       });
 
@@ -210,12 +250,21 @@ export function useSocialEngagement() {
   };
 
   const analyzeSentiment = async (content: string) => {
+    if (!organizationId) {
+      toast({
+        title: "Organization Required",
+        description: "Select an organization to analyze sentiment.",
+        variant: "destructive"
+      });
+      return null;
+    }
     try {
       const { data, error } = await supabase.functions.invoke('social-engagement-monitor', {
         body: {
           platform: 'general',
           action: 'analyze_sentiment',
-          data: { content }
+          data: { content },
+          organizationId
         }
       });
 
@@ -234,12 +283,21 @@ export function useSocialEngagement() {
   };
 
   const trackHashtags = async (platform: string, hashtags: string[]) => {
+    if (!organizationId) {
+      toast({
+        title: "Organization Required",
+        description: "Select an organization to track hashtags.",
+        variant: "destructive"
+      });
+      return null;
+    }
     try {
       const { data, error } = await supabase.functions.invoke('social-engagement-monitor', {
         body: {
           platform,
           action: 'track_hashtags',
-          data: { hashtags }
+          data: { hashtags },
+          organizationId
         }
       });
 

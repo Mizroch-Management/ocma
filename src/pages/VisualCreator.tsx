@@ -206,7 +206,8 @@ export default function VisualCreator() {
           targetPlatforms: socialPlatforms
             .filter(p => p.supports.includes(selectedMediaType))
             .map(p => p.id),
-          brandContext: null
+          brandContext: null,
+          organizationId: currentOrganization?.id,
         }
       });
 
@@ -425,7 +426,8 @@ export default function VisualCreator() {
           settings: {
             quality: 'high',
             aspectRatio: selectedDimensions
-          }
+          },
+          organizationId: currentOrganization?.id,
         }
       });
 

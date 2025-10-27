@@ -1,7 +1,11 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getApiKey } from '../_shared/api-key-manager.ts';
+import {
+  authenticateRequest,
+  ensureOrganizationAccess,
+  supabaseAdmin,
+} from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +20,13 @@ serve(async (req) => {
 
   console.log('Edge function called:', req.method);
   try {
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+
     const { 
       contentType, 
       strategy, 
@@ -25,14 +36,25 @@ serve(async (req) => {
       organizationId 
     } = await req.json();
 
-    // Initialize Supabase client with service role for system settings access
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: 'organizationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
+    const hasAccess = await ensureOrganizationAccess(user.id, organizationId);
+    if (!hasAccess) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have access to this organization.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Initialize Supabase client with service role for system settings access
     // Get OpenAI API key using centralized management system
     console.log('[Generate Content] Fetching OpenAI API key for organization:', organizationId);
-    const apiKeyResult = await getApiKey(supabase, {
+    const apiKeyResult = await getApiKey(supabaseAdmin, {
       organizationId,
       platform: 'openai',
       allowGlobalFallback: true,

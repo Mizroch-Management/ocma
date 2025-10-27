@@ -14,3 +14,27 @@ verify_jwt = true
 
 [functions.test-platform-config]
 verify_jwt = true
+
+[functions.ai-response-generator]
+verify_jwt = true
+
+[functions.social-engagement-monitor]
+verify_jwt = true
+
+[functions.schedule-post]
+verify_jwt = true
+
+[functions.cancel-scheduled-post]
+verify_jwt = true
+
+[functions.fetch-linkedin-id]
+verify_jwt = true
+
+[functions.generate-content]
+verify_jwt = true
+
+[functions.fetch-analytics]
+verify_jwt = true
+
+[functions.social-post]
+verify_jwt = true

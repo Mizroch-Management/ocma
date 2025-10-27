@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getApiKey } from '../_shared/api-key-manager.ts'
+import {
+  authenticateRequest,
+  ensureOrganizationAccess,
+  supabaseAdmin,
+} from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,11 +18,6 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
     const { 
       original_content, 
       context, 
@@ -29,6 +28,28 @@ serve(async (req) => {
       organizationId
     } = await req.json()
 
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: 'organizationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+
+    const hasAccess = await ensureOrganizationAccess(user.id, organizationId);
+    if (!hasAccess) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have access to this organization.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const response = await generateAIResponse({
       original_content,
       context,
@@ -36,7 +57,6 @@ serve(async (req) => {
       platform,
       user_profile,
       conversation_history,
-      supabase,
       organizationId
     });
 
@@ -72,8 +92,7 @@ interface AIResponseParams {
   platform: string;
   user_profile: Record<string, unknown>;
   conversation_history: ConversationHistoryItem[];
-  supabase: ReturnType<typeof createClient>;
-  organizationId?: string;
+  organizationId: string;
 }
 
 interface ConversationHistoryItem {
@@ -84,11 +103,11 @@ interface ConversationHistoryItem {
 }
 
 async function generateAIResponse(params: AIResponseParams) {
-  const { original_content, context, response_style, platform, user_profile, conversation_history, supabase, organizationId } = params;
+  const { original_content, context, response_style, platform, user_profile, conversation_history, organizationId } = params;
 
   // Get OpenAI API key using centralized management system
   console.log('[AI Response Generator] Getting OpenAI API key for organization:', organizationId);
-  const apiKeyResult = await getApiKey(supabase, {
+  const apiKeyResult = await getApiKey(supabaseAdmin, {
     organizationId,
     platform: 'openai',
     allowGlobalFallback: true,

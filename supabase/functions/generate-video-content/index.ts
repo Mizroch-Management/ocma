@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import {
+  authenticateRequest,
+  ensureOrganizationAccess,
+  supabaseAdmin,
+} from '../_shared/auth.ts';
+import { getApiKey } from '../_shared/api-key-manager.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,17 +17,39 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, style, dimensions, platform, settings } = await req.json();
+    const authResult = await authenticateRequest(req, corsHeaders);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+
+    const { prompt, style, dimensions, platform, settings, organizationId } = await req.json();
+
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: 'organizationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const hasAccess = await ensureOrganizationAccess(user.id, organizationId);
+    if (!hasAccess) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have access to this organization.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log('Generating video content:', { prompt, style, dimensions, platform });
 
     let result;
     switch (platform) {
       case 'runware':
-        result = await generateWithRunware(prompt, style, dimensions, settings);
+        result = await generateWithRunware(prompt, style, dimensions, settings, organizationId);
         break;
       case 'stability_ai':
-        result = await generateWithStabilityVideo(prompt, style, dimensions, settings);
+        result = await generateWithStabilityVideo(prompt, style, dimensions, settings, organizationId);
         break;
       default:
         throw new Error(`Video generation not supported for platform: ${platform}`);
@@ -59,32 +86,19 @@ interface VideoResult {
   message?: string;
 }
 
-async function generateWithRunware(prompt: string, style: string, dimensions: string, settings: VideoSettings): Promise<VideoResult> {
-  // Get API key from database
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-  
-  const { data: apiKeyData, error } = await supabase
-    .from('system_settings')
-    .select('setting_value')
-    .eq('setting_key', 'runware_api_key')
-    .eq('category', 'ai_platforms')
-    .maybeSingle();
-    
-  console.log('Runware API key query result:', { apiKeyData, error });
-    
-  if (error) {
-    console.error('Database error:', error);
-    throw new Error(`Database error: ${error.message}`);
+async function generateWithRunware(prompt: string, style: string, dimensions: string, settings: VideoSettings, organizationId: string): Promise<VideoResult> {
+  const apiKeyResult = await getApiKey(supabaseAdmin, {
+    organizationId,
+    platform: 'runware',
+    allowGlobalFallback: true,
+    allowEnvironmentFallback: true,
+  });
+
+  if (!apiKeyResult.success || !apiKeyResult.apiKey) {
+    throw new Error(apiKeyResult.error || 'Runware API key not configured in system settings');
   }
-  
-  const apiKey = apiKeyData?.setting_value?.api_key;
-  if (!apiKey) {
-    console.error('No Runware API key found in database');
-    throw new Error('Runware API key not configured in system settings');
-  }
+
+  const apiKey = apiKeyResult.apiKey;
 
   const enhancedPrompt = `${prompt}, ${style} style, cinematic quality, smooth motion`;
 
@@ -136,7 +150,7 @@ async function generateWithRunware(prompt: string, style: string, dimensions: st
   };
 }
 
-async function generateWithStabilityVideo(prompt: string, style: string, dimensions: string, settings: VideoSettings): Promise<VideoResult> {
+async function generateWithStabilityVideo(prompt: string, style: string, dimensions: string, settings: VideoSettings, organizationId: string): Promise<VideoResult> {
   // Placeholder for Stability AI Video generation
   // This would use their actual video generation API when available
   
