@@ -190,7 +190,7 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
   }, [clearError, handleError]);
 
   // Async operation wrapper
-  const withErrorHandling = useCallback(async <T>(
+  const withErrorHandling = useCallback(async <T,>(
     operation: () => Promise<T>,
     context?: Record<string, unknown>
   ): Promise<T | null> => {
@@ -290,7 +290,7 @@ export function useApiErrorHandler(apiName?: string) {
     component: apiName
   });
 
-  const handleApiCall = useCallback(async <T>(
+  const handleApiCall = useCallback(async <T,>(
     apiCall: () => Promise<Response>,
     options: {
       successMessage?: string;
