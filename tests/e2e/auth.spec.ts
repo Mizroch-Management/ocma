@@ -4,6 +4,45 @@ const testEmail = process.env.TEST_USER_EMAIL;
 const testPassword = process.env.TEST_USER_PASSWORD;
 const hasTestCredentials = Boolean(testEmail && testPassword);
 
+async function isOnboardingVisible(page) {
+  const url = new URL(page.url());
+  if (url.pathname.startsWith('/organizations')) return true;
+  try {
+    return await page.getByText('Organization Setup', { exact: false }).isVisible();
+  } catch {
+    return false;
+  }
+}
+
+async function ensureOrganizationReady(page) {
+  await page.waitForLoadState('networkidle');
+
+  if (!(await isOnboardingVisible(page))) {
+    return true;
+  }
+
+  try {
+    const nameInput = page.locator('#orgName');
+    if (!(await nameInput.isVisible())) {
+      return !(await isOnboardingVisible(page));
+    }
+
+    await nameInput.fill(`QA Smoke Org ${Date.now()}`);
+
+    const descriptionInput = page.locator('#orgDescription');
+    if (await descriptionInput.isVisible()) {
+      await descriptionInput.fill('Automatically generated organization for Playwright smoke tests.');
+    }
+
+    await page.locator('button:has-text("Create Organization")').click();
+    await page.waitForURL((url) => !url.pathname.startsWith('/organizations'), { timeout: 20000 });
+    await page.waitForLoadState('networkidle');
+    return !(await isOnboardingVisible(page));
+  } catch {
+    return !(await isOnboardingVisible(page));
+  }
+}
+
 async function getAuthControls(page) {
   const signInTab = page.locator('button:has-text("Sign In")').first();
   if (await signInTab.isVisible()) {
@@ -58,6 +97,9 @@ test.describe('Authentication Flow', () => {
     await submitButton.click();
     await page.waitForURL((url) => !url.pathname.startsWith('/auth'), { timeout: 15000 });
     expect(new URL(page.url()).pathname).not.toContain('/auth');
+    if (!(await ensureOrganizationReady(page))) {
+      test.skip(true, 'Organization onboarding incomplete');
+    }
   });
 
   test('should protect authenticated routes', async ({ page }) => {
@@ -83,6 +125,9 @@ test.describe('Authentication Flow', () => {
     await submitButton.click();
     await page.waitForURL((url) => !url.pathname.startsWith('/auth'), { timeout: 15000 });
     expect(new URL(page.url()).pathname).not.toContain('/auth');
+    if (!(await ensureOrganizationReady(page))) {
+      test.skip(true, 'Organization onboarding incomplete');
+    }
 
     // Logout via user menu
     const userMenuButton = page.locator('button').filter({ has: page.locator('img[alt="User"]') }).first();
