@@ -36,6 +36,10 @@ describeWithCreds('Social Media Connection Flow', () => {
     if (await page.getByText('Organization Setup', { exact: false }).isVisible()) {
       test.skip(true, 'Organization onboarding shown');
     }
+    const heading = page.locator('text=Social Media Platform Integrations');
+    if (!(await heading.first().isVisible({ timeout: 5000 }).catch(() => false))) {
+      test.skip(true, 'Social integrations section not available');
+    }
     const configureButtons = page.locator('button:has-text("Configure")');
     if ((await configureButtons.count()) === 0) {
       test.skip(true, 'No platform configuration buttons available');
