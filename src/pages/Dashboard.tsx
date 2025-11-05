@@ -149,11 +149,10 @@ function Dashboard() {
       </div>
 
       {/* Metrics Overview */}
-      {/* TEMPORARILY COMMENTED TO TEST */}
-      {/* <MetricsCards 
+      <MetricsCards 
         data={dashboardData}
         isLoading={isLoading}
-      /> */}
+      />
 
       {/* Quick Actions */}
       <QuickActions />
