@@ -18,7 +18,6 @@ import Index from "./pages/Index";  // FIXED - Using full Index with Dashboard
 import Auth from "./pages/Auth";
 
 // Lazy load non-critical components for better initial bundle size
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Calendar = lazy(() => import("./pages/Calendar"));
 const ContentCreation = lazy(() => import("./pages/ContentCreation"));
 const ContentGenerator = lazy(() => import("./pages/ContentGenerator"));
