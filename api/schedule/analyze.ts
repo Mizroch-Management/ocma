@@ -169,4 +169,480 @@ async function analyzeOptimalScheduling(
 async function getUserHistoricalData(userId: string, platforms: string[]) {
   // Get user's past posting data and performance
   const { data: posts } = await supabase
-    .from('post_results')\n    .select(`\n      platform,\n      published_at,\n      success,\n      scheduled_posts (\n        content,\n        scheduled_at\n      )\n    `)\n    .in('platform', platforms)\n    .gte('published_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()) // Last 90 days\n    .order('published_at', { ascending: false });\n\n  // Get engagement metrics from social platforms\n  const { data: metrics } = await supabase\n    .from('platform_metrics_history')\n    .select('*')\n    .eq('user_id', userId)\n    .in('platform', platforms)\n    .gte('recorded_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days\n\n  return {\n    posts: posts || [],\n    metrics: metrics || []\n  };\n}\n\nasync function analyzeAudiencePatterns(userId: string, historicalData: any) {\n  const posts = historicalData.posts;\n  \n  if (posts.length === 0) {\n    // Default audience insights if no historical data\n    return {\n      peakHours: [9, 12, 17, 20], // 9 AM, 12 PM, 5 PM, 8 PM\n      activeWeekdays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],\n      timezone: 'UTC',\n      demographics: ['professionals', '25-34']\n    };\n  }\n\n  // Analyze posting times and engagement patterns\n  const postTimes = posts.map((post: any) => {\n    const date = new Date(post.published_at);\n    return {\n      hour: date.getHours(),\n      day: date.getDay(), // 0 = Sunday\n      success: post.success\n    };\n  });\n\n  // Find peak hours (hours with highest success rate)\n  const hourlySuccess = new Map<number, { total: number; successful: number }>();\n  \n  postTimes.forEach(({ hour, success }) => {\n    if (!hourlySuccess.has(hour)) {\n      hourlySuccess.set(hour, { total: 0, successful: 0 });\n    }\n    const stats = hourlySuccess.get(hour)!;\n    stats.total++;\n    if (success) stats.successful++;\n  });\n\n  const peakHours = Array.from(hourlySuccess.entries())\n    .filter(([_, stats]) => stats.total >= 2) // At least 2 posts\n    .map(([hour, stats]) => ({ hour, rate: stats.successful / stats.total }))\n    .sort((a, b) => b.rate - a.rate)\n    .slice(0, 4)\n    .map(({ hour }) => hour);\n\n  // Find active weekdays\n  const dailySuccess = new Map<number, { total: number; successful: number }>();\n  \n  postTimes.forEach(({ day, success }) => {\n    if (!dailySuccess.has(day)) {\n      dailySuccess.set(day, { total: 0, successful: 0 });\n    }\n    const stats = dailySuccess.get(day)!;\n    stats.total++;\n    if (success) stats.successful++;\n  });\n\n  const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];\n  const activeWeekdays = Array.from(dailySuccess.entries())\n    .filter(([_, stats]) => stats.total >= 1 && stats.successful / stats.total > 0.5)\n    .map(([day, _]) => weekdays[day]);\n\n  return {\n    peakHours: peakHours.length > 0 ? peakHours : [9, 12, 17, 20],\n    activeWeekdays: activeWeekdays.length > 0 ? activeWeekdays : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],\n    timezone: 'UTC', // Would be determined from user settings\n    demographics: ['professionals'] // Would be determined from audience analysis\n  };\n}\n\nasync function analyzeContentForScheduling(content: string) {\n  try {\n    const response = await openai.chat.completions.create({\n      model: 'gpt-3.5-turbo',\n      messages: [\n        {\n          role: 'system',\n          content: 'Analyze this content for scheduling purposes. Return a JSON object with readabilityScore (0-100), sentimentScore (0-100, 50=neutral), urgencyLevel (low/medium/high), and recommendedFrequency (daily/weekly/bi-weekly/monthly).'\n        },\n        {\n          role: 'user',\n          content: `Analyze this content: \"${content}\"`\n        }\n      ],\n      temperature: 0.3,\n      max_tokens: 200\n    });\n\n    const result = response.choices[0].message.content;\n    if (result) {\n      try {\n        return JSON.parse(result);\n      } catch {\n        // Fallback parsing\n      }\n    }\n  } catch (error) {\n    console.error('Content analysis error:', error);\n  }\n\n  // Fallback analysis\n  const urgencyKeywords = ['urgent', 'breaking', 'now', 'immediate', 'asap'];\n  const hasUrgency = urgencyKeywords.some(keyword => \n    content.toLowerCase().includes(keyword)\n  );\n\n  return {\n    readabilityScore: 75,\n    sentimentScore: 60,\n    urgencyLevel: hasUrgency ? 'high' : 'medium' as const,\n    recommendedFrequency: 'weekly'\n  };\n}\n\nasync function getIndustryBenchmarks(platforms: string[]) {\n  // Industry benchmark data (in production, this would come from a comprehensive database)\n  const benchmarks = {\n    twitter: {\n      optimalTimes: ['9:00 AM', '1:00 PM', '5:00 PM'],\n      avgEngagement: 1.5\n    },\n    instagram: {\n      optimalTimes: ['11:00 AM', '1:00 PM', '5:00 PM'],\n      avgEngagement: 1.8\n    },\n    linkedin: {\n      optimalTimes: ['8:00 AM', '12:00 PM', '6:00 PM'],\n      avgEngagement: 2.3\n    },\n    facebook: {\n      optimalTimes: ['9:00 AM', '3:00 PM', '7:00 PM'],\n      avgEngagement: 1.2\n    },\n    tiktok: {\n      optimalTimes: ['6:00 AM', '10:00 AM', '7:00 PM'],\n      avgEngagement: 4.2\n    }\n  };\n\n  const industryBenchmarks = platforms.map(platform => ({\n    platform,\n    optimalTimes: benchmarks[platform as keyof typeof benchmarks]?.optimalTimes || ['12:00 PM'],\n    avgEngagement: benchmarks[platform as keyof typeof benchmarks]?.avgEngagement || 1.0\n  }));\n\n  return {\n    industryBenchmarks,\n    suggestions: [\n      'Consider posting during industry peak hours for maximum reach',\n      'Cross-reference with your audience analytics for personalized timing',\n      'Test different posting times to find your optimal schedule'\n    ]\n  };\n}\n\nasync function calculateOptimalTimes(\n  platforms: string[],\n  historicalData: any,\n  audienceInsights: any,\n  contentAnalysis: any,\n  timezone: string\n): Promise<OptimalTime[]> {\n  \n  const optimalTimes: OptimalTime[] = [];\n  \n  for (const platform of platforms) {\n    // Calculate optimal time based on multiple factors\n    const baseHour = getBaseOptimalHour(platform);\n    const audienceAdjustment = getAudienceAdjustment(audienceInsights, platform);\n    const contentAdjustment = getContentAdjustment(contentAnalysis, platform);\n    \n    // Combine factors to get optimal hour\n    const optimalHour = Math.round(baseHour + audienceAdjustment + contentAdjustment);\n    const finalHour = Math.max(6, Math.min(22, optimalHour)); // Keep between 6 AM and 10 PM\n    \n    // Create datetime for next occurrence\n    const now = new Date();\n    const optimal = new Date(now);\n    optimal.setHours(finalHour, 0, 0, 0);\n    \n    // If time has passed today, schedule for tomorrow\n    if (optimal <= now) {\n      optimal.setDate(optimal.getDate() + 1);\n    }\n    \n    // Avoid weekends for professional platforms\n    if ((platform === 'linkedin') && (optimal.getDay() === 0 || optimal.getDay() === 6)) {\n      optimal.setDate(optimal.getDate() + (8 - optimal.getDay())); // Move to next Monday\n    }\n    \n    const confidence = calculateConfidence(platform, historicalData, audienceInsights);\n    const expectedEngagement = estimateEngagement(platform, finalHour, contentAnalysis);\n    \n    // Generate alternative times\n    const alternativeTimes = generateAlternativeTimes(optimal, platform, 3);\n    \n    optimalTimes.push({\n      platform,\n      datetime: optimal,\n      confidence,\n      reason: generateReason(platform, finalHour, audienceInsights, contentAnalysis),\n      expectedEngagement,\n      alternativeTimes\n    });\n  }\n  \n  return optimalTimes;\n}\n\nfunction getBaseOptimalHour(platform: string): number {\n  const baseHours = {\n    twitter: 12,\n    instagram: 13,\n    linkedin: 9,\n    facebook: 15,\n    tiktok: 19\n  };\n  \n  return baseHours[platform as keyof typeof baseHours] || 12;\n}\n\nfunction getAudienceAdjustment(audienceInsights: any, platform: string): number {\n  // Adjust based on audience peak hours\n  const peakHours = audienceInsights.peakHours;\n  if (peakHours.length === 0) return 0;\n  \n  // Use the first peak hour as primary adjustment\n  const primaryPeak = peakHours[0];\n  const baseOptimal = getBaseOptimalHour(platform);\n  \n  // Adjust towards audience peak, but not too drastically\n  const diff = primaryPeak - baseOptimal;\n  return Math.sign(diff) * Math.min(Math.abs(diff), 3); // Max 3 hour adjustment\n}\n\nfunction getContentAdjustment(contentAnalysis: any, platform: string): number {\n  let adjustment = 0;\n  \n  // Urgent content should be posted earlier\n  if (contentAnalysis.urgencyLevel === 'high') {\n    adjustment -= 2;\n  } else if (contentAnalysis.urgencyLevel === 'low') {\n    adjustment += 1;\n  }\n  \n  // Positive content performs better in afternoon/evening\n  if (contentAnalysis.sentimentScore > 70) {\n    adjustment += 1;\n  }\n  \n  return adjustment;\n}\n\nfunction calculateConfidence(platform: string, historicalData: any, audienceInsights: any): number {\n  let baseConfidence = 70; // Base confidence\n  \n  // Increase confidence if we have historical data\n  if (historicalData.posts.length > 10) {\n    baseConfidence += 15;\n  } else if (historicalData.posts.length > 5) {\n    baseConfidence += 10;\n  }\n  \n  // Increase confidence if audience insights are strong\n  if (audienceInsights.peakHours.length >= 3) {\n    baseConfidence += 10;\n  }\n  \n  return Math.min(95, baseConfidence);\n}\n\nfunction estimateEngagement(platform: string, hour: number, contentAnalysis: any): number {\n  const baseEngagement = {\n    twitter: 1.5,\n    instagram: 1.8,\n    linkedin: 2.3,\n    facebook: 1.2,\n    tiktok: 4.2\n  };\n  \n  let engagement = baseEngagement[platform as keyof typeof baseEngagement] || 1.0;\n  \n  // Adjust based on hour (peak hours get boost)\n  const peakHours = [9, 12, 17, 20];\n  if (peakHours.includes(hour)) {\n    engagement *= 1.2;\n  }\n  \n  // Adjust based on content quality\n  if (contentAnalysis.readabilityScore > 80) {\n    engagement *= 1.1;\n  }\n  \n  if (contentAnalysis.sentimentScore > 70) {\n    engagement *= 1.05;\n  }\n  \n  return Math.round(engagement * 100) / 100;\n}\n\nfunction generateAlternativeTimes(optimal: Date, platform: string, count: number) {\n  const alternatives = [];\n  \n  for (let i = 1; i <= count; i++) {\n    const alt = new Date(optimal);\n    \n    // Create alternatives: +2h, +4h, next day same time\n    if (i === 1) {\n      alt.setHours(alt.getHours() + 2);\n    } else if (i === 2) {\n      alt.setHours(alt.getHours() + 4);\n    } else {\n      alt.setDate(alt.getDate() + 1);\n    }\n    \n    alternatives.push({\n      datetime: alt,\n      confidence: Math.max(50, 85 - (i * 10)),\n      reason: `Alternative ${i}: ${i === 3 ? 'Next day' : `${i * 2}h later`} option`\n    });\n  }\n  \n  return alternatives;\n}\n\nfunction generateReason(platform: string, hour: number, audienceInsights: any, contentAnalysis: any): string {\n  const reasons = [];\n  \n  if (audienceInsights.peakHours.includes(hour)) {\n    reasons.push('matches your audience peak activity');\n  }\n  \n  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';\n  reasons.push(`${timeOfDay} posting performs well on ${platform}`);\n  \n  if (contentAnalysis.urgencyLevel === 'high') {\n    reasons.push('urgent content benefits from immediate posting');\n  }\n  \n  return reasons.join(', ');\n}\n\nfunction generateCrossPlatformStrategy(optimalTimes: OptimalTime[], platforms: string[]) {\n  // Sort platforms by optimal time\n  const sortedTimes = optimalTimes.sort((a, b) => a.datetime.getTime() - b.datetime.getTime());\n  \n  const sequence = sortedTimes.map((time, index) => {\n    let delayMinutes = 0;\n    let reason = 'Start of sequence';\n    \n    if (index > 0) {\n      const prevTime = sortedTimes[index - 1].datetime;\n      delayMinutes = Math.round((time.datetime.getTime() - prevTime.getTime()) / (1000 * 60));\n      \n      if (delayMinutes < 30) {\n        reason = 'Quick follow-up to maintain momentum';\n      } else if (delayMinutes < 120) {\n        reason = 'Staggered timing for different audiences';\n      } else {\n        reason = 'Separate timing windows for maximum reach';\n      }\n    }\n    \n    return {\n      platform: time.platform,\n      delayMinutes,\n      reason\n    };\n  });\n  \n  const totalDuration = sequence.reduce((sum, seq) => sum + seq.delayMinutes, 0);\n  \n  return {\n    sequence,\n    totalDuration\n  };\n}\n\nasync function generateSchedulingRecommendations(\n  request: SchedulingRequest,\n  optimalTimes: OptimalTime[],\n  audienceInsights: any,\n  contentAnalysis: any\n): Promise<string[]> {\n  \n  const recommendations = [];\n  \n  // Time-based recommendations\n  const avgConfidence = optimalTimes.reduce((sum, t) => sum + t.confidence, 0) / optimalTimes.length;\n  if (avgConfidence < 70) {\n    recommendations.push('Consider building more posting history to improve scheduling accuracy');\n  }\n  \n  // Content-based recommendations\n  if (contentAnalysis.urgencyLevel === 'high') {\n    recommendations.push('This urgent content should be posted immediately across all platforms');\n  } else {\n    recommendations.push('Stagger posting across platforms for maximum reach');\n  }\n  \n  // Platform-specific recommendations\n  const hasLinkedIn = request.platforms.includes('linkedin');\n  const hasInstagram = request.platforms.includes('instagram');\n  \n  if (hasLinkedIn && hasInstagram) {\n    recommendations.push('Post to LinkedIn first for professional audience, then Instagram for broader reach');\n  }\n  \n  // Audience recommendations\n  if (audienceInsights.peakHours.length < 2) {\n    recommendations.push('Try posting at different times to identify your audience peak hours');\n  }\n  \n  // Frequency recommendations\n  if (contentAnalysis.recommendedFrequency === 'daily') {\n    recommendations.push('High-engagement content like this can be posted daily');\n  } else {\n    recommendations.push(`Based on content analysis, ${contentAnalysis.recommendedFrequency} posting is recommended`);\n  }\n  \n  // Use AI for additional creative recommendations\n  try {\n    const response = await openai.chat.completions.create({\n      model: 'gpt-3.5-turbo',\n      messages: [\n        {\n          role: 'system',\n          content: 'You are a social media scheduling expert. Provide 2-3 specific, actionable scheduling recommendations based on the provided data.'\n        },\n        {\n          role: 'user',\n          content: `Content: \"${request.content}\", Platforms: ${request.platforms.join(', ')}, Urgency: ${contentAnalysis.urgencyLevel}`\n        }\n      ],\n      temperature: 0.6,\n      max_tokens: 200\n    });\n\n    const aiRecommendations = response.choices[0].message.content;\n    if (aiRecommendations) {\n      const aiSuggestions = aiRecommendations.split('\\n')\n        .filter(s => s.trim())\n        .slice(0, 3);\n      recommendations.push(...aiSuggestions);\n    }\n  } catch (error) {\n    console.error('AI recommendations error:', error);\n  }\n  \n  return recommendations.slice(0, 8); // Limit to 8 recommendations\n}
+    .from('post_results')
+    .select(`
+      platform,
+      published_at,
+      success,
+      scheduled_posts (
+        content,
+        scheduled_at
+      )
+    `)
+    .in('platform', platforms)
+    .gte('published_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()) // Last 90 days
+    .order('published_at', { ascending: false });
+
+  // Get engagement metrics from social platforms
+  const { data: metrics } = await supabase
+    .from('platform_metrics_history')
+    .select('*')
+    .eq('user_id', userId)
+    .in('platform', platforms)
+    .gte('recorded_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days
+
+  return {
+    posts: posts || [],
+    metrics: metrics || []
+  };
+}
+
+async function analyzeAudiencePatterns(userId: string, historicalData: any) {
+  const posts = historicalData.posts;
+  
+  if (posts.length === 0) {
+    // Default audience insights if no historical data
+    return {
+      peakHours: [9, 12, 17, 20], // 9 AM, 12 PM, 5 PM, 8 PM
+      activeWeekdays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+      timezone: 'UTC',
+      demographics: ['professionals', '25-34']
+    };
+  }
+
+  // Analyze posting times and engagement patterns
+  const postTimes = posts.map((post: any) => {
+    const date = new Date(post.published_at);
+    return {
+      hour: date.getHours(),
+      day: date.getDay(), // 0 = Sunday
+      success: post.success
+    };
+  });
+
+  // Find peak hours (hours with highest success rate)
+  const hourlySuccess = new Map<number, { total: number; successful: number }>();
+  
+  postTimes.forEach(({ hour, success }) => {
+    if (!hourlySuccess.has(hour)) {
+      hourlySuccess.set(hour, { total: 0, successful: 0 });
+    }
+    const stats = hourlySuccess.get(hour)!;
+    stats.total++;
+    if (success) stats.successful++;
+  });
+
+  const peakHours = Array.from(hourlySuccess.entries())
+    .filter(([_, stats]) => stats.total >= 2) // At least 2 posts
+    .map(([hour, stats]) => ({ hour, rate: stats.successful / stats.total }))
+    .sort((a, b) => b.rate - a.rate)
+    .slice(0, 4)
+    .map(({ hour }) => hour);
+
+  // Find active weekdays
+  const dailySuccess = new Map<number, { total: number; successful: number }>();
+  
+  postTimes.forEach(({ day, success }) => {
+    if (!dailySuccess.has(day)) {
+      dailySuccess.set(day, { total: 0, successful: 0 });
+    }
+    const stats = dailySuccess.get(day)!;
+    stats.total++;
+    if (success) stats.successful++;
+  });
+
+  const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const activeWeekdays = Array.from(dailySuccess.entries())
+    .filter(([_, stats]) => stats.total >= 1 && stats.successful / stats.total > 0.5)
+    .map(([day, _]) => weekdays[day]);
+
+  return {
+    peakHours: peakHours.length > 0 ? peakHours : [9, 12, 17, 20],
+    activeWeekdays: activeWeekdays.length > 0 ? activeWeekdays : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    timezone: 'UTC', // Would be determined from user settings
+    demographics: ['professionals'] // Would be determined from audience analysis
+  };
+}
+
+async function analyzeContentForScheduling(content: string) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'Analyze this content for scheduling purposes. Return a JSON object with readabilityScore (0-100), sentimentScore (0-100, 50=neutral), urgencyLevel (low/medium/high), and recommendedFrequency (daily/weekly/bi-weekly/monthly).'
+        },
+        {
+          role: 'user',
+          content: `Analyze this content: \"${content}\"`
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 200
+    });
+
+    const result = response.choices[0].message.content;
+    if (result) {
+      try {
+        return JSON.parse(result);
+      } catch {
+        // Fallback parsing
+      }
+    }
+  } catch (error) {
+    console.error('Content analysis error:', error);
+  }
+
+  // Fallback analysis
+  const urgencyKeywords = ['urgent', 'breaking', 'now', 'immediate', 'asap'];
+  const hasUrgency = urgencyKeywords.some(keyword => 
+    content.toLowerCase().includes(keyword)
+  );
+
+  return {
+    readabilityScore: 75,
+    sentimentScore: 60,
+    urgencyLevel: hasUrgency ? 'high' : 'medium' as const,
+    recommendedFrequency: 'weekly'
+  };
+}
+
+async function getIndustryBenchmarks(platforms: string[]) {
+  // Industry benchmark data (in production, this would come from a comprehensive database)
+  const benchmarks = {
+    twitter: {
+      optimalTimes: ['9:00 AM', '1:00 PM', '5:00 PM'],
+      avgEngagement: 1.5
+    },
+    instagram: {
+      optimalTimes: ['11:00 AM', '1:00 PM', '5:00 PM'],
+      avgEngagement: 1.8
+    },
+    linkedin: {
+      optimalTimes: ['8:00 AM', '12:00 PM', '6:00 PM'],
+      avgEngagement: 2.3
+    },
+    facebook: {
+      optimalTimes: ['9:00 AM', '3:00 PM', '7:00 PM'],
+      avgEngagement: 1.2
+    },
+    tiktok: {
+      optimalTimes: ['6:00 AM', '10:00 AM', '7:00 PM'],
+      avgEngagement: 4.2
+    }
+  };
+
+  const industryBenchmarks = platforms.map(platform => ({
+    platform,
+    optimalTimes: benchmarks[platform as keyof typeof benchmarks]?.optimalTimes || ['12:00 PM'],
+    avgEngagement: benchmarks[platform as keyof typeof benchmarks]?.avgEngagement || 1.0
+  }));
+
+  return {
+    industryBenchmarks,
+    suggestions: [
+      'Consider posting during industry peak hours for maximum reach',
+      'Cross-reference with your audience analytics for personalized timing',
+      'Test different posting times to find your optimal schedule'
+    ]
+  };
+}
+
+async function calculateOptimalTimes(
+  platforms: string[],
+  historicalData: any,
+  audienceInsights: any,
+  contentAnalysis: any,
+  timezone: string
+): Promise<OptimalTime[]> {
+  
+  const optimalTimes: OptimalTime[] = [];
+  
+  for (const platform of platforms) {
+    // Calculate optimal time based on multiple factors
+    const baseHour = getBaseOptimalHour(platform);
+    const audienceAdjustment = getAudienceAdjustment(audienceInsights, platform);
+    const contentAdjustment = getContentAdjustment(contentAnalysis, platform);
+    
+    // Combine factors to get optimal hour
+    const optimalHour = Math.round(baseHour + audienceAdjustment + contentAdjustment);
+    const finalHour = Math.max(6, Math.min(22, optimalHour)); // Keep between 6 AM and 10 PM
+    
+    // Create datetime for next occurrence
+    const now = new Date();
+    const optimal = new Date(now);
+    optimal.setHours(finalHour, 0, 0, 0);
+    
+    // If time has passed today, schedule for tomorrow
+    if (optimal <= now) {
+      optimal.setDate(optimal.getDate() + 1);
+    }
+    
+    // Avoid weekends for professional platforms
+    if ((platform === 'linkedin') && (optimal.getDay() === 0 || optimal.getDay() === 6)) {
+      optimal.setDate(optimal.getDate() + (8 - optimal.getDay())); // Move to next Monday
+    }
+    
+    const confidence = calculateConfidence(platform, historicalData, audienceInsights);
+    const expectedEngagement = estimateEngagement(platform, finalHour, contentAnalysis);
+    
+    // Generate alternative times
+    const alternativeTimes = generateAlternativeTimes(optimal, platform, 3);
+    
+    optimalTimes.push({
+      platform,
+      datetime: optimal,
+      confidence,
+      reason: generateReason(platform, finalHour, audienceInsights, contentAnalysis),
+      expectedEngagement,
+      alternativeTimes
+    });
+  }
+  
+  return optimalTimes;
+}
+
+function getBaseOptimalHour(platform: string): number {
+  const baseHours = {
+    twitter: 12,
+    instagram: 13,
+    linkedin: 9,
+    facebook: 15,
+    tiktok: 19
+  };
+  
+  return baseHours[platform as keyof typeof baseHours] || 12;
+}
+
+function getAudienceAdjustment(audienceInsights: any, platform: string): number {
+  // Adjust based on audience peak hours
+  const peakHours = audienceInsights.peakHours;
+  if (peakHours.length === 0) return 0;
+  
+  // Use the first peak hour as primary adjustment
+  const primaryPeak = peakHours[0];
+  const baseOptimal = getBaseOptimalHour(platform);
+  
+  // Adjust towards audience peak, but not too drastically
+  const diff = primaryPeak - baseOptimal;
+  return Math.sign(diff) * Math.min(Math.abs(diff), 3); // Max 3 hour adjustment
+}
+
+function getContentAdjustment(contentAnalysis: any, platform: string): number {
+  let adjustment = 0;
+  
+  // Urgent content should be posted earlier
+  if (contentAnalysis.urgencyLevel === 'high') {
+    adjustment -= 2;
+  } else if (contentAnalysis.urgencyLevel === 'low') {
+    adjustment += 1;
+  }
+  
+  // Positive content performs better in afternoon/evening
+  if (contentAnalysis.sentimentScore > 70) {
+    adjustment += 1;
+  }
+  
+  return adjustment;
+}
+
+function calculateConfidence(platform: string, historicalData: any, audienceInsights: any): number {
+  let baseConfidence = 70; // Base confidence
+  
+  // Increase confidence if we have historical data
+  if (historicalData.posts.length > 10) {
+    baseConfidence += 15;
+  } else if (historicalData.posts.length > 5) {
+    baseConfidence += 10;
+  }
+  
+  // Increase confidence if audience insights are strong
+  if (audienceInsights.peakHours.length >= 3) {
+    baseConfidence += 10;
+  }
+  
+  return Math.min(95, baseConfidence);
+}
+
+function estimateEngagement(platform: string, hour: number, contentAnalysis: any): number {
+  const baseEngagement = {
+    twitter: 1.5,
+    instagram: 1.8,
+    linkedin: 2.3,
+    facebook: 1.2,
+    tiktok: 4.2
+  };
+  
+  let engagement = baseEngagement[platform as keyof typeof baseEngagement] || 1.0;
+  
+  // Adjust based on hour (peak hours get boost)
+  const peakHours = [9, 12, 17, 20];
+  if (peakHours.includes(hour)) {
+    engagement *= 1.2;
+  }
+  
+  // Adjust based on content quality
+  if (contentAnalysis.readabilityScore > 80) {
+    engagement *= 1.1;
+  }
+  
+  if (contentAnalysis.sentimentScore > 70) {
+    engagement *= 1.05;
+  }
+  
+  return Math.round(engagement * 100) / 100;
+}
+
+function generateAlternativeTimes(optimal: Date, platform: string, count: number) {
+  const alternatives = [];
+  
+  for (let i = 1; i <= count; i++) {
+    const alt = new Date(optimal);
+    
+    // Create alternatives: +2h, +4h, next day same time
+    if (i === 1) {
+      alt.setHours(alt.getHours() + 2);
+    } else if (i === 2) {
+      alt.setHours(alt.getHours() + 4);
+    } else {
+      alt.setDate(alt.getDate() + 1);
+    }
+    
+    alternatives.push({
+      datetime: alt,
+      confidence: Math.max(50, 85 - (i * 10)),
+      reason: `Alternative ${i}: ${i === 3 ? 'Next day' : `${i * 2}h later`} option`
+    });
+  }
+  
+  return alternatives;
+}
+
+function generateReason(platform: string, hour: number, audienceInsights: any, contentAnalysis: any): string {
+  const reasons = [];
+  
+  if (audienceInsights.peakHours.includes(hour)) {
+    reasons.push('matches your audience peak activity');
+  }
+  
+  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+  reasons.push(`${timeOfDay} posting performs well on ${platform}`);
+  
+  if (contentAnalysis.urgencyLevel === 'high') {
+    reasons.push('urgent content benefits from immediate posting');
+  }
+  
+  return reasons.join(', ');
+}
+
+function generateCrossPlatformStrategy(optimalTimes: OptimalTime[], platforms: string[]) {
+  // Sort platforms by optimal time
+  const sortedTimes = optimalTimes.sort((a, b) => a.datetime.getTime() - b.datetime.getTime());
+  
+  const sequence = sortedTimes.map((time, index) => {
+    let delayMinutes = 0;
+    let reason = 'Start of sequence';
+    
+    if (index > 0) {
+      const prevTime = sortedTimes[index - 1].datetime;
+      delayMinutes = Math.round((time.datetime.getTime() - prevTime.getTime()) / (1000 * 60));
+      
+      if (delayMinutes < 30) {
+        reason = 'Quick follow-up to maintain momentum';
+      } else if (delayMinutes < 120) {
+        reason = 'Staggered timing for different audiences';
+      } else {
+        reason = 'Separate timing windows for maximum reach';
+      }
+    }
+    
+    return {
+      platform: time.platform,
+      delayMinutes,
+      reason
+    };
+  });
+  
+  const totalDuration = sequence.reduce((sum, seq) => sum + seq.delayMinutes, 0);
+  
+  return {
+    sequence,
+    totalDuration
+  };
+}
+
+async function generateSchedulingRecommendations(
+  request: SchedulingRequest,
+  optimalTimes: OptimalTime[],
+  audienceInsights: any,
+  contentAnalysis: any
+): Promise<string[]> {
+  
+  const recommendations = [];
+  
+  // Time-based recommendations
+  const avgConfidence = optimalTimes.reduce((sum, t) => sum + t.confidence, 0) / optimalTimes.length;
+  if (avgConfidence < 70) {
+    recommendations.push('Consider building more posting history to improve scheduling accuracy');
+  }
+  
+  // Content-based recommendations
+  if (contentAnalysis.urgencyLevel === 'high') {
+    recommendations.push('This urgent content should be posted immediately across all platforms');
+  } else {
+    recommendations.push('Stagger posting across platforms for maximum reach');
+  }
+  
+  // Platform-specific recommendations
+  const hasLinkedIn = request.platforms.includes('linkedin');
+  const hasInstagram = request.platforms.includes('instagram');
+  
+  if (hasLinkedIn && hasInstagram) {
+    recommendations.push('Post to LinkedIn first for professional audience, then Instagram for broader reach');
+  }
+  
+  // Audience recommendations
+  if (audienceInsights.peakHours.length < 2) {
+    recommendations.push('Try posting at different times to identify your audience peak hours');
+  }
+  
+  // Frequency recommendations
+  if (contentAnalysis.recommendedFrequency === 'daily') {
+    recommendations.push('High-engagement content like this can be posted daily');
+  } else {
+    recommendations.push(`Based on content analysis, ${contentAnalysis.recommendedFrequency} posting is recommended`);
+  }
+  
+  // Use AI for additional creative recommendations
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a social media scheduling expert. Provide 2-3 specific, actionable scheduling recommendations based on the provided data.'
+        },
+        {
+          role: 'user',
+          content: `Content: \"${request.content}\", Platforms: ${request.platforms.join(', ')}, Urgency: ${contentAnalysis.urgencyLevel}`
+        }
+      ],
+      temperature: 0.6,
+      max_tokens: 200
+    });
+
+    const aiRecommendations = response.choices[0].message.content;
+    if (aiRecommendations) {
+      const aiSuggestions = aiRecommendations.split('\
+')
+        .filter(s => s.trim())
+        .slice(0, 3);
+      recommendations.push(...aiSuggestions);
+    }
+  } catch (error) {
+    console.error('AI recommendations error:', error);
+  }
+  
+  return recommendations.slice(0, 8); // Limit to 8 recommendations
+}

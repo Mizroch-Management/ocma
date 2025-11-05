@@ -190,17 +190,19 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
   }, [clearError, handleError]);
 
   // Async operation wrapper
-  const withErrorHandling = useCallback(async <T>(
+  const withErrorHandling = useCallback(<T,>(
     operation: () => Promise<T>,
     context?: Record<string, unknown>
   ): Promise<T | null> => {
-    try {
-      clearError();
-      return await operation();
-    } catch (error) {
-      handleError(error as Error, context);
-      return null;
-    }
+    return (async () => {
+      try {
+        clearError();
+        return await operation();
+      } catch (error) {
+        handleError(error as Error, context);
+        return null;
+      }
+    })();
   }, [clearError, handleError]);
 
   return {
@@ -290,34 +292,36 @@ export function useApiErrorHandler(apiName?: string) {
     component: apiName
   });
 
-  const handleApiCall = useCallback(async <T>(
+  const handleApiCall = useCallback(<T,>(
     apiCall: () => Promise<Response>,
     options: {
       successMessage?: string;
       errorContext?: Record<string, unknown>;
     } = {}
   ): Promise<T | null> => {
-    try {
-      errorHandler.clearError();
-      
-      const response = await apiCall();
-      
-      if (!response.ok) {
-        await errorHandler.handleApiError(response, options.errorContext);
+    return (async () => {
+      try {
+        errorHandler.clearError();
+        
+        const response = await apiCall();
+        
+        if (!response.ok) {
+          await errorHandler.handleApiError(response, options.errorContext);
+          return null;
+        }
+
+        const data = await response.json();
+        
+        if (options.successMessage) {
+          toast.success(options.successMessage);
+        }
+        
+        return data;
+      } catch (error) {
+        errorHandler.handleError(error as Error, options.errorContext);
         return null;
       }
-
-      const data = await response.json();
-      
-      if (options.successMessage) {
-        toast.success(options.successMessage);
-      }
-      
-      return data;
-    } catch (error) {
-      errorHandler.handleError(error as Error, options.errorContext);
-      return null;
-    }
+    })();
   }, [errorHandler]);
 
   return {
