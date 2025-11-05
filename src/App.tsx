@@ -135,12 +135,12 @@ const App = () => (
                 </Routes>
               </BrowserRouter>
             </TooltipProvider>
-          </StrategyProvider>
-          </WorkflowProvider>
-        </OrganizationProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+              </StrategyProvider>
+            </WorkflowProvider>
+          </OrganizationProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   </SimpleErrorBoundary>
 );
 

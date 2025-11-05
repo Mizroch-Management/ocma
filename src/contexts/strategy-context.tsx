@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useOrganization } from '@/hooks/use-organization';
-import { useWorkflow } from './workflow-context';
 import { 
   fetchUserStrategies, 
   createStrategy, 
@@ -37,7 +36,6 @@ export const StrategyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { currentOrganization } = useOrganization();
-  const { state: workflowState } = useWorkflow();
 
   // Fetch strategies from database
   const refreshStrategies = useCallback(async () => {
@@ -60,36 +58,12 @@ export const StrategyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [currentOrganization?.id]);
 
-  // Get all strategies including AI-generated ones from workflow
+  // Get all strategies from database only
+  // Note: Workflow-based strategies are no longer merged here to avoid circular dependencies
+  // Components using workflow strategies should access them directly from WorkflowContext
   const getAllStrategies = useCallback(() => {
-    const allStrategies = [...strategies];
-    
-    // Add AI-generated strategy from workflow if available
-    if (workflowState.approvedStrategy) {
-      const aiStrategy: Strategy = {
-        id: workflowState.approvedStrategy.id || `ai-${Date.now()}`,
-        title: workflowState.approvedStrategy.title,
-        description: workflowState.approvedStrategy.description || '',
-        objectives: workflowState.approvedStrategy.objectives,
-        organization_id: currentOrganization?.id || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        is_ai_generated: true,
-        metadata: workflowState.approvedStrategy
-      };
-      
-      // Check if this strategy already exists in the list
-      const existingIndex = allStrategies.findIndex(s => s.id === aiStrategy.id);
-      if (existingIndex === -1) {
-        allStrategies.push(aiStrategy);
-      } else {
-        // Update existing strategy with latest data
-        allStrategies[existingIndex] = aiStrategy;
-      }
-    }
-    
-    return allStrategies;
-  }, [strategies, workflowState.approvedStrategy, currentOrganization?.id]);
+    return [...strategies];
+  }, [strategies]);
 
   // Add a new strategy
   const addStrategy = useCallback(async (strategy: Partial<Strategy>) => {
