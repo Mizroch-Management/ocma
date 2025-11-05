@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, memo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricsCards } from "@/components/dashboard/metrics-cards";
 import { QuickActions } from "@/components/dashboard/quick-actions";
@@ -259,4 +259,4 @@ function Dashboard() {
   );
 }
 
-export default memo(Dashboard);
+export default Dashboard;

@@ -60,28 +60,8 @@ const Index = () => {
     );
   }
 
-  // User has active organization, show simple test view
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle">
-      <div className="text-center max-w-2xl p-8 bg-card rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold mb-4">✅ App Loaded Successfully!</h1>
-        <p className="text-muted-foreground mb-4">
-          You are logged in as: <strong>{user.email}</strong>
-        </p>
-        <p className="text-muted-foreground mb-4">
-          Current Organization: <strong>{currentOrganization.name}</strong>
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Total Organizations: {userOrganizations.length}
-        </p>
-        <div className="mt-6 p-4 bg-muted rounded">
-          <p className="text-xs">
-            If you see this message, the TDZ error is in the Dashboard component or its dependencies.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  // User has active organization, show dashboard
+  return <Dashboard />;
 };
 
 export default Index;
