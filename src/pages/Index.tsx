@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
@@ -10,6 +10,16 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { userOrganizations, loading: orgLoading, currentOrganization } = useOrganization();
   const navigate = useNavigate();
+  const [contextReady, setContextReady] = useState(false);
+
+  // Ensure all contexts are initialized before rendering
+  useEffect(() => {
+    if (!authLoading && !orgLoading) {
+      // Small delay to ensure all context providers are fully initialized
+      const timer = setTimeout(() => setContextReady(true), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, orgLoading]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -17,8 +27,8 @@ const Index = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Show loading while checking auth and organizations
-  if (authLoading || orgLoading) {
+  // Show loading while checking auth and organizations, or until contexts are ready
+  if (authLoading || orgLoading || !contextReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
