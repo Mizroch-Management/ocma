@@ -142,12 +142,7 @@ export function RecentActivity() {
       // Load recent content activity for current organization
       const { data: contentData, error: contentError } = await supabase
         .from('generated_content')
-        .select(`
-          *,
-          profiles!user_id(
-            full_name
-          )
-        `)
+        .select('*')
         .eq('organization_id', currentOrganization.id)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -158,11 +153,7 @@ export function RecentActivity() {
         .select(`
           *,
           generated_content (
-            title,
-            user_id,
-            profiles!user_id (
-              full_name
-            )
+            title
           )
         `)
         .order('created_at', { ascending: false })
@@ -181,8 +172,9 @@ export function RecentActivity() {
       // Add content activities
       if (contentData) {
         contentData.forEach((content: ContentData) => {
-          const userFullName = content.profiles?.full_name || 'Unknown User';
-          const initials = userFullName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
+          // For now, use placeholder for user info until foreign key is established
+          const userFullName = 'Team Member';
+          const initials = 'TM';
           
           // Content creation activity
           recentActivities.push({
@@ -221,8 +213,9 @@ export function RecentActivity() {
       if (publicationData) {
         publicationData.forEach((log: PublicationData) => {
           const contentTitle = log.generated_content?.title || 'Unknown Content';
-          const userFullName = log.generated_content?.profiles?.full_name || 'System';
-          const initials = userFullName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
+          // For now, use placeholder for user info until foreign key is established
+          const userFullName = 'System';
+          const initials = 'SY';
           
           recentActivities.push({
             id: `publication-${log.id}`,
