@@ -53,12 +53,6 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
   const { currentOrganization } = useOrganization();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (currentOrganization) {
-      loadWorkflows();
-    }
-  }, [currentOrganization, loadWorkflows]);
-
   const loadWorkflows = useCallback(async () => {
     if (!currentOrganization) return;
     
@@ -83,6 +77,12 @@ export function WorkflowManager({ onSelectWorkflow, currentWorkflowId }: Workflo
       setLoading(false);
     }
   }, [currentOrganization, toast]);
+
+  useEffect(() => {
+    if (currentOrganization) {
+      loadWorkflows();
+    }
+  }, [currentOrganization, loadWorkflows]);
 
   const createNewWorkflow = async () => {
     if (!newWorkflowTitle.trim() || !user || !currentOrganization) return;
