@@ -132,13 +132,7 @@ function ActivityItem({ item }: { item: ActivityItem }) {
 export function RecentActivity() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { currentOrganization } = useOrganization();
-
-  useEffect(() => {
-    if (currentOrganization) {
-      loadRecentActivity();
-    }
-  }, [currentOrganization, loadRecentActivity]);
+  const { currentOrganization} = useOrganization();
 
   const loadRecentActivity = useCallback(async () => {
     if (!currentOrganization) return;
@@ -265,6 +259,12 @@ export function RecentActivity() {
       setIsLoading(false);
     }
   }, [currentOrganization]);
+
+  useEffect(() => {
+    if (currentOrganization) {
+      loadRecentActivity();
+    }
+  }, [currentOrganization, loadRecentActivity]);
 
   // Helper function to parse relative time strings for sorting
   const parseRelativeTime = (timeStr: string): number => {
