@@ -41,24 +41,6 @@ export function WorkflowDataManager({ currentStep, onStepChange }: WorkflowDataM
   const [isLoading, setIsLoading] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // Auto-save functionality
-  useEffect(() => {
-    if (state.businessInfo && currentWorkflowId) {
-      const autoSaveTimer = setTimeout(() => {
-        handleAutoSave();
-      }, 30000); // Auto-save every 30 seconds
-
-      return () => clearTimeout(autoSaveTimer);
-    }
-  }, [state, currentWorkflowId, handleAutoSave]);
-
-  // Load workflow on mount
-  useEffect(() => {
-    if (currentWorkflowId && !state.businessInfo) {
-      handleLoadWorkflow();
-    }
-  }, [currentWorkflowId, handleLoadWorkflow, state.businessInfo]);
-
   const handleAutoSave = useCallback(async () => {
     if (!currentWorkflowId) return;
 
@@ -113,6 +95,24 @@ export function WorkflowDataManager({ currentStep, onStepChange }: WorkflowDataM
       setIsLoading(false);
     }
   }, [currentWorkflowId, loadWorkflow, toast, setShowWorkflowManager]);
+
+  // Auto-save functionality
+  useEffect(() => {
+    if (state.businessInfo && currentWorkflowId) {
+      const autoSaveTimer = setTimeout(() => {
+        handleAutoSave();
+      }, 30000); // Auto-save every 30 seconds
+
+      return () => clearTimeout(autoSaveTimer);
+    }
+  }, [state, currentWorkflowId, handleAutoSave]);
+
+  // Load workflow on mount
+  useEffect(() => {
+    if (currentWorkflowId && !state.businessInfo) {
+      handleLoadWorkflow();
+    }
+  }, [currentWorkflowId, handleLoadWorkflow, state.businessInfo]);
 
   const handleBusinessInfoUpdate = (businessInfo: BusinessInfo) => {
     dispatch({ type: 'SET_BUSINESS_INFO', payload: businessInfo });
