@@ -144,7 +144,7 @@ export function RecentActivity() {
         .from('generated_content')
         .select(`
           *,
-          profiles!inner(
+          profiles!user_id(
             full_name
           )
         `)
@@ -159,7 +159,8 @@ export function RecentActivity() {
           *,
           generated_content (
             title,
-            profiles (
+            user_id,
+            profiles!user_id (
               full_name
             )
           )
