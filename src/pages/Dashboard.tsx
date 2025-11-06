@@ -159,9 +159,9 @@ function Dashboard() {
 
       {/* Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* <div className="lg:col-span-2">
+        <div className="lg:col-span-2">
           <RecentActivity />
-        </div> */}
+        </div>
         <div className="space-y-6">
           {/* Upcoming Posts */}
           <Card>
@@ -259,4 +259,4 @@ function Dashboard() {
   );
 }
 
-export default memo(Dashboard);
+export default Dashboard;
